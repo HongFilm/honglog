@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from './src/store/useHonglogStore';
@@ -17,6 +18,7 @@ import { QuickPresets } from './src/components/QuickPresets';
 import { TakesList } from './src/components/TakesList';
 import { ProjectSetup } from './src/components/ProjectSetup';
 import { ExportScreen } from './src/components/ExportScreen';
+import { THEME } from './src/types';
 
 type Tab = 'slate' | 'takes' | 'setup' | 'export';
 
@@ -48,9 +50,7 @@ export default function App() {
       {/* Top Header Bar */}
       <View style={styles.topbar}>
         <View style={styles.brandRow}>
-          <View style={styles.brandBadge}>
-            <Text style={styles.brandLogo}>H</Text>
-          </View>
+          <Image source={require('./assets/logo.jpeg')} style={styles.topLogo} resizeMode="contain" />
           <View>
             <Text style={styles.appTitle}>HONGLOG</Text>
             <Text style={styles.prodSubtitle} numberOfLines={1}>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#2C2D35',
+    borderBottomColor: THEME.border,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -164,29 +164,20 @@ const styles = StyleSheet.create({
     gap: 10,
     flex: 1,
   },
-  brandBadge: {
+  topLogo: {
     width: 32,
     height: 32,
-    borderRadius: 8,
-    backgroundColor: '#FF8A3D',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  brandLogo: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#120d06',
-    fontFamily: 'Courier',
+    borderRadius: 6,
   },
   appTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     letterSpacing: 1.2,
   },
   prodSubtitle: {
     fontSize: 11,
-    color: '#FF8A3D',
+    color: THEME.accent,
     fontWeight: '600',
     maxWidth: 180,
   },
@@ -194,22 +185,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
   },
   statusDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#5FBF77',
+    backgroundColor: THEME.good,
   },
   statusText: {
     fontSize: 9.5,
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     fontWeight: '700',
     letterSpacing: 0.5,
   },
@@ -226,9 +217,9 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderTopWidth: 1,
-    borderTopColor: '#2C2D35',
+    borderTopColor: THEME.border,
     paddingVertical: 8,
     paddingBottom: Platform.OS === 'ios' ? 12 : 8,
   },
@@ -252,11 +243,11 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#63656D',
+    color: THEME.textFaint,
     letterSpacing: 0.8,
   },
   tabLabelActive: {
-    color: '#FF8A3D',
+    color: THEME.accent,
   },
   tabBadgeRow: {
     flexDirection: 'row',
@@ -264,7 +255,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   badgeCount: {
-    backgroundColor: '#FF8A3D',
+    backgroundColor: THEME.accent,
     borderRadius: 8,
     paddingHorizontal: 4,
     paddingVertical: 1,
@@ -272,6 +263,6 @@ const styles = StyleSheet.create({
   badgeCountText: {
     fontSize: 8.5,
     fontWeight: '800',
-    color: '#120d06',
+    color: '#000',
   },
 });

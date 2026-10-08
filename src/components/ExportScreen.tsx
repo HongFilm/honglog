@@ -4,6 +4,7 @@ import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { generateAndShareCameraReport } from '../services/pdfGenerator';
+import { THEME } from '../types';
 
 export const ExportScreen: React.FC = () => {
   const { meta, takes } = useHonglogStore();
@@ -136,22 +137,22 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    fontFamily: 'Courier',
+    fontFamily: THEME.fontMono,
     fontWeight: '800',
-    color: '#FF8A3D',
+    color: THEME.accent,
     letterSpacing: 1,
     marginTop: 4,
   },
   subtitle: {
     fontSize: 12,
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     lineHeight: 18,
   },
   summaryBox: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     padding: 14,
     gap: 8,
     marginVertical: 4,
@@ -163,22 +164,22 @@ const styles = StyleSheet.create({
   },
   sumLabel: {
     fontSize: 11.5,
-    color: '#63656D',
+    color: THEME.textFaint,
     fontWeight: '600',
   },
   sumVal: {
     fontSize: 12,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     fontWeight: '700',
   },
   pdfBtn: {
-    backgroundColor: '#FF8A3D',
+    backgroundColor: THEME.accent,
     borderRadius: 14,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: '#FF8A3D',
+    shadowColor: THEME.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
@@ -193,18 +194,18 @@ const styles = StyleSheet.create({
   pdfBtnTitle: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: '#120d06',
+    color: '#000',
     letterSpacing: 0.5,
   },
   pdfBtnSub: {
     fontSize: 11,
-    color: '#3d250f',
+    color: '#330000',
     marginTop: 2,
   },
   secBtn: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 14,
     padding: 16,
     flexDirection: 'row',
@@ -217,18 +218,18 @@ const styles = StyleSheet.create({
   secBtnTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
   },
   secBtnSub: {
     fontSize: 11,
-    color: '#63656D',
+    color: THEME.textFaint,
     marginTop: 2,
   },
   infoCard: {
-    backgroundColor: 'rgba(255, 138, 61, 0.06)',
+    backgroundColor: THEME.accentWash,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 138, 61, 0.2)',
+    borderColor: 'rgba(255, 56, 56, 0.2)',
     padding: 14,
     marginTop: 8,
     gap: 6,
@@ -236,11 +237,11 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#FF8A3D',
+    color: THEME.accent,
   },
   infoText: {
     fontSize: 11.5,
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     lineHeight: 18,
   },
 });

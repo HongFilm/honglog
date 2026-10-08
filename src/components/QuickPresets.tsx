@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
+import { THEME } from '../types';
 
 export const QuickPresets: React.FC = () => {
   const { meta, form, setForm } = useHonglogStore();
@@ -132,11 +133,11 @@ export const QuickPresets: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     marginBottom: 14,
     gap: 10,
   },
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   headerLbl: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#63656D',
+    color: THEME.textFaint,
     letterSpacing: 0.8,
   },
   row: {
@@ -155,24 +156,24 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   chip: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   chipActive: {
-    backgroundColor: 'rgba(255, 138, 61, 0.15)',
-    borderColor: '#FF8A3D',
+    backgroundColor: THEME.accentWash,
+    borderColor: THEME.accent,
   },
   chipText: {
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     fontSize: 12,
     fontWeight: '600',
   },
   chipTextActive: {
-    color: '#FF8A3D',
+    color: THEME.accent,
     fontWeight: '700',
   },
 });

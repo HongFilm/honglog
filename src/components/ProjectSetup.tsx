@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
+import { THEME, Project } from '../types';
 
 export const ProjectSetup: React.FC = () => {
-  const { meta, updateMeta, clearAllTakes, takes } = useHonglogStore();
+  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject } = useHonglogStore();
 
   const [production, setProduction] = useState(meta.production);
   const [prodNumber, setProdNumber] = useState(meta.prodNumber);
@@ -23,6 +24,52 @@ export const ProjectSetup: React.FC = () => {
   const [shuttersText, setShuttersText] = useState(meta.shutters.join(', '));
   const [filtersText, setFiltersText] = useState(meta.filters.join(', '));
   const [isosText, setIsosText] = useState(meta.isos.join(', '));
+
+  const [newProjectName, setNewProjectName] = useState('');
+
+  const handleCreateProject = async () => {
+    if (!newProjectName.trim()) {
+      Alert.alert('Error', 'Nama project tidak boleh kosong');
+      return;
+    }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await createProject(newProjectName.trim());
+    setNewProjectName('');
+    Alert.alert('Sukses', 'Project baru berhasil dibuat dan dipilih.');
+  };
+
+  const handleSelectProject = async (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await selectProject(id);
+    // Refresh local state with new project data
+    const proj = projects.find(p => p.id === id);
+    if (proj) {
+      setProduction(proj.meta.production);
+      setProdNumber(proj.meta.prodNumber);
+      setDirector(proj.meta.director);
+      setDop(proj.meta.dop);
+      setFirstAc(proj.meta.firstAc);
+      setSecondAc(proj.meta.secondAc);
+      setFileFormat(proj.meta.fileFormat);
+      setAspectRatio(proj.meta.aspectRatio);
+      setLut(proj.meta.lut);
+      setProjectFps(proj.meta.projectFps);
+      setCamerasText(proj.meta.cameras.join(', '));
+      setCardsText(proj.meta.cards.join(', '));
+      setLensesText(proj.meta.lenses.join(', '));
+      setShuttersText(proj.meta.shutters.join(', '));
+      setFiltersText(proj.meta.filters.join(', '));
+      setIsosText(proj.meta.isos.join(', '));
+    }
+  };
+
+  const handleDeleteProject = (id: string, name: string) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    Alert.alert('Hapus Project', `Yakin hapus project "${name}"? Semua take di dalamnya akan hilang.`, [
+      { text: 'Batal', style: 'cancel' },
+      { text: 'Hapus', style: 'destructive', onPress: () => deleteProject(id) },
+    ]);
+  };
 
   const handleSave = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -66,8 +113,66 @@ export const ProjectSetup: React.FC = () => {
     );
   };
 
+  const renderProjectItem = ({ item }: { item: Project }) => {
+    const isActive = item.id === activeProjectId;
+    return (
+      <View style={[styles.projectCard, isActive && styles.projectCardActive]}>
+        <TouchableOpacity 
+          style={styles.projectInfo} 
+          onPress={() => handleSelectProject(item.id)}
+        >
+          <Text style={[styles.projectName, isActive && styles.projectNameActive]} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.projectMeta}>
+            {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+        </TouchableOpacity>
+        {isActive ? (
+          <View style={styles.activeBadge}>
+            <Text style={styles.activeBadgeText}>AKTIF</Text>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={() => handleDeleteProject(item.id, item.name)} style={styles.deleteProjectBtn}>
+            <Text style={styles.deleteProjectText}>Hapus</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Project Management Section */}
+      <Text style={styles.sectionHeader}>MANAJEMEN PROJECT FILM</Text>
+      
+      <View style={styles.card}>
+        <Text style={styles.label}>PROJECT AKTIF</Text>
+        <FlatList
+          data={projects}
+          keyExtractor={(item) => item.id}
+          renderItem={renderProjectItem}
+          scrollEnabled={false}
+          style={{ marginBottom: 12 }}
+        />
+        
+        <View style={styles.field}>
+          <Text style={styles.label}>BUAT PROJECT BARU</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TextInput
+              style={[styles.input, { flex: 1 }]}
+              value={newProjectName}
+              onChangeText={setNewProjectName}
+              placeholder="Nama film / produksi baru..."
+              placeholderTextColor={THEME.textFaint}
+            />
+            <TouchableOpacity style={styles.createBtn} onPress={handleCreateProject}>
+              <Text style={styles.createBtnText}>BUAT</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
       <Text style={styles.sectionHeader}>INFORMASI PRODUKSI & KRU</Text>
 
       <View style={styles.card}>
@@ -78,7 +183,7 @@ export const ProjectSetup: React.FC = () => {
             value={production}
             onChangeText={setProduction}
             placeholder="Cth: Sang Penebus"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -90,7 +195,7 @@ export const ProjectSetup: React.FC = () => {
               value={prodNumber}
               onChangeText={setProdNumber}
               placeholder="01"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
@@ -100,7 +205,7 @@ export const ProjectSetup: React.FC = () => {
               value={projectFps}
               onChangeText={setProjectFps}
               placeholder="24"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
         </View>
@@ -113,7 +218,7 @@ export const ProjectSetup: React.FC = () => {
               value={director}
               onChangeText={setDirector}
               placeholder="Nama Sutradara"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
@@ -123,7 +228,7 @@ export const ProjectSetup: React.FC = () => {
               value={dop}
               onChangeText={setDop}
               placeholder="Nama DOP"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
         </View>
@@ -136,7 +241,7 @@ export const ProjectSetup: React.FC = () => {
               value={firstAc}
               onChangeText={setFirstAc}
               placeholder="1st AC"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
@@ -146,7 +251,7 @@ export const ProjectSetup: React.FC = () => {
               value={secondAc}
               onChangeText={setSecondAc}
               placeholder="2nd AC"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
         </View>
@@ -162,7 +267,7 @@ export const ProjectSetup: React.FC = () => {
             value={fileFormat}
             onChangeText={setFileFormat}
             placeholder="ProRes 422 HQ / X-OCN"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -174,7 +279,7 @@ export const ProjectSetup: React.FC = () => {
               value={aspectRatio}
               onChangeText={setAspectRatio}
               placeholder="1.85:1 / 2.39:1"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
@@ -184,7 +289,7 @@ export const ProjectSetup: React.FC = () => {
               value={lut}
               onChangeText={setLut}
               placeholder="Rec.709 / Film Look"
-              placeholderTextColor="#63656D"
+              placeholderTextColor={THEME.textFaint}
             />
           </View>
         </View>
@@ -200,7 +305,7 @@ export const ProjectSetup: React.FC = () => {
             value={camerasText}
             onChangeText={setCamerasText}
             placeholder="A (FX6), B (FX3)"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -211,7 +316,7 @@ export const ProjectSetup: React.FC = () => {
             value={cardsText}
             onChangeText={setCardsText}
             placeholder="A001, B001, C001"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -222,7 +327,7 @@ export const ProjectSetup: React.FC = () => {
             value={lensesText}
             onChangeText={setLensesText}
             placeholder="18, 24, 35, 50, 75, 125"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -233,7 +338,7 @@ export const ProjectSetup: React.FC = () => {
             value={shuttersText}
             onChangeText={setShuttersText}
             placeholder="180°, 1/48, 1/50, 1/100"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -244,7 +349,7 @@ export const ProjectSetup: React.FC = () => {
             value={isosText}
             onChangeText={setIsosText}
             placeholder="100, 200, 400, 800, 1600, 3200, 6400"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
 
@@ -255,7 +360,7 @@ export const ProjectSetup: React.FC = () => {
             value={filtersText}
             onChangeText={setFiltersText}
             placeholder="Clear, ND3, ND6, Diffusion 1/4"
-            placeholderTextColor="#63656D"
+            placeholderTextColor={THEME.textFaint}
           />
         </View>
       </View>
@@ -281,18 +386,18 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     fontSize: 10.5,
-    fontFamily: 'Courier',
+    fontFamily: THEME.fontMono,
     fontWeight: '700',
-    color: '#FF8A3D',
+    color: THEME.accent,
     letterSpacing: 1.2,
     marginTop: 6,
     marginBottom: 2,
   },
   card: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     padding: 14,
     gap: 10,
   },
@@ -306,21 +411,84 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#63656D',
+    color: THEME.textFaint,
     letterSpacing: 0.6,
   },
   input: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     fontSize: 13,
   },
+  projectCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: THEME.surfaceRaised,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: THEME.border,
+    padding: 12,
+    marginBottom: 8,
+  },
+  projectCardActive: {
+    borderColor: THEME.accent,
+    backgroundColor: THEME.accentWash,
+  },
+  projectInfo: {
+    flex: 1,
+  },
+  projectName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: THEME.textPrimary,
+    marginBottom: 2,
+  },
+  projectNameActive: {
+    color: THEME.accent,
+  },
+  projectMeta: {
+    fontSize: 11,
+    color: THEME.textSecondary,
+  },
+  activeBadge: {
+    backgroundColor: THEME.accent,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  activeBadgeText: {
+    color: '#000',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  deleteProjectBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  deleteProjectText: {
+    color: THEME.danger,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  createBtn: {
+    backgroundColor: THEME.accent,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createBtnText: {
+    color: '#000',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   saveBtn: {
-    backgroundColor: '#FF8A3D',
+    backgroundColor: THEME.accent,
     borderRadius: 10,
     height: 44,
     alignItems: 'center',
@@ -328,7 +496,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   saveBtnText: {
-    color: '#120d06',
+    color: '#000',
     fontSize: 13,
     fontWeight: '800',
     letterSpacing: 0.5,
@@ -336,7 +504,7 @@ const styles = StyleSheet.create({
   dangerBtn: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#E0625A',
+    borderColor: THEME.danger,
     borderRadius: 10,
     height: 42,
     alignItems: 'center',
@@ -344,7 +512,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dangerBtnText: {
-    color: '#E0625A',
+    color: THEME.danger,
     fontSize: 12,
     fontWeight: '700',
   },

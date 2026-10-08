@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
-import { TakeEntry } from '../types';
+import { TakeEntry, THEME } from '../types';
 
 export const TakesList: React.FC = () => {
   const { takes, deleteTake, updateTake } = useHonglogStore();
@@ -111,15 +111,15 @@ export const TakesList: React.FC = () => {
       {/* Stats Bar */}
       <View style={styles.statsBar}>
         <View style={styles.statBox}>
-          <Text style={styles.statNum}>{takes.length}</Text>
-          <Text style={styles.statLbl}>TOTAL TAKES</Text>
+          <Text style={styles.statNum}>{takes.length > 0 ? Math.max(...takes.map(t => t.slate)) : 0}</Text>
+          <Text style={styles.statLbl}>SLATE TERAKHIR</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statNum, { color: '#5FBF77' }]}>{takes.filter((t) => t.isGood).length}</Text>
+          <Text style={[styles.statNum, { color: THEME.good }]}>{takes.filter((t) => t.isGood).length}</Text>
           <Text style={styles.statLbl}>GOOD TAKES</Text>
         </View>
         <View style={styles.statBox}>
-          <Text style={[styles.statNum, { color: '#FF8A3D' }]}>{new Set(takes.map((t) => t.scene)).size}</Text>
+          <Text style={[styles.statNum, { color: THEME.accent }]}>{new Set(takes.map((t) => t.scene)).size}</Text>
           <Text style={styles.statLbl}>SCENES</Text>
         </View>
       </View>
@@ -174,22 +174,22 @@ const styles = StyleSheet.create({
   },
   statBox: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     paddingVertical: 10,
     alignItems: 'center',
   },
   statNum: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#F4F3EE',
-    fontFamily: 'Courier',
+    color: THEME.textPrimary,
+    fontFamily: THEME.fontMono,
   },
   statLbl: {
     fontSize: 9,
-    color: '#63656D',
+    color: THEME.textFaint,
     fontWeight: '700',
     marginTop: 2,
     letterSpacing: 0.5,
@@ -201,51 +201,51 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 12,
     height: 38,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     fontSize: 12.5,
   },
   filterBtn: {
     paddingHorizontal: 12,
     height: 38,
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterBtnActive: {
-    backgroundColor: 'rgba(95, 191, 119, 0.15)',
-    borderColor: '#5FBF77',
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: THEME.good,
   },
   filterBtnText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
   },
   filterBtnTextActive: {
-    color: '#5FBF77',
+    color: THEME.good,
   },
   listContent: {
     paddingBottom: 24,
     gap: 10,
   },
   card: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     padding: 12,
   },
   cardGood: {
-    borderColor: 'rgba(95, 191, 119, 0.4)',
-    backgroundColor: 'rgba(95, 191, 119, 0.05)',
+    borderColor: 'rgba(74, 222, 128, 0.4)',
+    backgroundColor: 'rgba(74, 222, 128, 0.05)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -254,18 +254,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   slateBadge: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#3D3F4A',
+    borderColor: THEME.borderLight,
   },
   slateBadgeText: {
-    color: '#FF8A3D',
+    color: THEME.accent,
     fontSize: 11,
     fontWeight: '700',
-    fontFamily: 'Courier',
+    fontFamily: THEME.fontMono,
   },
   starBtn: {
     paddingHorizontal: 8,
@@ -273,11 +273,11 @@ const styles = StyleSheet.create({
   },
   starIcon: {
     fontSize: 13,
-    color: '#63656D',
+    color: THEME.textFaint,
     fontWeight: '700',
   },
   starIconActive: {
-    color: '#5FBF77',
+    color: THEME.good,
   },
   cardSpecs: {
     flexDirection: 'row',
@@ -287,10 +287,10 @@ const styles = StyleSheet.create({
   },
   specItem: {
     fontSize: 11,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
   },
   specKey: {
-    color: '#63656D',
+    color: THEME.textFaint,
     fontWeight: '700',
   },
   clipRow: {
@@ -299,26 +299,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 6,
     borderTopWidth: 1,
-    borderTopColor: '#262730',
+    borderTopColor: THEME.border,
   },
   clipName: {
     fontSize: 11.5,
-    fontFamily: 'Courier',
-    color: '#9FA1A8',
+    fontFamily: THEME.fontMono,
+    color: THEME.textSecondary,
   },
   timeStr: {
     fontSize: 10,
-    color: '#63656D',
+    color: THEME.textFaint,
   },
   notesBox: {
     marginTop: 6,
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderRadius: 6,
     padding: 6,
   },
   notesText: {
     fontSize: 11.5,
-    color: '#D4D4D8',
+    color: THEME.textSecondary,
     fontStyle: 'italic',
   },
   delBtn: {
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   delText: {
     fontSize: 10,
-    color: '#E0625A',
+    color: THEME.danger,
   },
   emptyWrap: {
     paddingVertical: 50,
@@ -339,11 +339,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
   },
   emptyDesc: {
     fontSize: 12,
-    color: '#63656D',
+    color: THEME.textFaint,
     textAlign: 'center',
   },
 });

@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TakeEntry, ProductionMeta } from '../types';
+import { TakeEntry, ProductionMeta, Project } from '../types';
 
-const STORAGE_KEY_TAKES = '@honglog_takes_v1';
-const STORAGE_KEY_META = '@honglog_meta_v1';
+const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
+const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
 
 export const defaultMeta: ProductionMeta = {
   production: 'Hong Films Project',
@@ -45,14 +45,21 @@ interface FormState {
 }
 
 interface HonglogStore {
-  meta: ProductionMeta;
-  takes: TakeEntry[];
+  projects: Project[];
+  activeProjectId: string | null;
+  meta: ProductionMeta; // derived from active project
+  takes: TakeEntry[]; // derived from active project
   form: FormState;
   isHydrated: boolean;
   selectedDay: number;
 
-  // Actions
+  // Project Actions
   hydrate: () => Promise<void>;
+  createProject: (name: string) => Promise<string>;
+  selectProject: (id: string) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+
+  // Meta & Form
   updateMeta: (partial: Partial<ProductionMeta>) => Promise<void>;
   setForm: (partial: Partial<FormState>) => void;
   incrementSlate: (delta: number) => void;
@@ -61,79 +68,164 @@ interface HonglogStore {
   addSuffixToShot: (suffix: string) => void;
   stripSuffixScene: () => void;
   toggleGoodTake: () => void;
+
+  // CRUD
   addTake: () => Promise<TakeEntry>;
-  deleteTake: (id: string) => Promise<void>;
   updateTake: (id: string, partial: Partial<TakeEntry>) => Promise<void>;
+  deleteTake: (id: string) => Promise<void>;
   clearAllTakes: () => Promise<void>;
   setSelectedDay: (day: number) => void;
 }
 
+const createInitialForm = (meta: ProductionMeta): FormState => ({
+  slate: 1,
+  scene: '1',
+  shot: '1',
+  take: 1,
+  isGood: false,
+  clipName: `${meta.cards[0] || 'A001'}_001`,
+  camera: meta.cameras[0] || 'A',
+  card: meta.cards[0] || 'A001',
+  lens: meta.lenses[2] || '35',
+  shutter: meta.shutters[0] || '180°',
+  iso: meta.isos[3] || '800',
+  filter: meta.filters[0] || 'Clear',
+  tstop: '2.8',
+  fps: meta.projectFps || '24',
+  notes: '',
+});
+
 export const useHonglogStore = create<HonglogStore>((set, get) => ({
+  projects: [],
+  activeProjectId: null,
   meta: defaultMeta,
   takes: [],
   isHydrated: false,
   selectedDay: 1,
 
-  form: {
-    slate: 1,
-    scene: '1',
-    shot: '1',
-    take: 1,
-    isGood: false,
-    clipName: 'A001_001',
-    camera: 'A (FX6)',
-    card: 'A001',
-    lens: '35',
-    shutter: '180°',
-    iso: '800',
-    filter: 'Clear',
-    tstop: '2.8',
-    fps: '24',
-    notes: '',
-  },
+  form: createInitialForm(defaultMeta),
 
   hydrate: async () => {
     try {
-      const [savedTakes, savedMeta] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEY_TAKES),
-        AsyncStorage.getItem(STORAGE_KEY_META),
+      const [savedProjects, savedActiveId] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY_PROJECTS),
+        AsyncStorage.getItem(STORAGE_KEY_ACTIVE_PROJECT),
       ]);
 
-      const parsedTakes: TakeEntry[] = savedTakes ? JSON.parse(savedTakes) : [];
-      const parsedMeta: ProductionMeta = savedMeta ? { ...defaultMeta, ...JSON.parse(savedMeta) } : defaultMeta;
+      let projects: Project[] = savedProjects ? JSON.parse(savedProjects) : [];
+      let activeId = savedActiveId;
+
+      // Migration/Init: create default project if empty
+      if (projects.length === 0) {
+        const defaultProject: Project = {
+          id: 'proj_default',
+          name: 'Produksi Utama',
+          createdAt: Date.now(),
+          meta: defaultMeta,
+          takes: [],
+        };
+        projects = [defaultProject];
+        activeId = defaultProject.id;
+        await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
+        await AsyncStorage.setItem(STORAGE_KEY_ACTIVE_PROJECT, activeId);
+      }
+
+      // Ensure activeId exists
+      const activeProject = projects.find((p) => p.id === activeId) || projects[0];
+      activeId = activeProject.id;
 
       set({
-        takes: parsedTakes,
-        meta: parsedMeta,
+        projects,
+        activeProjectId: activeId,
+        meta: activeProject.meta,
+        takes: activeProject.takes,
         isHydrated: true,
+        form: createInitialForm(activeProject.meta),
       });
-
-      // Update form defaults from meta if available
-      if (parsedMeta.cameras.length > 0) {
-        set((state) => ({
-          form: {
-            ...state.form,
-            camera: parsedMeta.cameras[0],
-            card: parsedMeta.cards[0] || 'A001',
-            lens: parsedMeta.lenses[2] || '35',
-            fps: parsedMeta.projectFps || '24',
-          },
-        }));
-      }
     } catch (e) {
-      console.warn('Failed to load store from storage', e);
+      console.warn('Failed to load store', e);
       set({ isHydrated: true });
     }
   },
 
-  updateMeta: async (partial) => {
-    const updated = { ...get().meta, ...partial };
-    set({ meta: updated });
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_META, JSON.stringify(updated));
-    } catch (e) {
-      console.error(e);
+  createProject: async (name: string) => {
+    const newProject: Project = {
+      id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      name: name || 'Proyek Baru',
+      createdAt: Date.now(),
+      meta: { ...defaultMeta, production: name },
+      takes: [],
+    };
+
+    const updatedProjects = [...get().projects, newProject];
+    set({
+      projects: updatedProjects,
+      activeProjectId: newProject.id,
+      meta: newProject.meta,
+      takes: [],
+      form: createInitialForm(newProject.meta),
+    });
+
+    await AsyncStorage.multiSet([
+      [STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects)],
+      [STORAGE_KEY_ACTIVE_PROJECT, newProject.id],
+    ]);
+
+    return newProject.id;
+  },
+
+  selectProject: async (id: string) => {
+    const proj = get().projects.find((p) => p.id === id);
+    if (!proj) return;
+
+    set({
+      activeProjectId: id,
+      meta: proj.meta,
+      takes: proj.takes,
+      form: createInitialForm(proj.meta),
+    });
+
+    await AsyncStorage.setItem(STORAGE_KEY_ACTIVE_PROJECT, id);
+  },
+
+  deleteProject: async (id: string) => {
+    const updated = get().projects.filter((p) => p.id !== id);
+    if (updated.length === 0) {
+      // Create default if all deleted
+      const defaultProject: Project = {
+        id: 'proj_default_' + Date.now(),
+        name: 'Produksi Utama',
+        createdAt: Date.now(),
+        meta: defaultMeta,
+        takes: [],
+      };
+      updated.push(defaultProject);
     }
+
+    const newActiveId = get().activeProjectId === id ? updated[0].id : get().activeProjectId || updated[0].id;
+    const activeProj = updated.find((p) => p.id === newActiveId)!;
+
+    set({
+      projects: updated,
+      activeProjectId: newActiveId,
+      meta: activeProj.meta,
+      takes: activeProj.takes,
+    });
+
+    await AsyncStorage.multiSet([
+      [STORAGE_KEY_PROJECTS, JSON.stringify(updated)],
+      [STORAGE_KEY_ACTIVE_PROJECT, newActiveId],
+    ]);
+  },
+
+  updateMeta: async (partial) => {
+    const updatedMeta = { ...get().meta, ...partial };
+    const updatedProjects = get().projects.map((p) =>
+      p.id === get().activeProjectId ? { ...p, meta: updatedMeta } : p
+    );
+
+    set({ meta: updatedMeta, projects: updatedProjects });
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
   },
 
   setForm: (partial) => {
@@ -179,7 +271,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   },
 
   addTake: async () => {
-    const { form, takes, selectedDay } = get();
+    const { form, takes, selectedDay, activeProjectId, projects } = get();
     const newEntry: TakeEntry = {
       id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       slate: form.slate,
@@ -202,46 +294,71 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     };
 
     const newTakes = [newEntry, ...takes];
-    // Automatically increment take for the next recording
-    const nextTake = form.take + 1;
-    const nextClipNum = String(newTakes.length + 1).padStart(3, '0');
+    
+    // RULE 4: Increment SLATE on save, reset take to 1
+    const nextSlate = form.slate + 1;
+    const nextTake = 1;
+    
+    // Generate next clip name based on selected card
     const cardPrefix = form.card || 'A001';
+    // Count existing takes for this card to determine next number
+    const cardTakes = newTakes.filter(t => t.card === cardPrefix).length;
+    const nextClipNum = String(cardTakes + 1).padStart(3, '0');
 
-    set((state) => ({
+    const updatedForm = {
+      ...form,
+      slate: nextSlate,
+      take: nextTake,
+      isGood: false,
+      notes: '',
+      clipName: `${cardPrefix}_${nextClipNum}`,
+    };
+
+    const updatedProjects = projects.map((p) =>
+      p.id === activeProjectId ? { ...p, takes: newTakes } : p
+    );
+
+    set({
       takes: newTakes,
-      form: {
-        ...state.form,
-        take: nextTake,
-        isGood: false,
-        notes: '',
-        clipName: `${cardPrefix}_${nextClipNum}`,
-      },
-    }));
+      projects: updatedProjects,
+      form: updatedForm,
+    });
 
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_TAKES, JSON.stringify(newTakes));
-    } catch (e) {
-      console.error(e);
-    }
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
 
     return newEntry;
   },
 
-  deleteTake: async (id) => {
-    const updated = get().takes.filter((t) => t.id !== id);
-    set({ takes: updated });
-    await AsyncStorage.setItem(STORAGE_KEY_TAKES, JSON.stringify(updated));
+  updateTake: async (id, partial) => {
+    const { takes, activeProjectId, projects } = get();
+    const updatedTakes = takes.map((t) => (t.id === id ? { ...t, ...partial } : t));
+    const updatedProjects = projects.map((p) =>
+      p.id === activeProjectId ? { ...p, takes: updatedTakes } : p
+    );
+
+    set({ takes: updatedTakes, projects: updatedProjects });
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
   },
 
-  updateTake: async (id, partial) => {
-    const updated = get().takes.map((t) => (t.id === id ? { ...t, ...partial } : t));
-    set({ takes: updated });
-    await AsyncStorage.setItem(STORAGE_KEY_TAKES, JSON.stringify(updated));
+  deleteTake: async (id) => {
+    const { takes, activeProjectId, projects } = get();
+    const updatedTakes = takes.filter((t) => t.id !== id);
+    const updatedProjects = projects.map((p) =>
+      p.id === activeProjectId ? { ...p, takes: updatedTakes } : p
+    );
+
+    set({ takes: updatedTakes, projects: updatedProjects });
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
   },
 
   clearAllTakes: async () => {
-    set({ takes: [] });
-    await AsyncStorage.removeItem(STORAGE_KEY_TAKES);
+    const { activeProjectId, projects } = get();
+    const updatedProjects = projects.map((p) =>
+      p.id === activeProjectId ? { ...p, takes: [] } : p
+    );
+
+    set({ takes: [], projects: updatedProjects });
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
   },
 
   setSelectedDay: (day) => {

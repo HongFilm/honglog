@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
+
+import { THEME } from '../types';
 
 export const SlateControl: React.FC = () => {
   const {
@@ -49,6 +51,15 @@ export const SlateControl: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      {/* Brand Logo & Header */}
+      <View style={styles.brandHeader}>
+        <Image source={require('../../assets/logo.jpeg')} style={styles.logoImage} resizeMode="contain" />
+        <View>
+          <Text style={styles.brandTitle}>HONGLOG</Text>
+          <Text style={styles.brandSub}>CAMERA REPORT & SLATE LOG</Text>
+        </View>
+      </View>
+
       {/* 4-Column Stepper: Slate, Scene, Shot, Take */}
       <View style={styles.grid}>
         {/* SLATE */}
@@ -230,12 +241,41 @@ export const SlateControl: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#17171C',
+    backgroundColor: THEME.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     marginBottom: 14,
+  },
+  brandHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: THEME.border,
+  },
+  logoImage: {
+    width: 42,
+    height: 42,
+    borderRadius: 8,
+  },
+  brandTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: THEME.textPrimary,
+    fontFamily: THEME.fontDisplay,
+    letterSpacing: 2,
+  },
+  brandSub: {
+    fontSize: 9,
+    fontWeight: '600',
+    color: THEME.accent,
+    fontFamily: THEME.fontMono,
+    letterSpacing: 1.5,
+    marginTop: 2,
   },
   grid: {
     flexDirection: 'row',
@@ -245,19 +285,19 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    fontFamily: 'Courier',
+    fontFamily: THEME.fontMono,
     fontSize: 10,
     fontWeight: '700',
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     letterSpacing: 1,
     marginBottom: 6,
     textAlign: 'center',
   },
   stepper: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -267,25 +307,25 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#262730',
+    backgroundColor: THEME.surface,
   },
   stepBtnText: {
-    color: '#FF8A3D',
+    color: THEME.accent,
     fontSize: 18,
     fontWeight: '700',
   },
   valInput: {
     flex: 1,
     height: 42,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
-    fontFamily: 'Courier',
+    fontFamily: THEME.fontMono,
     padding: 0,
   },
   takeInputHighlight: {
-    color: '#FF8A3D',
+    color: THEME.accent,
   },
   suffixRow: {
     flexDirection: 'row',
@@ -296,31 +336,31 @@ const styles = StyleSheet.create({
   },
   suffixLbl: {
     fontSize: 11,
-    color: '#63656D',
+    color: THEME.textFaint,
   },
   chipsWrap: {
     flexDirection: 'row',
     gap: 6,
   },
   chip: {
-    backgroundColor: '#262730',
+    backgroundColor: THEME.surfaceRaised,
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#3D3F4A',
+    borderColor: THEME.borderLight,
   },
   chipText: {
-    color: '#FF8A3D',
+    color: THEME.accent,
     fontSize: 11,
     fontWeight: '600',
   },
   chipClear: {
     backgroundColor: 'transparent',
-    borderColor: '#3D3F4A',
+    borderColor: THEME.borderLight,
   },
   chipClearText: {
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
     fontSize: 11,
   },
   clipRow: {
@@ -334,18 +374,18 @@ const styles = StyleSheet.create({
   subLbl: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: '#63656D',
+    color: THEME.textFaint,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   clipInput: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -353,13 +393,13 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   notesInput: {
-    backgroundColor: '#1F2026',
+    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: '#2C2D35',
+    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    color: '#F4F3EE',
+    color: THEME.textPrimary,
     fontSize: 12.5,
   },
   actionRow: {
@@ -372,47 +412,47 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: '#2C2D35',
-    backgroundColor: '#1F2026',
+    borderColor: THEME.border,
+    backgroundColor: THEME.surfaceRaised,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
   goodToggleActive: {
-    backgroundColor: 'rgba(95, 191, 119, 0.15)',
-    borderColor: '#5FBF77',
+    backgroundColor: 'rgba(74, 222, 128, 0.1)',
+    borderColor: THEME.good,
   },
   goodIcon: {
     fontSize: 16,
-    color: '#63656D',
+    color: THEME.textFaint,
   },
   goodIconActive: {
-    color: '#5FBF77',
+    color: THEME.good,
   },
   goodText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#9FA1A8',
+    color: THEME.textSecondary,
   },
   goodTextActive: {
-    color: '#5FBF77',
+    color: THEME.good,
   },
   saveBtn: {
     flex: 1.3,
     height: 44,
     borderRadius: 10,
-    backgroundColor: '#FF8A3D',
+    backgroundColor: THEME.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF8A3D',
+    shadowColor: THEME.accent,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 4,
   },
   saveBtnText: {
-    color: '#120d06',
+    color: '#000000',
     fontSize: 13.5,
     fontWeight: '800',
     letterSpacing: 0.5,
