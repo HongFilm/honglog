@@ -1,0 +1,4559 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ShinoLog — Camera Report & Slate Log</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0F0F12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ShinoLog">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23121214%22/><text x=%2250%22 y=%2266%22 font-family=%22monospace%22 font-size=%2250%22 fill=%22%23FF8A3D%22 text-anchor=%22middle%22>S</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #0F0F12;
+    --surface: #17171C;
+    --surface-raised: #1F2026;
+    --surface-hover: #262730;
+    --border: #2C2D35;
+    --border-light: #3D3F4A;
+    --accent: #FF8A3D;
+    --accent-dim: #C96A2C;
+    --accent-glow: rgba(255, 138, 61, 0.25);
+    --accent-wash: rgba(255, 138, 61, 0.12);
+    --text-primary: #F4F3EE;
+    --text-secondary: #9FA1A8;
+    --text-faint: #63656D;
+    --good: #5FBF77;
+    --good-wash: rgba(95, 191, 119, 0.12);
+    --good-glow: rgba(95, 191, 119, 0.3);
+    --danger: #E0625A;
+    --danger-wash: rgba(224, 98, 90, 0.12);
+    --font-display: 'Oswald', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-ui: 'Inter', sans-serif;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+    --container-max: 1200px;
+    --header-height: 70px;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    height: 100%;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    position: relative;
+  }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 1200px 600px at 50% -10%, rgba(255, 138, 61, 0.07), transparent 70%), var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overscroll-behavior-y: none;
+  }
+
+  button, input, select, textarea { font-family: inherit; }
+  ::selection { background: var(--accent); color: #1a1a1a; }
+
+  /* Base App Layout */
+  #app {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 0 12px;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  /* Header Topbar */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    margin: 0 -12px;
+    padding: calc(10px + var(--safe-top)) 12px 10px;
+    background: linear-gradient(180deg, rgba(15, 15, 18, 0.98) 75%, rgba(15, 15, 18, 0.85));
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    width: calc(100% + 24px);
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  .topbar-inner {
+    max-width: var(--container-max);
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .topbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(145deg, var(--accent), var(--accent-dim));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: #120d06;
+    font-size: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 10px var(--accent-glow);
+    letter-spacing: -0.02em;
+  }
+  .brand-text {
+    line-height: 1.15;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .brand-text .app-name {
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  .brand-text .prod-name {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-top: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,138,61,0.08);
+    padding: 1px 6px;
+    border-radius: 5px;
+    border: 1px solid rgba(255,138,61,0.25);
+    transition: all .15s ease;
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .brand-text .prod-name:hover {
+    background: rgba(255,138,61,0.18);
+    border-color: var(--accent);
+  }
+
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    color: var(--text-faint);
+    background: rgba(255,255,255,0.03);
+    padding: 2px 6px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    margin-top: 2px;
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sync-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-faint);
+    flex-shrink: 0;
+  }
+  .sync-badge.online .sync-dot { background: var(--good); box-shadow: 0 0 8px rgba(95, 191, 119, 0.8); }
+  .sync-badge.connecting .sync-dot { background: var(--accent); animation: pulse 1s infinite; }
+  .sync-badge.offline .sync-dot { background: #888A96; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .4; transform: scale(0.85); } }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .icon-btn {
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 11.5px;
+    font-weight: 500;
+    transition: all .15s ease;
+    flex-shrink: 0;
+  }
+  .icon-btn.square { width: 34px; height: 34px; padding: 0; flex-shrink: 0; }
+  .icon-btn:hover {
+    background: var(--surface-raised);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+    transform: translateY(-1px);
+  }
+  .icon-btn:active { transform: scale(0.96); }
+
+  .user-badge-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    padding: 0 8px;
+    height: 34px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s ease;
+    color: var(--text-secondary);
+    font-size: 11.5px;
+    flex-shrink: 0;
+    max-width: 140px;
+  }
+  .user-badge-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+  .user-badge-btn .dot-active {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--good);
+    box-shadow: 0 0 8px rgba(95, 191, 119, 0.7);
+    flex-shrink: 0;
+  }
+
+  .desktop-log-btn {
+    display: none;
+    background: linear-gradient(145deg, var(--accent), var(--accent-dim));
+    color: #150e06;
+    border: none;
+    border-radius: 8px;
+    padding: 0 14px;
+    height: 34px;
+    font-family: var(--font-display);
+    font-size: 13.5px;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 14px var(--accent-glow);
+    transition: all .15s ease;
+    align-items: center;
+    gap: 6px;
+  }
+  .desktop-log-btn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px var(--accent-glow);
+  }
+  .desktop-log-btn:active { transform: scale(0.96); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .search-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 10px 8px 30px;
+    font-size: 12.5px;
+    font-family: var(--font-ui);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    box-sizing: border-box;
+  }
+  .search-wrap input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-wash);
+  }
+  .search-wrap svg {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: .5;
+    pointer-events: none;
+  }
+  select.filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 8px;
+    padding: 8px 8px;
+    font-size: 12px;
+    font-family: var(--font-ui);
+    outline: none;
+    cursor: pointer;
+    transition: border-color .15s;
+    flex: 0 0 auto;
+    min-width: 100px;
+    box-sizing: border-box;
+  }
+  select.filter-select:focus { border-color: var(--accent); }
+
+  /* Stats Grid (3 Columns) */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    padding: 12px 0 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .stat {
+    background: linear-gradient(145deg, rgba(26,26,34,0.88) 0%, rgba(16,16,22,0.94) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px 8px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(16px);
+    transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    text-align: center;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+  }
+  .stat:hover {
+    border-color: rgba(255,138,61,0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.5), 0 0 20px rgba(255,138,61,0.08);
+  }
+  .stat .num {
+    font-family: var(--font-mono);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  .stat .lbl {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-top: 5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stat.good {
+    border-color: rgba(95, 191, 119, 0.25);
+  }
+  .stat.good::before {
+    background: linear-gradient(90deg, transparent, rgba(95, 191, 119, 0.7), transparent);
+  }
+  .stat.good .num {
+    color: var(--good);
+    text-shadow: 0 0 16px rgba(95, 191, 119, 0.35);
+  }
+  .stat.shot {
+    border-color: rgba(255, 138, 61, 0.25);
+  }
+  .stat.shot::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 138, 61, 0.7), transparent);
+  }
+  .stat.shot .num {
+    color: var(--accent);
+    text-shadow: 0 0 16px rgba(255, 138, 61, 0.35);
+  }
+
+  /* Main Entry Cards Grid */
+  main {
+    flex: 1;
+    padding: 8px 0 calc(110px + var(--safe-bottom));
+  }
+  .day-heading {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 22px 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .day-heading::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .entry-card {
+    background: linear-gradient(145deg, rgba(24,24,32,0.92) 0%, rgba(15,15,20,0.96) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 12px 14px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+    transition: transform .2s cubic-bezier(0.16, 1, 0.3, 1), border-color .2s, box-shadow .2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .entry-card:hover {
+    border-color: rgba(255, 138, 61, 0.35);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 138, 61, 0.08);
+  }
+  .entry-card.good {
+    border-color: rgba(95, 191, 119, 0.45);
+    background: linear-gradient(180deg, rgba(95, 191, 119, 0.09) 0%, rgba(18, 22, 20, 0.94) 65%);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45), 0 0 26px rgba(95, 191, 119, 0.12);
+  }
+  .entry-card.good::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #5fbf77, #34d399);
+  }
+
+  .entry-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .slate-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+  .slate-field {
+    display: flex;
+    flex-direction: column;
+    padding: 3px 4px;
+    background: rgba(255,255,255,0.025);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 58px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+  .slate-field .k {
+    font-size: 7.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 600;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .slate-field .v {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .slate-field.slate-id .v {
+    color: #72d9ff;
+  }
+  .slate-field.take-field .v {
+    color: var(--accent);
+  }
+  .slate-field.good-take .v {
+    color: var(--good);
+  }
+
+  .circle-mark {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .circle-mark svg {
+    position: absolute;
+    inset: -6px;
+    overflow: visible;
+  }
+  .circle-mark path {
+    fill: none;
+    stroke: var(--good);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 120;
+    stroke-dashoffset: 120;
+    animation: draw-circle .4s ease-out forwards;
+  }
+  @keyframes draw-circle { to { stroke-dashoffset: 0; } }
+
+  .entry-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .mini-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s ease;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .mini-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+  }
+  .mini-btn.active {
+    background: var(--good-wash);
+    border-color: rgba(95, 191, 119, 0.45);
+    color: var(--good);
+  }
+  .mini-btn:active { transform: scale(0.92); }
+
+  .entry-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .chip {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .chip.chip-clip {
+    border-color: rgba(114, 217, 255, 0.35);
+    color: #72d9ff;
+    background: rgba(114, 217, 255, 0.08);
+    font-weight: 600;
+  }
+  .chip.chip-card {
+    border-color: rgba(95, 191, 119, 0.35);
+    color: #84e89f;
+    background: rgba(95, 191, 119, 0.08);
+    font-weight: 600;
+  }
+  .chip.chip-dur {
+    border-color: rgba(160, 140, 255, 0.35);
+    color: #b7a4ff;
+    background: rgba(160, 140, 255, 0.08);
+  }
+  .chip.chip-shutter {
+    border-color: rgba(230, 180, 80, 0.35);
+    color: #f7d274;
+    background: rgba(230, 180, 80, 0.08);
+  }
+  .chip.chip-iso {
+    border-color: rgba(255, 138, 61, 0.3);
+    color: #ffaa6e;
+    background: rgba(255, 138, 61, 0.08);
+  }
+  .chip.chip-cam {
+    color: var(--text-primary);
+    border-color: var(--border-light);
+    font-weight: 600;
+  }
+  .entry-note {
+    font-size: 13.5px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.45;
+    font-style: italic;
+    background: rgba(0,0,0,0.2);
+    padding: 8px 12px;
+    border-radius: 8px;
+    border-left: 2px solid var(--border-light);
+  }
+  .entry-time {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--text-faint);
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px 40px;
+    color: var(--text-faint);
+  }
+  .empty-state .clap { font-size: 44px; margin-bottom: 12px; opacity: .7; }
+  .empty-state h3 {
+    font-family: var(--font-display);
+    letter-spacing: .08em;
+    color: var(--text-secondary);
+    font-size: 18px;
+    margin: 0 0 8px;
+  }
+  .empty-state p { font-size: 13.5px; margin: 0; line-height: 1.6; }
+
+  .fab {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(16px + var(--safe-bottom));
+    z-index: 30;
+    max-width: 460px;
+    width: calc(100% - 24px);
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .fab button {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    background: linear-gradient(145deg, var(--accent), var(--accent-dim));
+    color: #120d06;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: .08em;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 10px 28px rgba(255, 138, 61, 0.4), 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: all .15s ease;
+    box-sizing: border-box;
+  }
+  .fab button:active { transform: scale(0.97); }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s ease;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; }
+
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 41;
+    max-width: 560px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    border: 1px solid var(--border);
+    border-bottom: none;
+    max-height: 90dvh;
+    max-height: calc(100dvh - var(--safe-top) - 16px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding-bottom: calc(36px + var(--safe-bottom));
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
+  }
+  .sheet.open { transform: translateY(0); }
+  .sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-light);
+    border-radius: 2px;
+    margin: 10px auto 4px;
+  }
+  .sheet-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sheet-header h2 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: .08em;
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .sheet-body { padding: 16px 20px 10px; }
+
+  /* ===== LANDING SCREEN 3D ===== */
+  #landingScreen {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: radial-gradient(circle at 50% 25%, #161422 0%, #080810 70%, #020205 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 100dvh;
+    padding: clamp(12px, 3vh, 32px) 16px;
+    transition: transform 0.75s cubic-bezier(0.77, 0, 0.18, 1), opacity 0.75s ease;
+  }
+  #landingScreen.exit {
+    transform: translateY(-100vh) scale(0.95);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Anamorphic Lens Flare Sweep */
+  .anamorphic-flare {
+    position: absolute;
+    top: 32%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140vw;
+    height: 3px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,138,61,0.1) 20%, rgba(255,160,80,0.85) 50%, rgba(95,191,119,0.75) 55%, rgba(56,189,248,0.3) 70%, transparent 100%);
+    filter: blur(1px) drop-shadow(0 0 16px rgba(255,138,61,0.8));
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0.65;
+    animation: flarePulse 4s ease-in-out infinite alternate;
+  }
+  @keyframes flarePulse {
+    0% { opacity: 0.35; transform: translate(-50%, -50%) scaleX(0.85); }
+    100% { opacity: 0.85; transform: translate(-50%, -50%) scaleX(1.15); }
+  }
+
+  /* Film grain */
+  #landingScreen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 10;
+    animation: grain 0.3s steps(3) infinite;
+  }
+  @keyframes grain {
+    0%,100%{transform:translate(0,0)}
+    33%{transform:translate(-3px,2px)}
+    66%{transform:translate(2px,-2px)}
+  }
+
+  /* Film frame borders */
+  .film-frame-border {
+    position: absolute;
+    z-index: 4;
+    pointer-events: none;
+  }
+  .film-frame-border.top, .film-frame-border.bottom {
+    left: 0; right: 0; height: clamp(24px, 4.5vh, 44px);
+    background: #020204;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .film-frame-border.top { top: 0; }
+  .film-frame-border.bottom { bottom: 0; border-bottom: none; border-top: 1px solid rgba(255,255,255,0.06); }
+  .film-hole {
+    width: clamp(10px,2vw,16px);
+    height: clamp(6px,1.2vh,10px);
+    background: #0d0e14;
+    border: 1px solid rgba(255,138,61,0.2);
+    border-radius: 2.5px;
+    flex-shrink: 0;
+  }
+
+  /* 3D Scene */
+  .landing-scene {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 12px;
+    width: 100%;
+    max-width: 470px;
+    margin: auto 0;
+    animation: sceneIn 0.9s cubic-bezier(0.22,1,0.36,1) 0.1s both;
+  }
+  @keyframes sceneIn {
+    from { opacity:0; transform:translateY(28px) scale(0.96); }
+    to   { opacity:1; transform:translateY(0) scale(1); }
+  }
+
+  /* Camera lens glow behind clapper */
+  .lens-glow {
+    position: absolute;
+    width: clamp(170px, 45vw, 280px);
+    height: clamp(170px, 45vw, 280px);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,138,61,0.3) 0%, rgba(255,100,30,0.12) 42%, rgba(56,189,248,0.06) 65%, transparent 75%);
+    top: clamp(0px, 1.5vh, 20px);
+    left: 50%;
+    transform: translateX(-50%);
+    animation: lensGlow 3.5s ease-in-out infinite;
+    filter: blur(14px);
+    pointer-events: none;
+  }
+  @keyframes lensGlow {
+    0%,100%{opacity:0.75;transform:translateX(-50%) scale(1);}
+    50%{opacity:1.05;transform:translateX(-50%) scale(1.22);}
+  }
+
+  /* 3D Clapperboard */
+  .clapper-wrap {
+    perspective: 1200px;
+    margin-bottom: clamp(14px, 2.8vh, 28px);
+    margin-top: clamp(4px, 1vh, 16px);
+    position: relative;
+    animation: float 4.5s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    50%{transform:translateY(-8px) rotate(-0.5deg);}
+  }
+  .clapper-3d {
+    width: clamp(165px, 42vw, 220px);
+    transform-style: preserve-3d;
+    transition: transform 0.12s ease-out;
+    filter: drop-shadow(0 24px 50px rgba(0,0,0,0.95)) drop-shadow(0 0 40px rgba(255,138,61,0.3));
+    position: relative;
+  }
+  .clapper-top {
+    height: clamp(38px, 9vw, 50px);
+    display: flex;
+    overflow: hidden;
+    border-radius: 8px 8px 0 0;
+    border: 2px solid rgba(255,255,255,0.18);
+    border-bottom: none;
+    transform-origin: bottom center;
+    animation: clapperFlap 5.5s ease-in-out infinite;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+    position: relative;
+  }
+  @keyframes clapperFlap {
+    0%,55%,100%{transform:rotateX(0deg);}
+    8%{transform:rotateX(-52deg);}
+    18%{transform:rotateX(0deg);}
+  }
+  .clapper-stripe { flex:1; height:100%; }
+  .clapper-stripe:nth-child(odd)  { background: linear-gradient(180deg,#FFA05C 0%,#E07028 100%); }
+  .clapper-stripe:nth-child(even) { background: linear-gradient(180deg,#202028 0%,#0c0c10 100%); }
+
+  .clapper-hinge-bar {
+    position: absolute;
+    bottom: -4px;
+    left: 8px;
+    right: 8px;
+    height: 8px;
+    background: linear-gradient(180deg, #505058 0%, #2a2a30 100%);
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    z-index: 3;
+  }
+  .clapper-bolt {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #888 60%, #333 100%);
+    box-shadow: inset 0 1px 1px #fff, 0 1px 2px rgba(0,0,0,0.8);
+  }
+
+  .clapper-body {
+    background: linear-gradient(180deg, #1c1c24 0%, #101016 100%);
+    border: 2px solid rgba(255,255,255,0.14);
+    border-top: 2px solid rgba(255,138,61,0.4);
+    border-radius: 0 0 12px 12px;
+    padding: clamp(8px,2vw,14px) clamp(10px,2.5vw,18px) clamp(10px,2.5vh,16px);
+    box-shadow: 0 16px 45px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .clapper-sheen {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(255,138,61,0.04) 100%);
+    pointer-events: none;
+  }
+  .clapper-rec-badge {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 6px;
+    padding: 3px 6px;
+    margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(7.5px, 1.5vw, 9px);
+  }
+  .clapper-rec-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #ef4444;
+    font-weight: 700;
+  }
+  .clapper-rec-dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px #ef4444;
+    animation: recBlink 1s infinite alternate;
+  }
+  @keyframes recBlink { 0%{opacity:1;} 100%{opacity:0.2;} }
+  .clapper-tc {
+    color: #38bdf8;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .clapper-info { display:flex; flex-direction:column; gap:4px; position:relative; z-index:1; }
+  .clapper-field {
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding-bottom: 3px;
+  }
+  .clapper-label {
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(7px,1.4vw,8.5px);
+    color:#5a5c68; letter-spacing:1.5px; text-transform:uppercase;
+  }
+  .clapper-val {
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(8.5px,1.8vw,11px);
+    color:#FF8A3D; font-weight:700; letter-spacing:1px;
+  }
+
+  /* Particles */
+  .landing-particles { position:absolute; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+  .particle {
+    position:absolute; border-radius:50%;
+    animation:particleDrift linear infinite;
+  }
+  @keyframes particleDrift {
+    0%  {transform:translateY(100vh) translateX(0) scale(1);opacity:0;}
+    10% {opacity:1;}
+    90% {opacity:0.4;}
+    100%{transform:translateY(-40px) translateX(var(--dx,30px)) scale(0.5);opacity:0;}
+  }
+
+  /* Ambient glow */
+  .landing-glow {
+    position:absolute; width:70vw; height:70vw; max-width:400px; max-height:400px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,138,61,0.18) 0%,rgba(95,191,119,0.06) 45%,transparent 70%);
+    top:50%; left:50%; transform:translate(-50%,-55%);
+    pointer-events:none; z-index:1;
+    animation:glowPulse 4s ease-in-out infinite;
+  }
+  @keyframes glowPulse {
+    0%,100%{opacity:0.7;transform:translate(-50%,-55%) scale(1);}
+    50%{opacity:1;transform:translate(-50%,-55%) scale(1.2);}
+  }
+
+  /* Title */
+  .landing-title {
+    font-family:'Oswald',sans-serif;
+    font-size:clamp(48px,14vw,90px);
+    font-weight:700;
+    letter-spacing:0.12em;
+    line-height:0.88;
+    text-align:center;
+    margin-bottom:6px;
+    position:relative;
+  }
+  .landing-title .word-shino {
+    display:block; color:#F4F3EE;
+    text-shadow:0 2px 30px rgba(255,255,255,0.12);
+    animation:wordIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.4s both;
+  }
+  .landing-title .word-log {
+    display:block; color:#FF8A3D;
+    text-shadow:0 0 45px rgba(255,138,61,0.7),0 0 90px rgba(255,138,61,0.35);
+    animation:wordIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.55s both;
+  }
+  @keyframes wordIn {
+    from{opacity:0;transform:translateY(20px) skewY(2deg);}
+    to{opacity:1;transform:translateY(0) skewY(0);}
+  }
+  .landing-tagline {
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(8.5px,2vw,11px);
+    letter-spacing:0.24em;
+    color:#6a6d7c;
+    text-transform:uppercase;
+    text-align:center;
+    margin-bottom:clamp(12px,2.8vh,22px);
+    animation:fadeUp 0.7s ease 0.8s both;
+  }
+  @keyframes fadeUp {
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+
+  /* Feature pills */
+  .landing-features {
+    display:flex; gap:6px; flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom:clamp(16px,3.5vh,28px);
+    animation:fadeUp 0.7s ease 1s both;
+  }
+  .landing-pill {
+    background:rgba(255,138,61,0.08);
+    border:1px solid rgba(255,138,61,0.25);
+    color:rgba(255,150,75,0.95);
+    font-family:'JetBrains Mono',monospace;
+    font-size:clamp(9.5px,2vw,11.5px);
+    font-weight:600;
+    padding:5px 12px;
+    border-radius:100px;
+    display:flex; align-items:center; gap:5px;
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+  }
+  .landing-pill:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,138,61,0.6);
+    box-shadow: 0 4px 14px rgba(255,138,61,0.25);
+  }
+
+  /* CTA */
+  .landing-cta {
+    animation:fadeUp 0.7s ease 1.15s both;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    width:100%;
+  }
+  #startAppBtn {
+    background:linear-gradient(135deg,#FF8A3D 0%,#D4601A 100%);
+    color:#080810;
+    border:none;
+    border-radius:100px;
+    padding:clamp(12px,3vw,16px) clamp(28px,8vw,48px);
+    font-family:'Oswald',sans-serif;
+    font-size:clamp(15px,3.6vw,19px);
+    font-weight:600;
+    letter-spacing:0.14em;
+    cursor:pointer;
+    width:100%;
+    max-width:320px;
+    transition:transform 0.2s,box-shadow 0.2s;
+    box-shadow:0 8px 36px rgba(255,138,61,0.5),0 2px 8px rgba(0,0,0,0.4);
+    position:relative; overflow:hidden;
+  }
+  #startAppBtn::before {
+    content:'';
+    position:absolute; top:0; left:-100%; width:60%; height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+    animation:btnShine 3s ease-in-out 1.5s infinite;
+  }
+  @keyframes btnShine {
+    0%{left:-100%;} 40%,100%{left:150%;}
+  }
+  #startAppBtn:active{transform:scale(0.96);}
+  .landing-hint {
+    font-size:clamp(8.5px,1.8vw,10.5px);
+    color:#505260;
+    font-family:'JetBrains Mono',monospace;
+    letter-spacing:0.08em;
+  }
+
+  /* Auth / Login Modal 3D */
+  #authOverlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 30%, #1c1813 0%, #0c0c0e 100%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    perspective: 1200px;
+    transition: opacity .3s ease, visibility .3s ease;
+  }
+  #authOverlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .auth-card {
+    width: 100%;
+    max-width: 430px;
+    background: linear-gradient(160deg, rgba(26, 26, 34, 0.92) 0%, rgba(14, 14, 18, 0.96) 100%);
+    backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 138, 61, 0.35);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.9), 0 0 50px rgba(255, 138, 61, 0.15);
+    border-radius: 24px;
+    padding: 30px 26px;
+    position: relative;
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transition: transform 0.15s ease-out, border-color 0.2s;
+  }
+  .auth-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), #34d399, var(--accent-dim));
+  }
+  .auth-header {
+    text-align: center;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* 3D Floating Slate Logo in Auth Modal */
+  .auth-3d-mark {
+    width: 60px;
+    height: 52px;
+    margin: 0 auto 12px;
+    perspective: 800px;
+    cursor: pointer;
+  }
+  .auth-mini-clapper {
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    animation: authClapperFloat 4s ease-in-out infinite;
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.7)) drop-shadow(0 0 16px rgba(255,138,61,0.4));
+  }
+  @keyframes authClapperFloat {
+    0%,100%{transform:rotateY(-12deg) rotateX(8deg) translateY(0);}
+    50%{transform:rotateY(12deg) rotateX(-6deg) translateY(-5px);}
+  }
+  .auth-mini-top {
+    height: 16px;
+    background: repeating-linear-gradient(45deg, #FF8A3D, #FF8A3D 8px, #18181f 8px, #18181f 16px);
+    border-radius: 6px 6px 0 0;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-bottom: none;
+  }
+  .auth-mini-body {
+    height: 36px;
+    background: linear-gradient(180deg, #1c1c24, #121218);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-top: 1px solid var(--accent);
+    border-radius: 0 0 8px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 18px;
+    letter-spacing: 1px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .auth-title {
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: .12em;
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .auth-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+    color: var(--text-primary);
+    margin: 0;
+  }
+  .auth-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+  }
+  .auth-error {
+    background: var(--danger-wash);
+    border: 1px solid rgba(224, 98, 90, 0.4);
+    color: var(--danger);
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    display: none;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .auth-device-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 14px;
+  }
+
+  .google-btn {
+    background: #ffffff;
+    color: #1a1a1a;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 12px;
+    padding: 14px 18px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    border: none;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .google-btn:hover {
+    background: #f1f1f1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .google-btn:active { transform: scale(0.98); }
+
+  /* Slate Steppers 4-Col Keypad */
+  .keypad-4col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .field {
+    margin-bottom: 16px;
+  }
+  .field label {
+    display: block;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .stepper {
+    display: flex;
+    align-items: center;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+  .stepper:focus-within { border-color: var(--accent); }
+  .slate-input {
+    width: 100%;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 10px 2px;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    text-transform: uppercase;
+  }
+  .step-btn {
+    width: 28px;
+    height: 48px;
+    background: transparent;
+    border: none;
+    color: var(--accent);
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s;
+  }
+  .step-btn:hover { background: var(--accent-wash); }
+  .step-btn:active { background: rgba(255, 138, 61, 0.25); }
+
+  .text-input {
+    width: 100%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  .text-input:focus { border-color: var(--accent); }
+  textarea.text-input {
+    resize: none;
+    min-height: 64px;
+    font-family: var(--font-ui);
+  }
+
+  .preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .preset-chip {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .preset-chip:hover {
+    border-color: var(--border-light);
+    color: var(--text-primary);
+  }
+  .preset-chip.selected {
+    background: var(--accent-wash);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .four-col {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .three-col {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .toggle-good {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    margin-bottom: 18px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .toggle-good:hover { border-color: var(--border-light); }
+  .toggle-good .lbl {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .switch {
+    width: 44px;
+    height: 26px;
+    border-radius: 14px;
+    background: var(--border);
+    position: relative;
+    transition: background .2s;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    top: 3px;
+    left: 3px;
+    transition: .2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .toggle-good.on {
+    border-color: rgba(95, 191, 119, 0.4);
+    background: rgba(95, 191, 119, 0.08);
+  }
+  .toggle-good.on .switch {
+    background: var(--good);
+  }
+  .toggle-good.on .switch::after {
+    transform: translateX(18px);
+    background: #0d2813;
+  }
+
+  .sheet-actions {
+    display: flex;
+    gap: 10px;
+    padding: 10px 24px 0;
+  }
+  .btn {
+    flex: 1;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    letter-spacing: .06em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(145deg, var(--accent), var(--accent-dim));
+    color: #120d06;
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-secondary {
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text-primary); border-color: var(--border-light); }
+  .btn-danger {
+    background: var(--danger-wash);
+    color: var(--danger);
+    border: 1px solid rgba(224, 98, 90, 0.35);
+  }
+  .btn-danger:hover { background: rgba(224, 98, 90, 0.2); }
+  .btn:active { transform: scale(0.97); }
+
+  .session-box {
+    background: var(--accent-wash);
+    border: 1px solid rgba(255, 138, 61, .35);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .session-box .lbl {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 6px;
+  }
+  .session-box .code {
+    font-family: var(--font-mono);
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    color: var(--accent);
+  }
+  .session-box .hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .session-box .copy-btn {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .session-box .copy-btn:hover { color: var(--text-primary); border-color: var(--border-light); }
+
+  .divider-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 16px;
+    color: var(--text-faint);
+    font-size: 11px;
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  .divider-line::before, .divider-line::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .file-btn {
+    display: block;
+    text-align: center;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--surface-raised);
+    border: 1px dashed var(--border);
+    color: var(--text-secondary);
+    font-size: 13.5px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: all .15s ease;
+  }
+  .file-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+    border-color: var(--accent);
+  }
+
+  .project-card, .device-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all .15s ease;
+  }
+  .project-card:hover, .device-card:hover {
+    border-color: var(--border-light);
+  }
+  .project-card.active-project, .device-card.this-device {
+    border-color: var(--accent);
+    background: var(--accent-wash);
+  }
+  .device-info .d-name {
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .device-info .d-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    font-family: var(--font-mono);
+  }
+  .badge-this-device {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--good);
+    color: #0c1a0e;
+    font-weight: 700;
+  }
+
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(96px + var(--safe-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    z-index: 60;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 90%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 520px) {
+    .btn-lbl { display: none !important; }
+    #projectsModalBtn { width: 34px !important; padding: 0 !important; justify-content: center; }
+    #installAppBtn { width: 34px !important; padding: 0 !important; justify-content: center; }
+    #userEmailShort { max-width: 55px; }
+    #deviceCountBadge { padding: 1px 4px; font-size: 9px; }
+    .brand-text .prod-name { max-width: 105px; }
+  }
+
+  @media (min-width: 768px) {
+    #app { padding: 0 24px; }
+    header.topbar { margin: 0 -24px; padding-left: 24px; padding-right: 24px; }
+    .stats { gap: 14px; padding: 20px 0 12px; }
+    .stat { padding: 14px 18px; }
+    .stat .num { font-size: 28px; }
+    .card-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+    .sheet {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      bottom: auto;
+      transform: translate(-50%, -46%) scale(0.96);
+      width: 92%;
+      max-width: 660px;
+      border-radius: 20px;
+      border: 1px solid var(--border-light);
+      padding-bottom: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all .25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .sheet.open {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .sheet-handle { display: none; }
+  }
+
+  @media (min-width: 1024px) {
+    #app { padding: 0 32px; }
+    header.topbar { margin: 0 -32px; padding-left: 32px; padding-right: 32px; }
+    .topbar-inner {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .topbar-row { flex: 0 0 auto; }
+    .toolbar { flex: 1; max-width: 480px; }
+    .desktop-log-btn { display: inline-flex; }
+    .fab { display: none; }
+    main { padding-bottom: 40px; }
+    .card-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .sheet { max-width: 700px; }
+  }
+
+  #printReport {
+    display: none;
+    background: #fff;
+    color: #000;
+    padding: 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    box-sizing: border-box;
+    width: 1000px !important;
+    min-width: 1000px !important;
+    max-width: 1000px !important;
+    margin: 0 !important;
+  }
+  .report-header-box { border: 2px solid #000; margin-bottom: 8px; background: #fff; width: 100%; box-sizing: border-box; }
+  .report-title-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-bottom: 1.5px solid #000; }
+  .report-title-row h1 { margin: 0; font-size: 20px; font-family: 'Oswald', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; color: #000; }
+  .report-title-row .cam-rep-lbl { font-size: 18px; font-weight: 700; font-family: 'Oswald', sans-serif; text-transform: uppercase; color: #000; }
+  .report-grid-meta { display: grid; grid-template-columns: 2.2fr 1fr; border-bottom: 1.5px solid #000; }
+  .report-left-meta { border-right: 1.5px solid #000; }
+  .meta-cell-row { display: flex; border-bottom: 1px solid #000; }
+  .meta-cell-row:last-child { border-bottom: none; }
+  .meta-cell { flex: 1; padding: 4px 8px; border-right: 1px solid #000; }
+  .meta-cell:last-child { border-right: none; }
+  .meta-cell .k { font-size: 8px; text-transform: uppercase; font-weight: 700; color: #444; display: block; margin-bottom: 2px; letter-spacing: .05em; }
+  .meta-cell .v { font-size: 11px; font-weight: 600; color: #000; }
+  .report-right-meta { display: grid; grid-template-columns: 1fr 1fr; }
+  .report-right-meta .meta-cell { border-bottom: 1px solid #000; border-right: 1px solid #000; }
+  .report-right-meta .meta-cell:nth-child(2n) { border-right: none; }
+  .report-right-meta .meta-cell:nth-last-child(-n+2) { border-bottom: none; }
+  .report-crew-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .report-crew-row .meta-cell { border-right: 1px solid #000; }
+  .report-crew-row .meta-cell:last-child { border-right: none; }
+
+  #printReport table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse; font-size: 8.5px; border: 1.5px solid #000; background: #fff; box-sizing: border-box; }
+  #printReport th, #printReport td { border: 1px solid #000; padding: 4px 3px; text-align: center; color: #000; overflow-wrap: break-word; word-break: break-all; vertical-align: middle; }
+  #printReport th { background: #e6e6e6 !important; font-weight: 700; text-transform: uppercase; font-size: 8px; letter-spacing: .02em; color: #000; }
+  #printReport td.text-left { text-align: left; }
+  #printReport tr.good td { background: #edf9f0 !important; font-weight: 600; }
+
+  @media print {
+    @page { size: landscape; margin: 8mm; }
+    html, body { overflow: visible !important; height: auto !important; background: #fff !important; color: #000 !important; }
+    body * { visibility: hidden; }
+    #printReport, #printReport * { visibility: visible; }
+    #printReport { display: block !important; position: absolute; left: 0; top: 0; width: 100% !important; min-width: 100% !important; max-width: 100% !important; padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Login Overlay with Google 1-Click Sign-In -->
+<!-- ===== LANDING SCREEN 3D ===== -->
+<div id="landingScreen">
+  <!-- Anamorphic lens flare sweep -->
+  <div class="anamorphic-flare"></div>
+  <!-- Film hole borders -->
+  <div class="film-frame-border top" id="filmHolesTop"></div>
+  <div class="film-frame-border bottom" id="filmHolesBottom"></div>
+  <div class="landing-glow"></div>
+  <div class="landing-particles" id="landingParticles"></div>
+
+  <div class="landing-scene">
+    <!-- 3D Clapperboard -->
+    <div class="clapper-wrap">
+      <div class="clapper-3d">
+        <div class="clapper-top">
+          <div class="clapper-stripe"></div><div class="clapper-stripe"></div>
+          <div class="clapper-stripe"></div><div class="clapper-stripe"></div>
+          <div class="clapper-stripe"></div><div class="clapper-stripe"></div>
+          <div class="clapper-stripe"></div><div class="clapper-stripe"></div>
+          <div class="clapper-hinge-bar">
+            <div class="clapper-bolt"></div>
+            <div class="clapper-bolt"></div>
+          </div>
+        </div>
+        <div class="clapper-body">
+          <div class="clapper-sheen"></div>
+          <div class="clapper-rec-badge">
+            <span class="clapper-rec-dot">REC</span>
+            <span class="clapper-tc" id="landingLiveTC">01:24:58:12</span>
+          </div>
+          <div class="clapper-info">
+            <div class="clapper-field">
+              <span class="clapper-label">PROD</span><span class="clapper-val">ShinoLog</span>
+            </div>
+            <div class="clapper-field">
+              <span class="clapper-label">SCENE</span><span class="clapper-val">01</span>
+            </div>
+            <div class="clapper-field">
+              <span class="clapper-label">TAKE</span><span class="clapper-val">001</span>
+            </div>
+            <div class="clapper-field" style="border:none;">
+              <span class="clapper-label">CAM</span><span class="clapper-val">A-FX6</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Title -->
+    <div class="landing-title">
+      <span class="word-shino">SHINO</span>
+      <span class="word-log">LOG</span>
+    </div>
+    <div class="landing-tagline">Cinema Camera Report &amp; Slate Logger</div>
+
+    <!-- Feature pills -->
+    <div class="landing-features">
+      <div class="landing-pill">🎬 Multi-Camera Sync</div>
+      <div class="landing-pill">☁️ Real-time Live Cloud</div>
+      <div class="landing-pill">📄 FSU Camera Report PDF</div>
+      <div class="landing-pill">📱 Offline Film Set PWA</div>
+    </div>
+
+    <!-- CTA -->
+    <div class="landing-cta">
+      <button id="startAppBtn">MULAI SEKARANG</button>
+      <span class="landing-hint">● MAKS. 2 PERANGKAT PER AKUN</span>
+    </div>
+  </div>
+</div>
+
+<div id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-header">
+      <!-- 3D Mini Floating Clapper in Auth Modal -->
+      <div class="auth-3d-mark" id="auth3DMark" title="ShinoLog 3D">
+        <div class="auth-mini-clapper">
+          <div class="auth-mini-top"></div>
+          <div class="auth-mini-body">S</div>
+        </div>
+      </div>
+      <h1 class="auth-title">ShinoLog</h1>
+      <div class="auth-sub" id="authSubtitle">Masuk ke akun Anda untuk mulai mencatat</div>
+    </div>
+
+    <div class="auth-error" id="authErrorMsg"></div>
+    <div class="auth-success" id="authSuccessMsg" style="display:none; background:var(--good-wash); color:var(--good); border:1px solid rgba(95,191,119,0.35); border-radius:10px; padding:12px 14px; font-size:12.5px; line-height:1.45; margin-bottom:12px;"></div>
+
+    <!-- Tab Switch -->
+    <div style="display:flex; gap:0; margin-bottom:18px; border:1px solid rgba(255,138,61,0.25); border-radius:10px; overflow:hidden; background:rgba(0,0,0,0.3);">
+      <button type="button" id="tabMasukBtn" style="flex:1; padding:10px 14px; font-size:13.5px; font-weight:700; background:var(--accent); color:#0e0e14; border:none; cursor:pointer; transition:all 0.2s; font-family:var(--font-display); letter-spacing:0.04em;">Masuk</button>
+      <button type="button" id="tabDaftarBtn" style="flex:1; padding:10px 14px; font-size:13.5px; font-weight:700; background:transparent; color:var(--text-secondary); border:none; cursor:pointer; transition:all 0.2s; font-family:var(--font-display); letter-spacing:0.04em;">Daftar</button>
+    </div>
+
+    <!-- Form Masuk -->
+    <form id="formMasuk" onsubmit="return false;" style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">EMAIL</label>
+        <input type="email" class="text-input" id="authEmail" placeholder="nama@email.com" autocomplete="email">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">PASSWORD</label>
+        <div style="position:relative; display:flex; align-items:center; width:100%;">
+          <input type="password" class="text-input" id="authPassword" placeholder="Masukkan kata sandi" autocomplete="current-password" style="width:100%; padding-right:42px;">
+          <button type="button" class="toggle-password-btn" data-target="authPassword" title="Lihat kata sandi" style="position:absolute; right:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center; transition:color 0.2s;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="authLoginBtn" style="width:100%; padding:12px; font-size:14px; font-weight:700; margin-top:4px;">Masuk ke ShinoLog →</button>
+      <div style="text-align:center; margin-top:4px;">
+        <button type="button" id="forgotPassBtn" style="background:none; border:none; color:var(--accent); font-size:12px; cursor:pointer; text-decoration:underline; padding:0;">Lupa kata sandi?</button>
+      </div>
+    </form>
+
+    <!-- Form Daftar -->
+    <form id="formDaftar" onsubmit="return false;" style="display:none; flex-direction:column; gap:11px;">
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">NAMA LENGKAP</label>
+        <input type="text" class="text-input" id="regDisplayName" placeholder="Contoh: Alex Pratama" autocomplete="name">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">POSISI / ROLE DI SET</label>
+        <select class="filter-select" id="regRole" style="width:100%; padding:10px 12px; background:var(--surface-raised); border:1px solid var(--border); color:var(--text-primary); border-radius:10px;">
+          <option value="1st AC / Focus Puller">1st AC / Focus Puller</option>
+          <option value="2nd AC / Clapper Loader" selected>2nd AC / Clapper Loader</option>
+          <option value="Script Supervisor / Pencatat Adegan">Script Supervisor / Pencatat Adegan</option>
+          <option value="DIT / Data Wrangler">DIT / Data Wrangler</option>
+          <option value="Camera Operator / DoP">Camera Operator / DoP</option>
+          <option value="Director / Producer">Director / Producer</option>
+          <option value="Crew Kamera Lainnya">Crew Kamera Lainnya</option>
+        </select>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">EMAIL</label>
+        <input type="email" class="text-input" id="regEmail" placeholder="nama@email.com" autocomplete="email">
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">PASSWORD (MIN. 6 KARAKTER)</label>
+        <div style="position:relative; display:flex; align-items:center; width:100%;">
+          <input type="password" class="text-input" id="regPassword" placeholder="Buat kata sandi aman" autocomplete="new-password" style="width:100%; padding-right:42px;">
+          <button type="button" class="toggle-password-btn" data-target="regPassword" title="Lihat kata sandi" style="position:absolute; right:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center; transition:color 0.2s;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">KONFIRMASI PASSWORD</label>
+        <div style="position:relative; display:flex; align-items:center; width:100%;">
+          <input type="password" class="text-input" id="regPasswordConfirm" placeholder="Ulangi kata sandi" autocomplete="new-password" style="width:100%; padding-right:42px;">
+          <button type="button" class="toggle-password-btn" data-target="regPasswordConfirm" title="Lihat kata sandi" style="position:absolute; right:10px; background:none; border:none; color:var(--text-secondary); cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center; transition:color 0.2s;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="authRegisterBtn" style="width:100%; padding:12px; font-size:14px; font-weight:700; margin-top:4px;">Daftar Akun ShinoLog →</button>
+    </form>
+
+    <!-- Form Reset Password -->
+    <form id="formReset" onsubmit="return false;" style="display:none; flex-direction:column; gap:12px;">
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 4px;">Masukkan email akun kamu, kami akan kirimkan tautan untuk membuat kata sandi baru.</p>
+      <div style="display:flex; flex-direction:column; gap:4px;">
+        <label style="font-size:10.5px; font-weight:700; color:var(--text-secondary); letter-spacing:0.8px; font-family:var(--font-mono);">EMAIL</label>
+        <input type="email" class="text-input" id="resetEmail" placeholder="nama@email.com" autocomplete="email">
+      </div>
+      <button type="submit" class="btn btn-primary" id="authResetBtn" style="width:100%; padding:12px; font-size:14px; font-weight:700; margin-top:4px;">Kirim Link Reset →</button>
+      <div style="text-align:center;">
+        <button type="button" id="backToLoginBtn" style="background:none; border:none; color:var(--accent); font-size:13px; font-weight:600; cursor:pointer; text-decoration:underline; padding:6px 10px;">← Kembali ke Halaman Masuk</button>
+      </div>
+    </form>
+
+    <div class="auth-device-info" style="margin-top:16px;">
+      <span>🔒</span>
+      <span id="currentDeviceLabel">Mendeteksi perangkat…</span>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-row">
+        <div class="brand">
+          <div class="brand-mark">S</div>
+          <div class="brand-text">
+            <div class="app-name">ShinoLog</div>
+            <div class="prod-name" id="prodNameBtn" title="Ganti / Tambah Project Produksi Film">
+              <span id="prodNameText">Loading…</span>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M4 12h16M14 6l6 6-6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div>
+              <div class="sync-badge connecting" id="syncBadge"><span class="sync-dot"></span><span id="syncText">Menyambungkan…</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="user-badge-btn" id="userProfileBtn" title="Kelola Akun &amp; Maksimal 2 Perangkat">
+            <span class="dot-active"></span>
+            <span id="userEmailShort" style="font-size:12px;font-family:var(--font-mono);font-weight:600;color:var(--text-primary);">User</span>
+            <span id="deviceCountBadge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,138,61,0.2);color:var(--accent);font-family:var(--font-mono);">1/2 Dev</span>
+          </button>
+          <button class="icon-btn" id="installAppBtn" style="display:none;color:var(--accent);border-color:rgba(255,138,61,0.4);" title="Install ShinoLog ke Layar Utama / Desktop">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="btn-lbl" style="font-size:12px;font-family:var(--font-mono);font-weight:600;">INSTALL</span>
+          </button>
+          <button class="desktop-log-btn" id="desktopAddEntryBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+            LOG TAKE
+          </button>
+          <button class="icon-btn" id="projectsModalBtn" title="Daftar Produksi / Project Film">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="btn-lbl" style="font-size:12px;font-family:var(--font-mono);font-weight:600;">PROJECTS</span>
+          </button>
+          <button class="icon-btn square" id="exportBtn" title="Export & Backup">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn square" id="settingsBtn" title="Pengaturan Sesi">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4.3-4.3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input type="text" id="searchInput" placeholder="Cari clip (A001_001), slate, shutter, ISO, lens… (tekan /)">
+        </div>
+        <select class="filter-select" id="filterSelect">
+          <option value="all">Semua Take</option>
+          <option value="good">⭐ Good Take Saja</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats" id="statsRow"></div>
+  <main id="entryListContainer">
+    <div id="entryList"></div>
+  </main>
+
+  <div class="fab">
+    <button id="addEntryBtn">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+      LOG TAKE
+    </button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- Device Conflict Modal -->
+<div class="sheet" id="deviceConflictSheet" style="z-index: 1000;">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2 style="color:var(--accent);">⚠️ BATAS 2 PERANGKAT TERCAPAI</h2>
+  </div>
+  <div class="sheet-body">
+    <p style="font-size:13px;color:var(--text-secondary);line-height:1.5;margin-top:0;">
+      Akun ini sudah aktif di batas maksimal <strong>2 perangkat</strong>. Untuk masuk di perangkat ini, silakan pilih salah satu perangkat lama untuk dikeluarkan (*kick*):
+    </p>
+    <div id="conflictDeviceList"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-secondary" id="cancelConflictLoginBtn" style="width:100%;">Batal &amp; Logout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Device Manager Sheet -->
+<div class="sheet" id="deviceManagerSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>KELOLA PERANGKAT AKTIF (MAKS 2)</h2>
+    <button class="icon-btn square" id="closeDeviceManagerSheet"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <div style="background:var(--surface-raised);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;font-weight:700;">Akun Terhubung</div>
+      <div id="managerUserEmail" style="font-size:15px;font-weight:600;color:var(--accent);margin-top:4px;font-family:var(--font-mono);">user@email.com</div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">Kuota: <strong id="managerDeviceQuota" style="color:var(--good);">1 / 2 Perangkat Terpakai</strong></div>
+    </div>
+
+    <div style="font-size:11px;color:var(--text-faint);text-transform:uppercase;font-weight:700;margin-bottom:8px;">Daftar Perangkat Terdaftar:</div>
+    <div id="activeDevicesContainer"></div>
+
+    <div class="divider-line">Aksi Akun</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <button class="btn btn-danger" id="logoutAllOtherDevicesBtn">Keluarkan Semua Perangkat Lain</button>
+      <button class="btn btn-secondary" id="logoutCurrentDeviceBtn">Logout dari Perangkat Ini</button>
+    </div>
+  </div>
+</div>
+
+<!-- Entry Sheet / Modal -->
+<div class="sheet" id="entrySheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2 id="entrySheetTitle">TAKE BARU</h2>
+    <button class="icon-btn square" id="closeEntrySheet" title="Tutup (Esc)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <div class="keypad-4col">
+      <div class="field">
+        <label title="Slate / Papan Clapperboard">Slate</label>
+        <div class="stepper">
+          <button class="step-btn" type="button" data-target="slate" data-delta="-1">−</button>
+          <input class="slate-input" id="slateInput" inputmode="numeric" value="1">
+          <button class="step-btn" type="button" data-target="slate" data-delta="1">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label title="Scene (Kombinasi Angka & Huruf cth: 1, 1A, 2B)">Scene</label>
+        <div class="stepper">
+          <button class="step-btn" type="button" data-target="scene" data-delta="-1">−</button>
+          <input class="slate-input" id="sceneInput" type="text" value="1">
+          <button class="step-btn" type="button" data-target="scene" data-delta="1">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label title="Shot (Kombinasi Angka & Huruf cth: 1, 1A, 2B, WIDE)">Shot</label>
+        <div class="stepper">
+          <button class="step-btn" type="button" data-target="shot" data-delta="-1">−</button>
+          <input class="slate-input" id="shotInput" type="text" value="1">
+          <button class="step-btn" type="button" data-target="shot" data-delta="1">+</button>
+        </div>
+      </div>
+      <div class="field">
+        <label title="Take (Angka Murni)">Take</label>
+        <div class="stepper">
+          <button class="step-btn" type="button" data-target="take" data-delta="-1">−</button>
+          <input class="slate-input" id="takeInput" inputmode="numeric" value="1">
+          <button class="step-btn" type="button" data-target="take" data-delta="1">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin:-10px 0 14px; font-size:11px; color:var(--text-faint);">
+      <span>Suffix Cepat:</span>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="preset-chip" style="padding:3px 8px; font-size:11px;" id="suffixA_btn">+A</button>
+        <button type="button" class="preset-chip" style="padding:3px 8px; font-size:11px;" id="suffixB_btn">+B</button>
+        <button type="button" class="preset-chip" style="padding:3px 8px; font-size:11px;" id="suffixC_btn">+C</button>
+        <button type="button" class="preset-chip" style="padding:3px 8px; font-size:11px;" id="suffixNum_btn">Hapus Huruf</button>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-bottom:14px;">
+      <div class="field" style="margin-bottom:0;">
+        <label style="display:flex;justify-content:space-between;">
+          <span>Clip Name (cth: A001_001)</span>
+          <span style="color:var(--accent);cursor:pointer;" id="autoClipBtn" title="Auto format nama clip">⚡ Auto</span>
+        </label>
+        <input class="text-input" id="clipNameInput" placeholder="cth. A001_001" style="font-family:var(--font-mono);font-weight:600;color:var(--accent);">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Card Sisa / Durasi (cth: 20m, 15m)</label>
+        <input class="text-input" id="cardPercentInput" placeholder="cth. 20m" style="font-family:var(--font-mono);">
+      </div>
+    </div>
+
+    <div class="field"><label>Kamera</label><div class="preset-row" id="cameraPresets"></div></div>
+
+    <div class="field">
+      <label style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Media Card / Roll (Bebas Dipilih)</span>
+        <span style="color:var(--accent);cursor:pointer;text-transform:none;font-weight:normal;" id="nextCardBtn">+ Ganti Card Berikutnya</span>
+      </label>
+      <div class="preset-row" id="cardPresets"></div>
+      <div style="margin-top:8px;">
+        <input class="text-input" id="cardInput" placeholder="cth. A001" style="font-family:var(--font-mono);font-weight:600;letter-spacing:.06em;text-transform:uppercase;">
+      </div>
+    </div>
+
+    <div class="field"><label>Lens (mm)</label><div class="preset-row" id="lensPresets"></div></div>
+    <div class="field"><label>Shutter Speed / Angle</label><div class="preset-row" id="shutterPresets"></div></div>
+    <div class="field"><label>ISO</label><div class="preset-row" id="isoPresets"></div></div>
+    
+    <div class="field">
+      <label style="display:flex;justify-content:space-between;">
+        <span>Filter / ND Terpasang (Bisa Pilih Banyak)</span>
+        <span style="color:var(--text-faint);text-transform:none;font-size:10px;">Klik untuk aktifkan/nonaktifkan</span>
+      </label>
+      <div class="preset-row" id="filterPresets"></div>
+      <div style="margin-top:8px;">
+        <input class="text-input" id="filterInput" placeholder="cth. ND3, Diffusion 1/4" style="font-size:13px;">
+      </div>
+    </div>
+
+    <div class="four-col">
+      <div class="field"><label>Shutter</label><input class="text-input" id="shutterInput" placeholder="cth. 1/50"></div>
+      <div class="field"><label>ISO</label><input class="text-input" id="isoInput" placeholder="cth. 800"></div>
+      <div class="field"><label>F/T-Stop</label><input class="text-input" id="tstopInput" placeholder="cth. 2.8"></div>
+      <div class="field"><label>FPS</label><input class="text-input" id="fpsInput" placeholder="cth. 24"></div>
+    </div>
+
+    <div class="field"><label>Catatan / Remarks</label><textarea class="text-input" id="noteInput" placeholder="cth. focus pull aman, talent senyum, boom masuk frame, dll."></textarea></div>
+
+    <div class="toggle-good" id="goodToggle">
+      <div class="lbl"><span style="width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;"></span>Tandai sebagai Good Take ⭐</div>
+      <div class="switch"></div>
+    </div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn btn-secondary" id="cancelEntryBtn">Batal</button>
+    <button class="btn btn-primary" id="saveEntryBtn">Simpan Take</button>
+  </div>
+</div>
+
+<!-- Project Management Sheet -->
+<div class="sheet" id="projectSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>PRODUKSI &amp; PROJECT FILM</h2>
+    <button class="icon-btn square" id="closeProjectSheet"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <p class="setup-sub" style="font-size:13px;color:var(--text-secondary);margin-top:0;">Pilih project film yang sedang dikerjakan atau buat produksi film baru.</p>
+
+    <div style="background:rgba(255,138,61,0.08); border:1px solid rgba(255,138,61,0.3); border-radius:14px; padding:16px; margin-bottom:20px;">
+      <label style="display:block; font-size:11px; color:var(--accent); font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;">➕ Buat Produksi Film Baru</label>
+      <div style="display:flex; gap:8px;">
+        <input class="text-input" id="newProjectNameInput" placeholder="Nama film (cth. Production Management: The Movie)" style="background:var(--surface);">
+        <button class="btn btn-primary" id="createProjectBtn" style="flex:0 0 auto; padding:0 18px; height:46px;">Buat</button>
+      </div>
+    </div>
+
+    <div style="font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.09em; font-weight:700; margin-bottom:10px;">Daftar Project Anda</div>
+    <div id="projectListContainer"></div>
+
+    <div class="divider-line">Gabung Project Kru Lain</div>
+    <div class="field">
+      <label>Masukkan Kode Sesi Kru</label>
+      <input class="text-input" id="joinProjectCodeInput" placeholder="cth. 7K2QXP" style="text-transform:uppercase; letter-spacing:.08em; font-family:var(--font-mono);">
+    </div>
+    <button class="btn btn-secondary" id="joinProjectActionBtn" style="width:100%;">Gabung ke Sesi Ini</button>
+  </div>
+</div>
+
+<!-- Setup / Settings Sheet -->
+<div class="sheet" id="setupSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2 id="setupTitle">PENGATURAN &amp; SPESIFIKASI KAMERA</h2>
+    <button class="icon-btn square" id="closeSetupSheet"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <div class="session-box">
+      <div class="lbl">Kode Sesi Real-Time (Bagikan ke Kru)</div>
+      <div class="code" id="sessionCodeDisplay">------</div>
+      <div class="hint">Semua kru yang memasukkan kode ini akan terhubung ke log yang sama secara real-time.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <div class="copy-btn" id="copyCodeBtn" style="flex:1;">📋 Salin kode</div>
+        <button type="button" class="btn btn-secondary" id="manageProjectsFromSetupBtn" style="flex:1.2;font-size:11px;padding:6px 10px;height:auto;">📁 Ganti / Buat Project</button>
+      </div>
+    </div>
+
+    <div class="divider-line">Informasi Produksi &amp; Kru</div>
+    <div class="two-col">
+      <div class="field"><label>Nomor Produksi (Prod. #)</label><input class="text-input" id="prodNumberInput" placeholder="cth. 01bth"></div>
+      <div class="field"><label>Judul Film / Produksi</label><input class="text-input" id="prodNameInput" placeholder="cth. Production Management: The Movie"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>Director (Sutradara)</label><input class="text-input" id="directorInput" placeholder="cth. Allison Parker"></div>
+      <div class="field"><label>Dir. of Photography (DOP)</label><input class="text-input" id="dopInput" placeholder="cth. Nick Nuynh"></div>
+    </div>
+    <div class="two-col">
+      <div class="field"><label>1st AC (Focus Puller)</label><input class="text-input" id="firstAcInput" placeholder="cth. Najaa Young"></div>
+      <div class="field"><label>2nd AC (Clapper/Loader)</label><input class="text-input" id="secondAcInput" placeholder="cth. Fran Ervin"></div>
+    </div>
+
+    <div class="divider-line">Spesifikasi Teknis Kamera &amp; Format</div>
+    <div class="two-col">
+      <div class="field"><label>Media ID #</label><input class="text-input" id="mediaIdInput" placeholder="cth. SSD 56"></div>
+      <div class="field"><label>Camera ID / Serial #</label><input class="text-input" id="cameraIdInput" placeholder="cth. SN 002680"></div>
+    </div>
+    <div class="three-col">
+      <div class="field"><label>File Format</label><input class="text-input" id="fileFormatInput" placeholder="cth. 2K ProRes 444"></div>
+      <div class="field"><label>Framing Aspect Ratio</label><input class="text-input" id="aspectRatioInput" placeholder="cth. 1.85:1"></div>
+      <div class="field"><label>LUT</label><input class="text-input" id="lutInput" placeholder="cth. Med/Med"></div>
+    </div>
+
+    <div class="divider-line">Daftar Preset Cepat di Set</div>
+    <div class="field"><label>Kamera di Set (pisahkan koma)</label><input class="text-input" id="cameraListInput" placeholder="cth. A (FX6), B (FX3), C (A7CII)"></div>
+    <div class="field"><label>Daftar Card di Set (pisahkan koma)</label><input class="text-input" id="cardListInput" placeholder="cth. A001, B001, C001, D001, E001, F001, G001, H001, I001"></div>
+    <div class="field"><label>Preset Lens (mm, pisahkan koma)</label><input class="text-input" id="lensListInput" placeholder="cth. 18, 24, 35, 50, 75, 125"></div>
+    <div class="field"><label>Preset Shutter Speed (pisahkan koma)</label><input class="text-input" id="shutterListInput" placeholder="cth. 180°, 1/48, 1/50, 1/96, 1/100, 1/120, 1/200"></div>
+    <div class="field"><label>Preset ISO Kamera (pisahkan koma)</label><input class="text-input" id="isoListInput" placeholder="cth. 100, 200, 400, 800, 1600, 3200, 6400"></div>
+    <div class="field"><label>Filter / ND (pisahkan koma)</label><input class="text-input" id="filterListInput" placeholder="cth. Clear, ND3, ND6, ND9, 80A, Diffusion 1/4"></div>
+
+    <div class="divider-line">Aplikasi &amp; Akun</div>
+    <div style="background:var(--surface-raised); border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:8px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <div style="font-size:13px; font-weight:600; color:var(--text-primary); display:flex; align-items:center; gap:6px;">
+          <span>📱</span> Akses Offline &amp; Layar Utama
+        </div>
+        <span class="badge" style="background:var(--good-wash); color:var(--good); font-size:11px; padding:2px 8px; border-radius:4px; font-weight:600;">Siap Offline</span>
+      </div>
+      <p style="font-size:11px; color:var(--text-secondary); margin:0 0 10px; line-height:1.4;">
+        ShinoLog dapat digunakan 100% tanpa internet di lokasi syuting terpencil.
+      </p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" id="openDeviceMgrBtn" style="flex:1;font-size:12px;padding:8px 10px;">📱 Kelola 2 Device</button>
+        <button class="btn btn-danger" id="logoutFromSettingsBtn" style="flex:1;font-size:12px;padding:8px 10px;">Keluar / Logout</button>
+      </div>
+    </div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn btn-danger" id="wipeBtn">Hapus Semua Take</button>
+    <button class="btn btn-primary" id="saveSetupBtn">Simpan</button>
+  </div>
+</div>
+
+<!-- Export Sheet -->
+<div class="sheet" id="exportSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <h2>EXPORT &amp; CAMERA REPORT</h2>
+    <button class="icon-btn square" id="closeExportSheet"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+  </div>
+  <div class="sheet-body">
+    <button class="file-btn" id="restoreEmergencyBtn" style="border-color:rgba(95,191,119,0.5); color:var(--good); background:var(--good-wash); font-weight:600;">♻️ Pulihkan dari Auto-Backup Lokal (Undo Hapus)</button>
+    <button class="file-btn" id="exportPdfBtn" style="border-color:var(--accent); color:var(--accent); background:rgba(255,138,61,0.08); font-weight:700;">📄 Download File PDF Camera Report (Langsung Simpan PDF)</button>
+    <button class="file-btn" id="printReportBtn" style="font-weight:500;">🖨️ Cetak / Print Lembar Report (AirPrint / Printer)</button>
+    <button class="file-btn" id="exportCsvBtn">📊 Export Laporan CSV (Excel / Spreadsheet)</button>
+    <button class="file-btn" id="backupJsonBtn">💾 Backup ke file JSON</button>
+    <label class="file-btn" for="restoreJsonInput" style="cursor:pointer;">📥 Restore dari file JSON
+      <input type="file" id="restoreJsonInput" accept="application/json" style="display:none;">
+    </label>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Print Container (Matching FSU Film Camera Report Structure) -->
+<div id="printReport">
+  <div class="report-header-box">
+    <div class="report-title-row">
+      <h1>🎬 <span id="printBrandTitle">SHINOLOG</span></h1>
+      <div class="cam-rep-lbl">Camera Report</div>
+    </div>
+
+    <div class="report-grid-meta">
+      <div class="report-left-meta">
+        <div class="meta-cell-row">
+          <div class="meta-cell" style="flex:0.8;"><span class="k">Prod. Number</span><span class="v" id="prProdNum">-</span></div>
+          <div class="meta-cell" style="flex:2;"><span class="k">Production Title</span><span class="v" id="prProdTitle">Production Management: The Movie</span></div>
+          <div class="meta-cell" style="flex:1;"><span class="k">Date</span><span class="v" id="prDate">-</span></div>
+        </div>
+        <div class="meta-cell-row report-crew-row">
+          <div class="meta-cell"><span class="k">Director</span><span class="v" id="prDirector">-</span></div>
+          <div class="meta-cell"><span class="k">1st AC</span><span class="v" id="prFirstAc">-</span></div>
+          <div class="meta-cell"><span class="k">Dir. of Photography</span><span class="v" id="prDop">-</span></div>
+          <div class="meta-cell"><span class="k">2nd AC</span><span class="v" id="prSecondAc">-</span></div>
+        </div>
+      </div>
+
+      <div class="report-right-meta">
+        <div class="meta-cell"><span class="k">RDM / Roll</span><span class="v" id="prRoll">-</span></div>
+        <div class="meta-cell"><span class="k">Sheet</span><span class="v" id="prSheet">1 of 1</span></div>
+        <div class="meta-cell"><span class="k">Media ID</span><span class="v" id="prMediaId">-</span></div>
+        <div class="meta-cell"><span class="k">Camera ID</span><span class="v" id="prCamId">-</span></div>
+        <div class="meta-cell"><span class="k">File Format</span><span class="v" id="prFormat">-</span></div>
+        <div class="meta-cell"><span class="k">Project Frame Rate</span><span class="v" id="prFps">-</span></div>
+        <div class="meta-cell"><span class="k">Framing Aspect Ratio</span><span class="v" id="prAspect">-</span></div>
+        <div class="meta-cell"><span class="k">LUT</span><span class="v" id="prLut">-</span></div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <colgroup>
+      <col style="width: 4%;">
+      <col style="width: 4%;">
+      <col style="width: 3.5%;">
+      <col style="width: 3.5%;">
+      <col style="width: 3.5%;">
+      <col style="width: 5%;">
+      <col style="width: 9.5%;">
+      <col style="width: 4.5%;">
+      <col style="width: 4.5%;">
+      <col style="width: 4.5%;">
+      <col style="width: 6.5%;">
+      <col style="width: 4.5%;">
+      <col style="width: 6.5%;">
+      <col style="width: 17.5%;">
+      <col style="width: 13.5%;">
+      <col style="width: 4.5%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>Slate</th>
+        <th>Scene</th>
+        <th>Shot</th>
+        <th>Take</th>
+        <th>Cam</th>
+        <th>Card</th>
+        <th>Clip Name</th>
+        <th>Durasi</th>
+        <th>Lens</th>
+        <th>F-Stop</th>
+        <th>Shutter</th>
+        <th>ISO</th>
+        <th>Filter</th>
+        <th>Remarks / Catatan</th>
+        <th>Waktu</th>
+        <th>Good</th>
+      </tr>
+    </thead>
+    <tbody id="printBody"></tbody>
+  </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  updateProfile,
+  sendPasswordResetEmail,
+  signOut,
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import {
+  getFirestore, doc, collection, setDoc, updateDoc, deleteDoc,
+  onSnapshot, query, orderBy, getDoc, enableIndexedDbPersistence
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD5MCqU9qUmVncuXRT0xsmDudUTZTzv0LM",
+  authDomain: "shootlog-app.firebaseapp.com",
+  projectId: "shootlog-app",
+  storageBucket: "shootlog-app.firebasestorage.app",
+  messagingSenderId: "251079426876",
+  appId: "1:251079426876:web:6da899f806cf96d24fd439",
+  measurementId: "G-XNWRPJP3DF"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+try {
+  setPersistence(auth, browserLocalPersistence);
+} catch(e) {}
+
+try {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Firestore persistence: multiple tabs open');
+    }
+  });
+} catch(e) {}
+
+(function() {
+  "use strict";
+
+  const LOCAL_CODE_KEY = "shootlog_session_code_v2";
+  const LOCAL_CACHE_KEY = "shootlog_cache_v2";
+  const PROJECTS_LIST_KEY = "shootlog_projects_list_v2";
+  const EMERGENCY_BACKUP_KEY = "shootlog_emergency_backup_v2";
+  const DEVICE_ID_KEY = "shootlog_device_uuid_v1";
+
+  let currentDeviceId = localStorage.getItem(DEVICE_ID_KEY);
+  if (!currentDeviceId) {
+    currentDeviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now().toString(36);
+    localStorage.setItem(DEVICE_ID_KEY, currentDeviceId);
+  }
+
+  function detectDeviceName() {
+    const ua = navigator.userAgent;
+    let name = "Web Device";
+    if (/iPhone/.test(ua)) name = "iPhone (Safari)";
+    else if (/iPad/.test(ua)) name = "iPad (Safari)";
+    else if (/Macintosh/.test(ua)) name = "Mac (Desktop)";
+    else if (/Windows/.test(ua)) name = "Windows PC";
+    else if (/Android/.test(ua)) name = "Android Device";
+    
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    if (isStandalone) name += " • PWA App";
+    return name;
+  }
+  const currentDeviceName = detectDeviceName();
+  document.getElementById('currentDeviceLabel').textContent = `Perangkat ini: ${currentDeviceName}`;
+
+  let currentUser = null;
+  let unsubDevices = null;
+  let activeDevicesList = [];
+
+  const defaultMeta = {
+    production: "",
+    prodNumber: "",
+    director: "",
+    dop: "",
+    firstAc: "",
+    secondAc: "",
+    mediaId: "",
+    cameraId: "",
+    fileFormat: "2K ProRes 444",
+    aspectRatio: "1.85:1",
+    lut: "Med/Med",
+    cameras: ["A (FX6)", "B (FX3)", "C (A7CII)"],
+    cards: ["A001", "B001", "C001", "D001", "E001", "F001", "G001", "H001", "I001"],
+    lenses: ["18", "24", "35", "50", "75", "125"],
+    shutters: ["180°", "1/48", "1/50", "1/96", "1/100", "1/120", "1/200"],
+    filters: ["Clear", "ND3", "ND6", "ND9", "80A", "Diffusion 1/4"],
+    isos: ["100", "200", "400", "800", "1600", "3200", "6400"]
+  };
+
+  let sessionCode = localStorage.getItem(LOCAL_CODE_KEY) || genCode();
+  localStorage.setItem(LOCAL_CODE_KEY, sessionCode);
+
+  let meta = Object.assign({}, defaultMeta);
+  let entries = [];
+  let unsubMeta = null, unsubEntries = null;
+
+  let activeCameraCards = {
+    "A (FX6)": "A001",
+    "B (FX3)": "D001",
+    "C (A7CII)": "G001"
+  };
+
+  function genCode() {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let s = "";
+    for(let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+    return s;
+  }
+
+  // ---------- AUTHENTICATION (GOOGLE + EMAIL) & 2-DEVICE LIMIT ----------
+  const authOverlay = document.getElementById('authOverlay');
+  const authErrorMsg = document.getElementById('authErrorMsg');
+  const authSuccessMsg = document.getElementById('authSuccessMsg');
+
+  // Tab switching function
+  function switchAuthTab(tab) {
+    const masukBtn = document.getElementById('tabMasukBtn');
+    const daftarBtn = document.getElementById('tabDaftarBtn');
+    const formMasuk = document.getElementById('formMasuk');
+    const formDaftar = document.getElementById('formDaftar');
+    const formReset = document.getElementById('formReset');
+    const subtitle = document.getElementById('authSubtitle');
+    hideAuthMessages();
+
+    if (tab === 'masuk') {
+      masukBtn.style.background = 'var(--accent)';
+      masukBtn.style.color = '#1a1a1a';
+      daftarBtn.style.background = 'transparent';
+      daftarBtn.style.color = 'var(--text-secondary)';
+      formMasuk.style.display = 'flex';
+      formDaftar.style.display = 'none';
+      formReset.style.display = 'none';
+      subtitle.textContent = 'Masuk ke akun Anda untuk mulai mencatat';
+    } else if (tab === 'daftar') {
+      daftarBtn.style.background = 'var(--accent)';
+      daftarBtn.style.color = '#1a1a1a';
+      masukBtn.style.background = 'transparent';
+      masukBtn.style.color = 'var(--text-secondary)';
+      formMasuk.style.display = 'none';
+      formDaftar.style.display = 'flex';
+      formReset.style.display = 'none';
+      subtitle.textContent = 'Buat akun baru untuk menggunakan ShinoLog';
+    } else if (tab === 'reset') {
+      masukBtn.style.background = 'transparent';
+      masukBtn.style.color = 'var(--text-secondary)';
+      daftarBtn.style.background = 'transparent';
+      daftarBtn.style.color = 'var(--text-secondary)';
+      formMasuk.style.display = 'none';
+      formDaftar.style.display = 'none';
+      formReset.style.display = 'flex';
+      subtitle.textContent = 'Reset Kata Sandi';
+    }
+  }
+
+  // ===== LANDING SCREEN =====
+  const landingScreen = document.getElementById('landingScreen');
+
+  // Generate film holes for cinematic bars
+  ['filmHolesTop','filmHolesBottom'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    for (let i = 0; i < 24; i++) {
+      const h = document.createElement('div');
+      h.className = 'film-hole';
+      el.appendChild(h);
+    }
+  });
+
+  // Add lens glow behind clapperboard
+  const clapperWrap = document.querySelector('.clapper-wrap');
+  if (clapperWrap) {
+    const lg = document.createElement('div');
+    lg.className = 'lens-glow';
+    clapperWrap.parentNode.insertBefore(lg, clapperWrap);
+  }
+
+  // Generate floating particles
+  (function spawnParticles() {
+    const container = document.getElementById('landingParticles');
+    if (!container) return;
+    for (let i = 0; i < 28; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 3.5 + 1.5;
+      const dx = (Math.random() - 0.5) * 80;
+      p.style.cssText = `
+        width:${size}px; height:${size}px;
+        left:${Math.random()*100}%;
+        bottom:-10px;
+        --dx:${dx}px;
+        animation-duration:${Math.random()*12+7}s;
+        animation-delay:${Math.random()*10}s;
+        background:rgba(255,${Math.floor(Math.random()*70+120)},${Math.floor(Math.random()*40)},${Math.random()*0.5+0.35});
+      `;
+      container.appendChild(p);
+    }
+  })();
+
+  // Dynamic 3D interactive tilt & real-time cinema timecode generator
+  (function init3DParallax() {
+    const clapper = document.querySelector('.clapper-3d');
+    const authCard = document.querySelector('.auth-card');
+    const auth3DMark = document.querySelector('.auth-mini-clapper');
+    const tcEl = document.getElementById('landingLiveTC');
+    
+    let targetRx = 0, targetRy = 0;
+    let currentRx = 0, currentRy = 0;
+    let authRx = 0, authRy = 0;
+    let hasInteracted = false;
+
+    window.addEventListener('mousemove', (e) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      targetRy = ((e.clientX - cx) / cx) * 24;
+      targetRx = -((e.clientY - cy) / cy) * 16;
+      hasInteracted = true;
+    }, { passive: true });
+
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        const t = e.touches[0];
+        const cx = window.innerWidth / 2;
+        const cy = window.innerHeight / 2;
+        targetRy = ((t.clientX - cx) / cx) * 20;
+        targetRx = -((t.clientY - cy) / cy) * 14;
+        hasInteracted = true;
+      }
+    }, { passive: true });
+
+    function animLoop() {
+      // 1. Update live cinema timecode on clapper
+      if (tcEl && landingScreen && landingScreen.style.display !== 'none') {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const ff = String(Math.floor((now.getMilliseconds() / 1000) * 24)).padStart(2, '0');
+        tcEl.textContent = `${hh}:${mm}:${ss}:${ff}`;
+      }
+
+      // 2. Parallax on landing 3D clapper
+      if (hasInteracted && clapper && landingScreen && landingScreen.style.display !== 'none') {
+        currentRx += (targetRx - currentRx) * 0.1;
+        currentRy += (targetRy - currentRy) * 0.1;
+        clapper.style.transform = `rotateX(${currentRx.toFixed(2)}deg) rotateY(${currentRy.toFixed(2)}deg)`;
+      }
+
+      // 3. Parallax on Auth Card & 3D Mini Clapper
+      if (hasInteracted && authOverlay && !authOverlay.classList.contains('hidden')) {
+        authRx += (targetRx * 0.4 - authRx) * 0.08;
+        authRy += (targetRy * 0.4 - authRy) * 0.08;
+        if (authCard) authCard.style.transform = `rotateX(${authRx.toFixed(2)}deg) rotateY(${authRy.toFixed(2)}deg)`;
+        if (auth3DMark) auth3DMark.style.transform = `rotateY(${(targetRy * 1.2).toFixed(2)}deg) rotateX(${(-targetRx * 1.2).toFixed(2)}deg)`;
+      }
+
+      requestAnimationFrame(animLoop);
+    }
+    requestAnimationFrame(animLoop);
+  })();
+
+  // "Mulai Sekarang" → slide landing keluar, auth card sudah standby di balik landing (zero flash bug)
+  function showAuthFromLanding() {
+    authOverlay.classList.remove('hidden');
+    landingScreen.classList.add('exit');
+    setTimeout(() => {
+      landingScreen.style.display = 'none';
+    }, 760);
+  }
+
+  document.getElementById('startAppBtn').addEventListener('click', showAuthFromLanding);
+
+  // Wire tab buttons & navigation
+  window.switchAuthTab = switchAuthTab;
+  document.getElementById('tabMasukBtn').addEventListener('click', () => switchAuthTab('masuk'));
+  document.getElementById('tabDaftarBtn').addEventListener('click', () => switchAuthTab('daftar'));
+  document.getElementById('backToLoginBtn').addEventListener('click', () => switchAuthTab('masuk'));
+
+  // Password Visibility Toggle Eye
+  document.querySelectorAll('.toggle-password-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+        btn.title = 'Sembunyikan kata sandi';
+        btn.style.color = 'var(--accent)';
+      } else {
+        input.type = 'password';
+        btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        btn.title = 'Lihat kata sandi';
+        btn.style.color = 'var(--text-secondary)';
+      }
+    });
+  });
+
+  function showAuthError(msg) {
+    authErrorMsg.textContent = msg;
+    authErrorMsg.style.display = 'block';
+    authSuccessMsg.style.display = 'none';
+  }
+
+  function showAuthSuccess(msg) {
+    authSuccessMsg.textContent = msg;
+    authSuccessMsg.style.display = 'block';
+    authErrorMsg.style.display = 'none';
+  }
+
+  function hideAuthMessages() {
+    authErrorMsg.style.display = 'none';
+    authSuccessMsg.style.display = 'none';
+  }
+
+  // Masuk (Login)
+  document.getElementById('authLoginBtn').addEventListener('click', async () => {
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value.trim();
+    if (!email || !password) { showAuthError('Masukkan email dan kata sandi.'); return; }
+
+    const btn = document.getElementById('authLoginBtn');
+    btn.disabled = true;
+    btn.textContent = 'Memverifikasi…';
+    hideAuthMessages();
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      await verifyAndRegisterDevice(cred.user);
+    } catch(err) {
+      const code = err.code || '';
+      if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        showAuthError('Email atau kata sandi salah. Coba lagi.');
+      } else if (code === 'auth/too-many-requests') {
+        showAuthError('Terlalu banyak percobaan. Tunggu sebentar.');
+      } else {
+        showAuthError(err.message || 'Gagal masuk.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Masuk ke ShinoLog →';
+    }
+  });
+
+  // Daftar (Register) dengan Profil Lengkap & Email Verification
+  document.getElementById('authRegisterBtn').addEventListener('click', async () => {
+    const displayName = (document.getElementById('regDisplayName').value || '').trim();
+    const role = (document.getElementById('regRole').value || '2nd AC / Clapper Loader').trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value.trim();
+    const confirm = document.getElementById('regPasswordConfirm').value.trim();
+
+    if (!displayName) { showAuthError('Nama lengkap harus diisi.'); return; }
+    if (!email || !password || !confirm) { showAuthError('Semua kolom formulir harus diisi.'); return; }
+    if (password.length < 6) { showAuthError('Password minimal 6 karakter.'); return; }
+    if (password !== confirm) { showAuthError('Konfirmasi password tidak cocok.'); return; }
+
+    const btn = document.getElementById('authRegisterBtn');
+    btn.disabled = true;
+    btn.textContent = 'Mendaftarkan Akun…';
+    hideAuthMessages();
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Update display name di auth
+      await updateProfile(cred.user, { displayName: displayName }).catch(() => {});
+
+      // Simpan profile meta & role ke Firestore
+      await setDoc(doc(db, 'user_profiles', cred.user.uid), {
+        displayName: displayName,
+        role: role,
+        email: email,
+        createdAt: Date.now()
+      }, { merge: true }).catch(() => {});
+
+      // Kirim email verifikasi resmi
+      await sendEmailVerification(cred.user).catch((e) => console.log("Email verif error:", e));
+
+      showAuthSuccess(`✅ Pendaftaran berhasil! Link verifikasi telah dikirim ke ${email}.`);
+      showToast('Akun berhasil dibuat! 🎬');
+
+      await verifyAndRegisterDevice(cred.user);
+    } catch(err) {
+      const code = err.code || '';
+      if (code === 'auth/email-already-in-use') {
+        showAuthError('Email ini sudah terdaftar. Silakan pilih tab Masuk.');
+      } else if (code === 'auth/invalid-email') {
+        showAuthError('Format alamat email tidak valid.');
+      } else if (code === 'auth/weak-password') {
+        showAuthError('Kata sandi terlalu lemah. Gunakan minimal 6 karakter.');
+      } else {
+        showAuthError(err.message || 'Gagal mendaftarkan akun.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Daftar Akun ShinoLog →';
+    }
+  });
+
+  // Lupa Kata Sandi (Reset Password)
+  document.getElementById('forgotPassBtn').addEventListener('click', () => {
+    switchAuthTab('reset');
+  });
+
+  document.getElementById('authResetBtn').addEventListener('click', async () => {
+    const email = document.getElementById('resetEmail').value.trim();
+    if (!email) { showAuthError('Masukkan email kamu.'); return; }
+
+    const btn = document.getElementById('authResetBtn');
+    btn.disabled = true;
+    btn.textContent = 'Mengirim…';
+    hideAuthMessages();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showAuthSuccess(`✅ Link reset password dikirim ke ${email}. Cek inbox atau folder spam kamu.`);
+      btn.textContent = 'Terkirim!';
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = 'Kirim Link Reset →';
+      }, 5000);
+    } catch(err) {
+      const code = err.code || '';
+      if (code === 'auth/user-not-found') {
+        showAuthError('Email tidak terdaftar.');
+      } else if (code === 'auth/invalid-email') {
+        showAuthError('Format email tidak valid.');
+      } else {
+        showAuthError(err.message || 'Gagal mengirim email reset.');
+      }
+      btn.disabled = false;
+      btn.textContent = 'Kirim Link Reset →';
+    }
+  });
+
+  async function verifyAndRegisterDevice(user) {
+    const userDocRef = doc(db, 'user_devices', user.uid);
+    let docSnap;
+    try {
+      docSnap = await getDoc(userDocRef);
+    } catch(e) {
+      docSnap = null;
+    }
+
+    let devices = [];
+    if (docSnap && docSnap.exists()) {
+      devices = docSnap.data().devices || [];
+    }
+
+    const existingIdx = devices.findIndex(d => d.id === currentDeviceId);
+
+    if (existingIdx !== -1) {
+      devices[existingIdx].lastActive = Date.now();
+      devices[existingIdx].name = currentDeviceName;
+      await setDoc(userDocRef, { devices, updatedAt: Date.now() }, { merge: true }).catch(() => {});
+      grantAccess(user);
+      return;
+    }
+
+    if (devices.length < 2) {
+      devices.push({
+        id: currentDeviceId,
+        name: currentDeviceName,
+        loginAt: Date.now(),
+        lastActive: Date.now()
+      });
+      await setDoc(userDocRef, { devices, updatedAt: Date.now() }, { merge: true }).catch(() => {});
+      grantAccess(user);
+      return;
+    }
+
+    // Conflict: 2 Devices Limit Reached
+    renderDeviceConflictModal(user, devices);
+  }
+
+  function renderDeviceConflictModal(user, devices) {
+    const container = document.getElementById('conflictDeviceList');
+    container.innerHTML = devices.map((d, index) => {
+      const timeStr = new Date(d.lastActive || d.loginAt).toLocaleString('id-ID');
+      return `
+        <div class="device-card" style="margin-bottom:10px;">
+          <div class="device-info">
+            <div class="d-name">📱 ${escapeHtml(d.name || 'Perangkat #' + (index+1))}</div>
+            <div class="d-meta">Terakhir aktif: ${timeStr}</div>
+          </div>
+          <button class="btn btn-danger" data-action="kick-device" data-kick-id="${escapeHtml(d.id)}" style="flex:0 0 auto;padding:8px 14px;font-size:12px;">
+            Keluarkan &amp; Masuk
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    openSheet(document.getElementById('deviceConflictSheet'));
+
+    container.onclick = async (e) => {
+      const btn = e.target.closest('[data-action="kick-device"]');
+      if (!btn) return;
+      const kickId = btn.getAttribute('data-kick-id');
+
+      let updatedDevices = devices.filter(d => d.id !== kickId);
+      updatedDevices.push({
+        id: currentDeviceId,
+        name: currentDeviceName,
+        loginAt: Date.now(),
+        lastActive: Date.now()
+      });
+
+      btn.disabled = true;
+      btn.textContent = 'Mengeluarkan…';
+
+      try {
+        await setDoc(doc(db, 'user_devices', user.uid), { devices: updatedDevices, updatedAt: Date.now() });
+        closeSheets();
+        grantAccess(user);
+        showToast('Perangkat lama dikeluarkan. Selamat datang! 🎉');
+      } catch(err) {
+        showToast('Gagal mengeluarkan perangkat');
+      }
+    };
+  }
+
+  document.getElementById('cancelConflictLoginBtn').addEventListener('click', () => {
+    closeSheets();
+    signOut(auth);
+  });
+
+  function grantAccess(user) {
+    currentUser = user;
+    authOverlay.classList.add('hidden');
+    
+    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
+    document.getElementById('userEmailShort').textContent = displayName;
+    document.getElementById('managerUserEmail').textContent = user.email || displayName;
+
+    listenActiveDevices(user.uid);
+    subscribeSession(sessionCode);
+  }
+
+  function listenActiveDevices(uid) {
+    if (unsubDevices) unsubDevices();
+
+    unsubDevices = onSnapshot(doc(db, 'user_devices', uid), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      activeDevicesList = data.devices || [];
+
+      const count = activeDevicesList.length;
+      document.getElementById('deviceCountBadge').textContent = `${count}/2 Dev`;
+      document.getElementById('managerDeviceQuota').textContent = `${count} / 2 Perangkat Terpakai`;
+
+      const isAllowed = activeDevicesList.some(d => d.id === currentDeviceId);
+      if (!isAllowed && currentUser) {
+        alert('⚠️ Sesi perangkat ini telah dikeluarkan karena akun Anda login di perangkat lain.');
+        signOut(auth);
+        location.reload();
+      }
+
+      renderDeviceManagerList();
+    });
+
+    setInterval(() => {
+      if (currentUser) {
+        updateDoc(doc(db, 'user_devices', currentUser.uid), {
+          updatedAt: Date.now()
+        }).catch(() => {});
+      }
+    }, 120000);
+  }
+
+  function renderDeviceManagerList() {
+    const container = document.getElementById('activeDevicesContainer');
+    if (!container) return;
+
+    if (activeDevicesList.length === 0) {
+      container.innerHTML = `<div style="color:var(--text-faint);font-size:12px;padding:8px 0;">Belum ada perangkat terdaftar.</div>`;
+      return;
+    }
+
+    container.innerHTML = activeDevicesList.map(d => {
+      const isThis = d.id === currentDeviceId;
+      const timeStr = new Date(d.lastActive || d.loginAt).toLocaleString('id-ID');
+      return `
+        <div class="device-card ${isThis ? 'this-device' : ''}">
+          <div class="device-info">
+            <div class="d-name">
+              <span>📱 ${escapeHtml(d.name || 'Perangkat')}</span>
+              ${isThis ? '<span class="badge-this-device">PERANGKAT INI</span>' : ''}
+            </div>
+            <div class="d-meta">ID: ${escapeHtml(d.id)} • Aktif: ${timeStr}</div>
+          </div>
+          ${!isThis ? `<button class="mini-btn" data-action="kick-single-device" data-id="${escapeHtml(d.id)}" title="Keluarkan" style="color:var(--danger);font-size:12px;">✕</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('activeDevicesContainer').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-action="kick-single-device"]');
+    if (!btn || !currentUser) return;
+    const targetId = btn.getAttribute('data-id');
+    if (confirm('Keluarkan perangkat ini dari akun Anda?')) {
+      const updated = activeDevicesList.filter(d => d.id !== targetId);
+      await setDoc(doc(db, 'user_devices', currentUser.uid), { devices: updated, updatedAt: Date.now() });
+      showToast('Perangkat dikeluarkan');
+    }
+  });
+
+  document.getElementById('logoutAllOtherDevicesBtn').addEventListener('click', async () => {
+    if (!currentUser) return;
+    if (confirm('Keluarkan semua perangkat lain yang terhubung dengan akun ini?')) {
+      const thisDeviceOnly = activeDevicesList.filter(d => d.id === currentDeviceId);
+      await setDoc(doc(db, 'user_devices', currentUser.uid), { devices: thisDeviceOnly, updatedAt: Date.now() });
+      showToast('Semua perangkat lain telah dikeluarkan! 🔒');
+    }
+  });
+
+  async function performLogout() {
+    if (currentUser) {
+      const updated = activeDevicesList.filter(d => d.id !== currentDeviceId);
+      await setDoc(doc(db, 'user_devices', currentUser.uid), { devices: updated, updatedAt: Date.now() }).catch(() => {});
+    }
+    signOut(auth);
+    authOverlay.classList.remove('hidden');
+    closeSheets();
+  }
+
+  document.getElementById('logoutCurrentDeviceBtn').addEventListener('click', performLogout);
+  document.getElementById('logoutFromSettingsBtn').addEventListener('click', performLogout);
+
+  document.getElementById('userProfileBtn').addEventListener('click', () => {
+    renderDeviceManagerList();
+    openSheet(document.getElementById('deviceManagerSheet'));
+  });
+  document.getElementById('openDeviceMgrBtn').addEventListener('click', () => {
+    closeSheets();
+    setTimeout(() => {
+      renderDeviceManagerList();
+      openSheet(document.getElementById('deviceManagerSheet'));
+    }, 120);
+  });
+  document.getElementById('closeDeviceManagerSheet').addEventListener('click', closeSheets);
+
+  // Initial state: Auth overlay sits directly behind landing screen (ready for smooth reveal)
+  authOverlay.classList.remove('hidden');
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      // Sudah login → skip landing & auth langsung ke app
+      if (landingScreen) {
+        landingScreen.style.transition = 'none';
+        landingScreen.style.display = 'none';
+      }
+      authOverlay.classList.add('hidden');
+      verifyAndRegisterDevice(user);
+    } else {
+      currentUser = null;
+      // Belum login → auth overlay tetap standby di balik landing screen
+      authOverlay.classList.remove('hidden');
+    }
+  });
+
+  function getProjectsList() {
+    try {
+      return JSON.parse(localStorage.getItem(PROJECTS_LIST_KEY) || "[]");
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveCurrentProjectToRegistry() {
+    const list = getProjectsList();
+    const existingIdx = list.findIndex(p => p.code === sessionCode);
+    const item = {
+      code: sessionCode,
+      name: meta.production || "Produksi Tanpa Nama",
+      takesCount: entries.length,
+      lastActive: Date.now()
+    };
+    if(existingIdx >= 0) {
+      list[existingIdx] = Object.assign(list[existingIdx], item);
+    } else {
+      list.unshift(item);
+    }
+    localStorage.setItem(PROJECTS_LIST_KEY, JSON.stringify(list));
+  }
+
+  function cacheLocally() {
+    try {
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({ code: sessionCode, meta, entries }));
+      if(entries.length > 0) {
+        localStorage.setItem(EMERGENCY_BACKUP_KEY, JSON.stringify({
+          code: sessionCode,
+          meta,
+          entries: entries.map(e => { const c = Object.assign({}, e); delete c.id; return c; }),
+          savedAt: Date.now()
+        }));
+      }
+      saveCurrentProjectToRegistry();
+    } catch(e) {}
+  }
+
+  function setSyncStatus(status, text) {
+    const badge = document.getElementById('syncBadge');
+    badge.className = 'sync-badge ' + status;
+    document.getElementById('syncText').textContent = text;
+  }
+
+  function subscribeSession(code) {
+    if(unsubMeta) unsubMeta();
+    if(unsubEntries) unsubEntries();
+    setSyncStatus('connecting', 'Menyambungkan…');
+
+    const metaRef = doc(db, 'sessions', code);
+    unsubMeta = onSnapshot(metaRef, (snap) => {
+      if(snap.exists()) {
+        meta = Object.assign({}, defaultMeta, snap.data());
+      } else {
+        meta = Object.assign({}, defaultMeta);
+        setDoc(metaRef, meta).catch(() => {});
+      }
+      cacheLocally();
+      renderAll();
+      setSyncStatus('online', 'Live sync • ' + code);
+    }, (err) => {
+      console.error(err);
+      setSyncStatus('connecting', 'Mode offline (cache lokal)');
+    });
+
+    const entriesRef = collection(db, 'sessions', code, 'entries');
+    const q = query(entriesRef, orderBy('ts', 'desc'));
+    unsubEntries = onSnapshot(q, (snap) => {
+      entries = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+      cacheLocally();
+      renderAll();
+    }, (err) => {
+      console.error(err);
+      setSyncStatus('connecting', 'Mode offline (cache lokal)');
+    });
+  }
+
+  const entryList = document.getElementById('entryList');
+  const statsRow = document.getElementById('statsRow');
+  const searchInput = document.getElementById('searchInput');
+  const filterSelect = document.getElementById('filterSelect');
+  const overlay = document.getElementById('overlay');
+  const entrySheet = document.getElementById('entrySheet');
+  const setupSheet = document.getElementById('setupSheet');
+  const exportSheet = document.getElementById('exportSheet');
+  const projectSheet = document.getElementById('projectSheet');
+  const prodNameText = document.getElementById('prodNameText');
+
+  let editingId = null;
+  let draft = {
+    slate: 1, scene: '1', shot: '1', take: 1,
+    clipName: 'A001_001', cardPercent: '20m',
+    camera: 'A (FX6)', card: 'A001', lens: null,
+    shutter: '180°', iso: '800', filters: [],
+    tstop: '', fps: '24', note: '', good: false
+  };
+
+  function fmtTime(ts) { return new Date(ts).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }); }
+  function fmtDay(ts) { return new Date(ts).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  function escapeHtml(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]); }
+
+  function renderProdName() { prodNameText.textContent = meta.production || "Klik untuk pilih / buat project"; }
+
+  function renderStats() {
+    const total = entries.length;
+    const good = entries.filter(e => e.good).length;
+    const uniqueSlates = new Set(entries.map(e => String(e.slate || '').trim()).filter(Boolean)).size;
+
+    statsRow.innerHTML = `
+      <div class="stat"><div class="num">${total}</div><div class="lbl">Total Take</div></div>
+      <div class="stat good"><div class="num">${good}</div><div class="lbl">Good Take</div></div>
+      <div class="stat shot"><div class="num">${uniqueSlates}</div><div class="lbl">Total Slate</div></div>
+    `;
+  }
+
+  function circleSVG() {
+    return `<span class="circle-mark"><svg viewBox="-8 -8 60 60" width="44" height="44"><path d="M22 2 C33 2 42 11 42 22 C42 33 33 42 22 42 C11 42 2 33 2 22 C2 12 10 3 20 2" /></svg></span>`;
+  }
+
+  function getFilteredEntries() {
+    const q = searchInput.value.trim().toLowerCase();
+    const f = filterSelect.value;
+    return entries.filter(e => {
+      if(f === 'good' && !e.good) return false;
+      if(!q) return true;
+      const hay = [e.clipName, e.slate, e.scene, e.shot, e.take, e.camera, e.card, e.cardPercent, e.lens, e.shutter, e.iso, e.filter, e.tstop, e.fps, e.note].join(' ').toLowerCase();
+      return hay.indexOf(q) !== -1;
+    });
+  }
+
+  function renderEntries() {
+    const list = getFilteredEntries().slice().sort((a,b) => (b.ts || 0) - (a.ts || 0));
+    if(list.length === 0) {
+      entryList.innerHTML = `
+        <div class="empty-state">
+          <div class="clap">🎬</div>
+          <h3>BELUM ADA TAKE</h3>
+          <p>Tekan tombol <strong>LOG TAKE</strong> untuk mulai mencatat slate, clip, shot dan take pada project ini.</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    let lastDay = null;
+    let currentDayCards = [];
+
+    function flushDayGroup(day) {
+      if(currentDayCards.length > 0) {
+        html += `<div class="day-heading">${day}</div>`;
+        html += `<div class="card-grid">${currentDayCards.join('')}</div>`;
+        currentDayCards = [];
+      }
+    }
+
+    list.forEach(e => {
+      const day = fmtDay(e.ts || Date.now());
+      if(day !== lastDay) {
+        if(lastDay !== null) flushDayGroup(lastDay);
+        lastDay = day;
+      }
+
+      const chips = [];
+      if(e.clipName) chips.push(`<span class="chip chip-clip">CLIP ${escapeHtml(e.clipName)}</span>`);
+      if(e.camera) chips.push(`<span class="chip chip-cam">CAM ${escapeHtml(e.camera)}</span>`);
+      if(e.card) chips.push(`<span class="chip chip-card">CARD ${escapeHtml(e.card)}</span>`);
+      if(e.cardPercent) chips.push(`<span class="chip chip-dur">⏳ ${escapeHtml(e.cardPercent)}</span>`);
+      if(e.lens) chips.push(`<span class="chip">${escapeHtml(e.lens)}mm</span>`);
+      if(e.tstop) chips.push(`<span class="chip">f/${escapeHtml(e.tstop)}</span>`);
+      if(e.shutter) chips.push(`<span class="chip chip-shutter">${escapeHtml(e.shutter)}</span>`);
+      if(e.iso) chips.push(`<span class="chip chip-iso">ISO ${escapeHtml(e.iso)}</span>`);
+      if(e.filter) chips.push(`<span class="chip">${escapeHtml(e.filter)}</span>`);
+      if(e.fps) chips.push(`<span class="chip">${escapeHtml(e.fps)} fps</span>`);
+
+      const card = `
+        <div class="entry-card ${e.good ? 'good' : ''}" data-id="${e.id}">
+          <div class="entry-top">
+            <div class="slate-numbers">
+              <div class="slate-field slate-id">
+                <div class="k">Slate</div>
+                <div class="v">${escapeHtml(e.slate || '-')}</div>
+              </div>
+              <div class="slate-field">
+                <div class="k">Scene</div>
+                <div class="v">${escapeHtml(e.scene || '1')}</div>
+              </div>
+              <div class="slate-field">
+                <div class="k">Shot</div>
+                <div class="v">${escapeHtml(e.shot || '1')}</div>
+              </div>
+              <div class="slate-field take-field ${e.good ? 'good-take' : ''}">
+                <div class="k">Take</div>
+                <div class="v" style="display:flex;align-items:center;justify-content:center;">
+                  ${escapeHtml(e.take || 1)}
+                  ${e.good ? `<span style="position:relative;display:inline-block;width:2px;margin-left:4px;">${circleSVG()}</span>` : ''}
+                </div>
+              </div>
+            </div>
+            <div class="entry-actions">
+              <button class="mini-btn ${e.good ? 'active' : ''}" data-action="toggle-good" data-id="${e.id}" title="Tandai good take">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="mini-btn" data-action="edit" data-id="${e.id}" title="Edit Take">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4L16.5 3.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <button class="mini-btn" data-action="delete" data-id="${e.id}" title="Hapus Take">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+          ${chips.length ? `<div class="entry-meta">${chips.join('')}</div>` : ''}
+          ${e.note ? `<div class="entry-note">“${escapeHtml(e.note)}”</div>` : ''}
+          <div class="entry-time">
+            <span>🕒 ${fmtTime(e.ts || Date.now())}</span>
+            ${e.good ? '<span style="color:var(--good);font-weight:600;">⭐ GOOD TAKE</span>' : '<span style="color:var(--text-faint);">TAKE</span>'}
+          </div>
+        </div>
+      `;
+      currentDayCards.push(card);
+    });
+
+    if(lastDay !== null) flushDayGroup(lastDay);
+    entryList.innerHTML = html;
+  }
+
+  function renderAll() {
+    document.getElementById('sessionCodeDisplay').textContent = sessionCode;
+    renderProdName();
+    renderStats();
+    renderEntries();
+    saveCurrentProjectToRegistry();
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2000);
+  }
+
+  function openSheet(sheet) {
+    overlay.classList.add('open');
+    sheet.classList.add('open');
+    sheet.scrollTop = 0;
+    setTimeout(() => { sheet.scrollTop = 0; }, 30);
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSheets() {
+    overlay.classList.remove('open');
+    entrySheet.classList.remove('open');
+    setupSheet.classList.remove('open');
+    exportSheet.classList.remove('open');
+    projectSheet.classList.remove('open');
+    document.getElementById('deviceConflictSheet').classList.remove('open');
+    document.getElementById('deviceManagerSheet').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  overlay.addEventListener('click', closeSheets);
+  document.getElementById('closeEntrySheet').addEventListener('click', closeSheets);
+  document.getElementById('cancelEntryBtn').addEventListener('click', closeSheets);
+  document.getElementById('closeSetupSheet').addEventListener('click', closeSheets);
+  document.getElementById('closeExportSheet').addEventListener('click', closeSheets);
+  document.getElementById('closeProjectSheet').addEventListener('click', closeSheets);
+
+  window.addEventListener('keydown', (e) => {
+    if(e.key === 'Escape') {
+      closeSheets();
+    } else if((e.key === 'n' || e.key === 'N') && !isInputActive()) {
+      e.preventDefault();
+      openNewEntry();
+    } else if(e.key === '/' && !isInputActive()) {
+      e.preventDefault();
+      searchInput.focus();
+    } else if((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if(entrySheet.classList.contains('open')) {
+        document.getElementById('saveEntryBtn').click();
+      } else if(setupSheet.classList.contains('open')) {
+        document.getElementById('saveSetupBtn').click();
+      }
+    }
+  });
+
+  function isInputActive() {
+    const active = document.activeElement;
+    return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
+  }
+
+  function renderPresetRow(containerId, list, selectedVal, onSelect) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = list.map(item => {
+      const sel = (String(item) === String(selectedVal)) ? 'selected' : '';
+      return `<div class="preset-chip ${sel}" data-val="${escapeHtml(item)}">${escapeHtml(item)}</div>`;
+    }).join('');
+    Array.from(el.children).forEach(chip => {
+      chip.addEventListener('click', () => {
+        Array.from(el.children).forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        onSelect(chip.getAttribute('data-val'));
+      });
+    });
+  }
+
+  function renderMultiSelectRow(containerId, list, selectedArray, onToggle) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = list.map(item => {
+      const sel = selectedArray.includes(String(item)) ? 'selected' : '';
+      return `<div class="preset-chip ${sel}" data-val="${escapeHtml(item)}">${escapeHtml(item)}</div>`;
+    }).join('');
+    Array.from(el.children).forEach(chip => {
+      chip.addEventListener('click', () => {
+        const val = chip.getAttribute('data-val');
+        onToggle(val);
+      });
+    });
+  }
+
+  function generateAutoClipName(card) {
+    const currentCard = card || draft.card || 'A001';
+    const takesOnCard = entries.filter(e => (e.card || '').toUpperCase() === currentCard.toUpperCase()).length;
+    const clipIndex = takesOnCard + 1;
+    return `${currentCard}_${String(clipIndex).padStart(3, '0')}`;
+  }
+
+  function getCardPresetsForCamera(cam) {
+    const configuredCards = meta.cards || defaultMeta.cards;
+    const camStr = String(cam || 'A').toUpperCase();
+
+    if(camStr.startsWith('A')) {
+      return configuredCards;
+    } else if(camStr.startsWith('B')) {
+      const bCards = configuredCards.filter(c => /^[D-Fd-f]/.test(c));
+      return bCards.length ? bCards : configuredCards;
+    } else if(camStr.startsWith('C')) {
+      const cCards = configuredCards.filter(c => /^[G-Ig-i]/.test(c));
+      return cCards.length ? cCards : configuredCards;
+    }
+    return configuredCards;
+  }
+
+  function refreshCardPresets() {
+    const cam = draft.camera || (meta.cameras && meta.cameras[0]) || 'A (FX6)';
+    const cardPresets = getCardPresetsForCamera(cam);
+    if(!draft.card) {
+      draft.card = activeCameraCards[cam] || cardPresets[0] || 'A001';
+    }
+    document.getElementById('cardInput').value = draft.card;
+
+    renderPresetRow('cardPresets', cardPresets, draft.card, v => {
+      draft.card = v;
+      activeCameraCards[cam] = v;
+      document.getElementById('cardInput').value = v;
+      if(!editingId) {
+        draft.clipName = generateAutoClipName(v);
+        document.getElementById('clipNameInput').value = draft.clipName;
+      }
+    });
+  }
+
+  function refreshFilterPresets() {
+    renderMultiSelectRow('filterPresets', meta.filters || defaultMeta.filters, draft.filters, (val) => {
+      if(draft.filters.includes(val)) {
+        draft.filters = draft.filters.filter(f => f !== val);
+      } else {
+        draft.filters.push(val);
+      }
+      document.getElementById('filterInput').value = draft.filters.join(', ');
+      refreshFilterPresets();
+    });
+  }
+
+  function refreshEntryPresets() {
+    if(!draft.camera) draft.camera = meta.cameras[0] || "A (FX6)";
+    if(!draft.lens) draft.lens = meta.lenses[0] || "35";
+    if(!draft.shutter) draft.shutter = (meta.shutters && meta.shutters[0]) || "180°";
+    if(!draft.iso) draft.iso = meta.isos[0] || '800';
+
+    renderPresetRow('cameraPresets', meta.cameras || ["A (FX6)", "B (FX3)", "C (A7CII)"], draft.camera, v => {
+      draft.camera = v;
+      refreshCardPresets();
+    });
+
+    refreshCardPresets();
+
+    renderPresetRow('lensPresets', meta.lenses || ["18","24","35","50","75","125"], draft.lens, v => { draft.lens = v; });
+    renderPresetRow('shutterPresets', meta.shutters || ["180°","1/48","1/50","1/96","1/100","1/120","1/200"], draft.shutter, v => {
+      draft.shutter = v;
+      document.getElementById('shutterInput').value = v;
+    });
+
+    refreshFilterPresets();
+
+    renderPresetRow('isoPresets', meta.isos || ["100","200","400","800","1600","3200"], draft.iso, v => {
+      draft.iso = v;
+      document.getElementById('isoInput').value = v;
+    });
+  }
+
+  function openNewEntry() {
+    editingId = null;
+    const lastEntry = entries.slice().sort((a,b) => (b.ts || 0) - (a.ts || 0))[0];
+    const defaultCam = lastEntry ? (lastEntry.camera || meta.cameras[0] || "A (FX6)") : (meta.cameras[0] || "A (FX6)");
+    const defaultCard = activeCameraCards[defaultCam] || (lastEntry ? (lastEntry.card || "A001") : "A001");
+    const currentSlate = lastEntry ? (lastEntry.slate || 1) : 1;
+
+    const autoClip = generateAutoClipName(defaultCard);
+
+    let initialFilters = [];
+    if(lastEntry && lastEntry.filter) {
+      initialFilters = lastEntry.filter.split(',').map(s => s.trim()).filter(Boolean);
+    } else {
+      initialFilters = ['Clear'];
+    }
+
+    draft = {
+      slate: currentSlate,
+      scene: lastEntry ? (lastEntry.scene || '1') : '1',
+      shot: lastEntry ? (lastEntry.shot || '1') : '1',
+      take: lastEntry ? (Number(lastEntry.take) || 1) + 1 : 1,
+      clipName: autoClip,
+      cardPercent: lastEntry ? (lastEntry.cardPercent || '20m') : '20m',
+      camera: defaultCam,
+      card: defaultCard,
+      lens: lastEntry ? lastEntry.lens : (meta.lenses[0] || "35"),
+      shutter: lastEntry ? (lastEntry.shutter || "180°") : "180°",
+      iso: lastEntry ? (lastEntry.iso || "800") : "800",
+      filters: initialFilters,
+      tstop: lastEntry ? (lastEntry.tstop || '') : '',
+      fps: lastEntry ? (lastEntry.fps || '24') : '24',
+      note: '',
+      good: false
+    };
+    document.getElementById('entrySheetTitle').textContent = 'TAKE BARU';
+    document.getElementById('saveEntryBtn').textContent = 'Simpan Take (Ctrl+Enter)';
+    fillEntryForm();
+    openSheet(entrySheet);
+  }
+
+  function openEditEntry(id) {
+    const e = entries.find(x => x.id === id);
+    if(!e) return;
+    editingId = id;
+    const parsedFilters = e.filter ? e.filter.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+    draft = {
+      slate: e.slate || 1,
+      scene: e.scene || '1',
+      shot: e.shot || '1',
+      take: e.take || 1,
+      clipName: e.clipName || '',
+      cardPercent: e.cardPercent || '',
+      camera: e.camera || 'A (FX6)',
+      card: e.card || 'A001',
+      lens: e.lens,
+      shutter: e.shutter || '180°',
+      iso: e.iso || '',
+      filters: parsedFilters,
+      tstop: e.tstop || '',
+      fps: e.fps || '',
+      note: e.note || '',
+      good: !!e.good
+    };
+    document.getElementById('entrySheetTitle').textContent = 'EDIT TAKE';
+    document.getElementById('saveEntryBtn').textContent = 'Update Take (Ctrl+Enter)';
+    fillEntryForm();
+    openSheet(entrySheet);
+  }
+
+  function fillEntryForm() {
+    document.getElementById('slateInput').value = draft.slate || 1;
+    document.getElementById('sceneInput').value = draft.scene || '1';
+    document.getElementById('shotInput').value = draft.shot || '1';
+    document.getElementById('takeInput').value = draft.take || 1;
+    document.getElementById('clipNameInput').value = draft.clipName || '';
+    document.getElementById('cardPercentInput').value = draft.cardPercent || '';
+    document.getElementById('cardInput').value = draft.card || '';
+    document.getElementById('shutterInput').value = draft.shutter || '';
+    document.getElementById('isoInput').value = draft.iso || '';
+    document.getElementById('tstopInput').value = draft.tstop || '';
+    document.getElementById('fpsInput').value = draft.fps || '';
+    document.getElementById('filterInput').value = draft.filters.join(', ');
+    document.getElementById('noteInput').value = draft.note || '';
+    document.getElementById('goodToggle').classList.toggle('on', !!draft.good);
+    refreshEntryPresets();
+  }
+
+  document.getElementById('addEntryBtn').addEventListener('click', openNewEntry);
+  document.getElementById('desktopAddEntryBtn').addEventListener('click', openNewEntry);
+
+  document.getElementById('autoClipBtn').addEventListener('click', () => {
+    const card = document.getElementById('cardInput').value.trim().toUpperCase() || 'A001';
+    const generated = generateAutoClipName(card);
+    document.getElementById('clipNameInput').value = generated;
+    showToast(`Clip name diatur ke ${generated}`);
+  });
+
+  document.getElementById('filterInput').addEventListener('input', (e) => {
+    const val = e.target.value;
+    draft.filters = val.split(',').map(s => s.trim()).filter(Boolean);
+    refreshFilterPresets();
+  });
+
+  function stepAlphanumeric(val, delta) {
+    val = String(val || '1').trim().toUpperCase();
+    const matchAlpha = val.match(/^(.*)([A-Z])$/);
+    if(matchAlpha) {
+      const prefix = matchAlpha[1];
+      const charCode = matchAlpha[2].charCodeAt(0);
+      const newCharCode = charCode + delta;
+      if(newCharCode >= 65 && newCharCode <= 90) {
+        return prefix + String.fromCharCode(newCharCode);
+      }
+      if(newCharCode < 65) {
+        return prefix || '1';
+      }
+    }
+    const matchNum = val.match(/^(\d+)$/);
+    if(matchNum) {
+      const n = parseInt(matchNum[1], 10);
+      return String(Math.max(1, n + delta));
+    }
+    const matchSuffixNum = val.match(/^(.*?)(\d+)$/);
+    if(matchSuffixNum) {
+      const prefix = matchSuffixNum[1];
+      const n = parseInt(matchSuffixNum[2], 10);
+      return prefix + String(Math.max(1, n + delta));
+    }
+    return val;
+  }
+
+  Array.from(document.querySelectorAll('.step-btn')).forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-target');
+      const delta = parseInt(btn.getAttribute('data-delta'), 10);
+      const inputEl = document.getElementById(target + 'Input');
+      
+      if(target === 'take' || target === 'slate') {
+        const currentVal = parseInt(inputEl.value, 10) || 1;
+        inputEl.value = Math.max(1, currentVal + delta);
+      } else {
+        inputEl.value = stepAlphanumeric(inputEl.value, delta);
+      }
+    });
+  });
+
+  function applySuffix(suffix) {
+    const sceneEl = document.getElementById('sceneInput');
+    const shotEl = document.getElementById('shotInput');
+    const targetEl = (document.activeElement === shotEl) ? shotEl : sceneEl;
+
+    let base = targetEl.value.trim().toUpperCase();
+    if(suffix === 'CLEAR') {
+      targetEl.value = base.replace(/[A-Za-z]+$/, '');
+      if(!targetEl.value) targetEl.value = '1';
+    } else {
+      base = base.replace(/[A-Za-z]+$/, '');
+      targetEl.value = (base || '1') + suffix;
+    }
+  }
+
+  document.getElementById('suffixA_btn').addEventListener('click', () => applySuffix('A'));
+  document.getElementById('suffixB_btn').addEventListener('click', () => applySuffix('B'));
+  document.getElementById('suffixC_btn').addEventListener('click', () => applySuffix('C'));
+  document.getElementById('suffixNum_btn').addEventListener('click', () => applySuffix('CLEAR'));
+
+  document.getElementById('nextCardBtn').addEventListener('click', () => {
+    const cam = draft.camera || 'A (FX6)';
+    const current = document.getElementById('cardInput').value.trim() || 'A001';
+    const match = current.match(/^([A-Za-z]+)(\d+)$/);
+    if(match) {
+      const prefix = match[1];
+      const num = parseInt(match[2], 10) + 1;
+      const formatted = prefix + String(num).padStart(match[2].length, '0');
+      draft.card = formatted;
+      activeCameraCards[cam] = formatted;
+      document.getElementById('cardInput').value = formatted;
+      refreshCardPresets();
+      document.getElementById('clipNameInput').value = generateAutoClipName(formatted);
+      showToast(`Card dinaikkan ke ${formatted}`);
+    } else {
+      const nextCard = 'A002';
+      draft.card = nextCard;
+      activeCameraCards[cam] = nextCard;
+      document.getElementById('cardInput').value = nextCard;
+      refreshCardPresets();
+      document.getElementById('clipNameInput').value = generateAutoClipName(nextCard);
+    }
+  });
+
+  document.getElementById('cardInput').addEventListener('input', (e) => {
+    const val = e.target.value.trim().toUpperCase();
+    draft.card = val;
+    if(draft.camera) activeCameraCards[draft.camera] = val;
+    const chips = document.querySelectorAll('#cardPresets .preset-chip');
+    chips.forEach(c => {
+      c.classList.toggle('selected', c.getAttribute('data-val') === val);
+    });
+  });
+
+  document.getElementById('shutterInput').addEventListener('input', (e) => {
+    draft.shutter = e.target.value.trim();
+    const chips = document.querySelectorAll('#shutterPresets .preset-chip');
+    chips.forEach(c => {
+      c.classList.toggle('selected', c.getAttribute('data-val') === draft.shutter);
+    });
+  });
+
+  document.getElementById('isoInput').addEventListener('input', (e) => {
+    draft.iso = e.target.value.trim();
+    const chips = document.querySelectorAll('#isoPresets .preset-chip');
+    chips.forEach(c => {
+      c.classList.toggle('selected', c.getAttribute('data-val') === draft.iso);
+    });
+  });
+
+  document.getElementById('goodToggle').addEventListener('click', function() {
+    this.classList.toggle('on');
+  });
+
+  document.getElementById('saveEntryBtn').addEventListener('click', () => {
+    const slate = Math.max(1, parseInt(document.getElementById('slateInput').value, 10) || 1);
+    const scene = document.getElementById('sceneInput').value.trim().toUpperCase() || '1';
+    const shot = document.getElementById('shotInput').value.trim().toUpperCase() || '1';
+    const take = Math.max(1, parseInt(document.getElementById('takeInput').value, 10) || 1);
+    const card = document.getElementById('cardInput').value.trim().toUpperCase() || draft.card || 'A001';
+    const clipName = document.getElementById('clipNameInput').value.trim().toUpperCase() || generateAutoClipName(card);
+    const cardPercent = document.getElementById('cardPercentInput').value.trim() || '20m';
+    const shutter = document.getElementById('shutterInput').value.trim() || draft.shutter || '180°';
+    const iso = document.getElementById('isoInput').value.trim() || draft.iso || '';
+    const tstop = document.getElementById('tstopInput').value.trim();
+    const fps = document.getElementById('fpsInput').value.trim() || '24';
+    const filter = document.getElementById('filterInput').value.trim();
+    const note = document.getElementById('noteInput').value.trim();
+    const good = document.getElementById('goodToggle').classList.contains('on');
+
+    const payload = {
+      slate, scene, shot, take, clipName, cardPercent,
+      camera: draft.camera, card, lens: draft.lens,
+      shutter, iso, filter, tstop, fps, note, good
+    };
+
+    if(editingId) {
+      const idx = entries.findIndex(x => x.id === editingId);
+      if(idx !== -1) {
+        entries[idx] = Object.assign({}, entries[idx], payload);
+        cacheLocally();
+        renderAll();
+      }
+      showToast('Take diperbarui');
+      updateDoc(doc(db, 'sessions', sessionCode, 'entries', editingId), payload).catch(err => {
+        console.warn('Sync error:', err);
+      });
+    } else {
+      payload.ts = Date.now();
+      const newRef = doc(collection(db, 'sessions', sessionCode, 'entries'));
+      payload.id = newRef.id;
+
+      entries.unshift(payload);
+      cacheLocally();
+      saveCurrentProjectToRegistry();
+      renderAll();
+      showToast(good ? '⭐ Good take tersimpan!' : 'Take berhasil disimpan');
+
+      setDoc(newRef, payload).catch(err => {
+        console.warn('Sync error:', err);
+      });
+    }
+    closeSheets();
+  });
+
+  entryList.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-action]');
+    if(!btn) return;
+    const id = btn.getAttribute('data-id');
+    const action = btn.getAttribute('data-action');
+    if(action === 'toggle-good') {
+      const e = entries.find(x => x.id === id);
+      if(e) {
+        e.good = !e.good;
+        cacheLocally();
+        renderAll();
+        updateDoc(doc(db, 'sessions', sessionCode, 'entries', id), { good: e.good }).catch(() => {});
+      }
+    } else if(action === 'edit') {
+      openEditEntry(id);
+    } else if(action === 'delete') {
+      if(confirm('Hapus take ini dari cloud?')) {
+        entries = entries.filter(x => x.id !== id);
+        cacheLocally();
+        saveCurrentProjectToRegistry();
+        renderAll();
+        showToast('Take dihapus');
+        deleteDoc(doc(db, 'sessions', sessionCode, 'entries', id)).catch(() => {});
+      }
+    }
+  });
+
+  searchInput.addEventListener('input', renderEntries);
+  filterSelect.addEventListener('change', renderEntries);
+
+  function openProjectsModal() {
+    renderProjectList();
+    document.getElementById('newProjectNameInput').value = '';
+    document.getElementById('joinProjectCodeInput').value = '';
+    openSheet(projectSheet);
+  }
+
+  document.getElementById('prodNameBtn').addEventListener('click', openProjectsModal);
+  document.getElementById('projectsModalBtn').addEventListener('click', openProjectsModal);
+
+  function renderProjectList() {
+    const container = document.getElementById('projectListContainer');
+    const list = getProjectsList();
+
+    if(list.length === 0) {
+      container.innerHTML = `<div style="text-align:center;color:var(--text-faint);padding:16px;font-size:13px;">Belum ada project lain tersimpan.</div>`;
+      return;
+    }
+
+    container.innerHTML = list.map(p => {
+      const isCurrent = p.code === sessionCode;
+      const dateStr = p.lastActive ? new Date(p.lastActive).toLocaleDateString('id-ID') : '-';
+      return `
+        <div class="project-card ${isCurrent ? 'active-project' : ''}" data-code="${escapeHtml(p.code)}">
+          <div class="project-info">
+            <div class="p-name">
+              <span>🎬 ${escapeHtml(p.name || 'Produksi Tanpa Nama')}</span>
+              ${isCurrent ? '<span class="badge-active">AKTIF</span>' : ''}
+            </div>
+            <div class="p-code">Kode: ${escapeHtml(p.code)}</div>
+            <div class="p-meta">Total Take: ${p.takesCount || 0} • Terakhir: ${dateStr}</div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            ${!isCurrent ? `<button class="btn btn-primary" data-action="switch-project" data-code="${escapeHtml(p.code)}" style="padding:8px 14px;font-size:12px;">Pilih</button>` : ''}
+            <button class="icon-btn square" data-action="remove-project" data-code="${escapeHtml(p.code)}" title="Hapus dari daftar" style="width:34px;height:34px;font-size:12px;">🗑️</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('projectListContainer').addEventListener('click', (ev) => {
+    const btn = ev.target.closest('[data-action]');
+    if(!btn) return;
+    const action = btn.getAttribute('data-action');
+    const code = btn.getAttribute('data-code');
+
+    if(action === 'switch-project') {
+      switchToProject(code);
+    } else if(action === 'remove-project') {
+      if(confirm(`Hapus project (${code}) dari daftar riwayat perangkat ini? (Data di cloud tidak akan terhapus).`)) {
+        let list = getProjectsList().filter(p => p.code !== code);
+        localStorage.setItem(PROJECTS_LIST_KEY, JSON.stringify(list));
+        renderProjectList();
+        showToast('Project dihapus dari daftar');
+      }
+    }
+  });
+
+  function switchToProject(code, newName) {
+    sessionCode = code;
+    localStorage.setItem(LOCAL_CODE_KEY, sessionCode);
+    if(newName) {
+      meta.production = newName;
+    }
+    subscribeSession(sessionCode);
+    showToast(`Beralih ke project: ${meta.production || code}`);
+    closeSheets();
+  }
+
+  document.getElementById('createProjectBtn').addEventListener('click', () => {
+    const input = document.getElementById('newProjectNameInput');
+    const name = input.value.trim();
+    if(!name) {
+      showToast('Masukkan nama project produksi');
+      input.focus();
+      return;
+    }
+    const newCode = genCode();
+    const newMeta = Object.assign({}, defaultMeta, { production: name });
+    
+    sessionCode = newCode;
+    meta = newMeta;
+    entries = [];
+    localStorage.setItem(LOCAL_CODE_KEY, sessionCode);
+    saveCurrentProjectToRegistry();
+    subscribeSession(sessionCode);
+    showToast(`Project baru "${name}" berhasil dibuat! 🎉`);
+    closeSheets();
+
+    setDoc(doc(db, 'sessions', newCode), newMeta).catch(err => {
+      console.warn('Sync error:', err);
+    });
+  });
+
+  document.getElementById('newProjectNameInput').addEventListener('keydown', (ev) => {
+    if(ev.key === 'Enter') {
+      ev.preventDefault();
+      document.getElementById('createProjectBtn').click();
+    }
+  });
+
+  document.getElementById('joinProjectCodeInput').addEventListener('keydown', (ev) => {
+    if(ev.key === 'Enter') {
+      ev.preventDefault();
+      document.getElementById('joinProjectActionBtn').click();
+    }
+  });
+
+  document.getElementById('manageProjectsFromSetupBtn').addEventListener('click', () => {
+    closeSheets();
+    setTimeout(openProjectsModal, 120);
+  });
+
+  document.getElementById('joinProjectActionBtn').addEventListener('click', () => {
+    const code = document.getElementById('joinProjectCodeInput').value.trim().toUpperCase();
+    if(!code) { showToast('Masukkan kode sesi'); return; }
+    switchToProject(code);
+  });
+
+  function openSetup() {
+    document.getElementById('prodNumberInput').value = meta.prodNumber || '';
+    document.getElementById('prodNameInput').value = meta.production || '';
+    document.getElementById('directorInput').value = meta.director || '';
+    document.getElementById('dopInput').value = meta.dop || '';
+    document.getElementById('firstAcInput').value = meta.firstAc || '';
+    document.getElementById('secondAcInput').value = meta.secondAc || '';
+    document.getElementById('mediaIdInput').value = meta.mediaId || '';
+    document.getElementById('cameraIdInput').value = meta.cameraId || '';
+    document.getElementById('fileFormatInput').value = meta.fileFormat || '2K ProRes 444';
+    document.getElementById('aspectRatioInput').value = meta.aspectRatio || '1.85:1';
+    document.getElementById('lutInput').value = meta.lut || 'Med/Med';
+
+    document.getElementById('cameraListInput').value = (meta.cameras || defaultMeta.cameras).join(', ');
+    document.getElementById('cardListInput').value = (meta.cards || defaultMeta.cards).join(', ');
+    document.getElementById('lensListInput').value = (meta.lenses || defaultMeta.lenses).join(', ');
+    document.getElementById('shutterListInput').value = (meta.shutters || defaultMeta.shutters).join(', ');
+    document.getElementById('isoListInput').value = (meta.isos || defaultMeta.isos).join(', ');
+    document.getElementById('filterListInput').value = (meta.filters || defaultMeta.filters).join(', ');
+    document.getElementById('sessionCodeDisplay').textContent = sessionCode;
+
+    openSheet(setupSheet);
+  }
+  document.getElementById('settingsBtn').addEventListener('click', openSetup);
+
+  document.getElementById('copyCodeBtn').addEventListener('click', () => {
+    const text = sessionCode;
+    if(navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => { showToast('Kode disalin: ' + text); });
+    } else {
+      showToast('Kode: ' + text);
+    }
+  });
+
+  document.getElementById('saveSetupBtn').addEventListener('click', () => {
+    const prodNum = document.getElementById('prodNumberInput').value.trim();
+    const name = document.getElementById('prodNameInput').value.trim();
+    const director = document.getElementById('directorInput').value.trim();
+    const dop = document.getElementById('dopInput').value.trim();
+    const firstAc = document.getElementById('firstAcInput').value.trim();
+    const secondAc = document.getElementById('secondAcInput').value.trim();
+    const mediaId = document.getElementById('mediaIdInput').value.trim();
+    const cameraId = document.getElementById('cameraIdInput').value.trim();
+    const fileFormat = document.getElementById('fileFormatInput').value.trim();
+    const aspectRatio = document.getElementById('aspectRatioInput').value.trim();
+    const lut = document.getElementById('lutInput').value.trim();
+
+    const cams = document.getElementById('cameraListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    const cards = document.getElementById('cardListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    const lens = document.getElementById('lensListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    const shutters = document.getElementById('shutterListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    const isos = document.getElementById('isoListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+    const filt = document.getElementById('filterListInput').value.split(',').map(s => s.trim()).filter(Boolean);
+
+    const newMeta = {
+      prodNumber: prodNum,
+      production: name,
+      director, dop, firstAc, secondAc,
+      mediaId, cameraId, fileFormat, aspectRatio, lut,
+      cameras: cams.length ? cams : meta.cameras,
+      cards: cards.length ? cards : (meta.cards || defaultMeta.cards),
+      lenses: lens.length ? lens : meta.lenses,
+      shutters: shutters.length ? shutters : (meta.shutters || defaultMeta.shutters),
+      isos: isos.length ? isos : (meta.isos || defaultMeta.isos),
+      filters: filt.length ? filt : meta.filters
+    };
+
+    setDoc(doc(db, 'sessions', sessionCode), newMeta, { merge: true })
+      .then(() => {
+        showToast('Pengaturan project & kamera tersimpan');
+        saveCurrentProjectToRegistry();
+      })
+      .catch(() => { showToast('Gagal simpan — cek koneksi'); });
+    closeSheets();
+  });
+
+  document.getElementById('wipeBtn').addEventListener('click', () => {
+    if(confirm('Hapus SEMUA take di sesi ini? Data akan disimpan di Auto-Backup lokal jika Anda ingin memulihkannya nanti.')) {
+      if(entries.length > 0) {
+        try {
+          localStorage.setItem(EMERGENCY_BACKUP_KEY, JSON.stringify({
+            code: sessionCode,
+            meta,
+            entries: entries.map(e => { const c = Object.assign({}, e); delete c.id; return c; }),
+            savedAt: Date.now()
+          }));
+        } catch(e){}
+      }
+      const promises = entries.map(e => deleteDoc(doc(db, 'sessions', sessionCode, 'entries', e.id)));
+      Promise.all(promises)
+        .then(() => { showToast('Semua take dihapus (tersimpan di auto-backup)'); })
+        .catch(() => { showToast('Sebagian gagal dihapus'); });
+      closeSheets();
+    }
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', () => { openSheet(exportSheet); });
+
+  document.getElementById('restoreEmergencyBtn').addEventListener('click', () => {
+    try {
+      const raw = localStorage.getItem(EMERGENCY_BACKUP_KEY);
+      if(!raw) { showToast('Tidak ada auto-backup tersimpan di perangkat ini'); return; }
+      const data = JSON.parse(raw);
+      if(!data.entries || data.entries.length === 0) { showToast('Auto-backup kosong'); return; }
+      const dateStr = new Date(data.savedAt).toLocaleTimeString('id-ID');
+      if(!confirm(`Ditemukan ${data.entries.length} take di auto-backup lokal (pukul ${dateStr}). Pulihkan semua take ke sesi saat ini (${sessionCode})?`)) return;
+
+      const batchPromises = data.entries.map(e => {
+        const ref = doc(collection(db, 'sessions', sessionCode, 'entries'));
+        return setDoc(ref, e);
+      });
+      Promise.all(batchPromises).then(() => {
+        showToast(`Berhasil memulihkan ${data.entries.length} take! 🎉`);
+      }).catch(() => { showToast('Sebagian gagal dipulihkan'); });
+      closeSheets();
+    } catch(e) {
+      showToast('Gagal memulihkan auto-backup');
+    }
+  });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const list = entries.slice().sort((a,b) => (a.ts || 0) - (b.ts || 0));
+    if(list.length === 0) { showToast('Belum ada data untuk diexport'); return; }
+
+    const rows = [['Slate', 'Scene', 'Shot', 'Take', 'Clip Name', 'Kamera', 'Card', 'Card Sisa (Min)', 'Lens', 'T-Stop', 'Shutter', 'ISO', 'Filter', 'FPS', 'Good Take', 'Catatan', 'Waktu']];
+    list.forEach(e => {
+      rows.push([
+        e.slate || '', e.scene || '1', e.shot || '1', e.take || 1, e.clipName || '',
+        e.camera || '', e.card || '', e.cardPercent || '', e.lens || '', e.tstop || '',
+        e.shutter || '', e.iso || '', e.filter || '', e.fps || '', e.good ? 'YES' : 'NO',
+        e.note || '', new Date(e.ts).toLocaleString('id-ID')
+      ]);
+    });
+
+    const csv = rows.map(r => r.map(v => {
+      const s = String(v).replace(/"/g, '""');
+      return /[",\n]/.test(s) ? `"${s}"` : s;
+    }).join(',')).join('\n');
+
+    downloadBlob(csv, `${meta.production || 'shootlog'}_camera_report.csv`, 'text/csv;charset=utf-8;');
+    showToast('Laporan CSV berhasil diunduh');
+  });
+
+  function groupEntriesForReport(rawList) {
+    const list = rawList.slice().sort((a,b) => (a.ts || 0) - (b.ts || 0));
+    if (list.length === 0) return [];
+
+    function getCamCode(entry) {
+      const cam = String(entry.camera || '').trim().toUpperCase();
+      if (cam.startsWith('A') || cam === 'CAM A') return 'A';
+      if (cam.startsWith('B') || cam === 'CAM B') return 'B';
+      if (cam.startsWith('C') || cam === 'CAM C') return 'C';
+      if (cam.startsWith('D') || cam === 'CAM D') return 'D';
+
+      const card = String(entry.card || '').trim().toUpperCase();
+      if (card.startsWith('A')) return 'A';
+      if (card.startsWith('B')) return 'B';
+      if (card.startsWith('C')) return 'C';
+      if (card.startsWith('D')) return 'B';
+
+      const matchLetter = cam.match(/^[A-Z]/);
+      if (matchLetter) return matchLetter[0];
+      return 'A';
+    }
+
+    const slateGroups = [];
+
+    list.forEach(entry => {
+      const sSlate = String(entry.slate || '').trim().toUpperCase();
+      const sScene = String(entry.scene || '').trim().toUpperCase();
+      const sShot = String(entry.shot || '').trim().toUpperCase();
+
+      let group = null;
+      if (sSlate) {
+        group = slateGroups.find(g => {
+          const gSlate = String(g.slate || '').trim().toUpperCase();
+          return gSlate === sSlate;
+        });
+      }
+
+      if (group) {
+        group.items.push(entry);
+        group.ts = Math.min(group.ts, entry.ts || Date.now());
+        if (entry.good) group.good = true;
+        if (sScene && (!group.scene || group.scene === '1')) group.scene = entry.scene;
+        if (sShot && (!group.shot || group.shot === '1')) group.shot = entry.shot;
+      } else {
+        slateGroups.push({
+          slate: entry.slate || '',
+          scene: entry.scene || '1',
+          shot: entry.shot || '1',
+          take: entry.take || 1,
+          ts: entry.ts || Date.now(),
+          good: !!entry.good,
+          items: [entry]
+        });
+      }
+    });
+
+    return slateGroups.map(g => {
+      const items = g.items.slice();
+      const camCodes = [...new Set(items.map(it => getCamCode(it)))];
+      camCodes.sort((a, b) => a.localeCompare(b));
+
+      const takeList = [...new Set(items.map(it => it.take).filter(v => v !== undefined && v !== null && v !== ''))];
+      takeList.sort((a,b) => Number(a) - Number(b));
+      const takeStr = takeList.length > 0 ? takeList.join('/') : String(g.take || 1);
+
+      const camVals = [];
+      const cardVals = [];
+      const clipVals = [];
+      const durVals = [];
+      const lensVals = [];
+      const fstopVals = [];
+      const shutterVals = [];
+      const isoVals = [];
+      const filterVals = [];
+
+      camCodes.forEach(code => {
+        const camItems = items.filter(it => getCamCode(it) === code);
+        camVals.push(code);
+
+        const cards = [...new Set(camItems.map(it => (it.card || '').trim()).filter(Boolean))];
+        cardVals.push(cards.length > 0 ? cards.join(', ') : '-');
+
+        const clips = [...new Set(camItems.map(it => (it.clipName || '').trim()).filter(Boolean))];
+        clipVals.push(clips.length > 0 ? clips.join(', ') : '-');
+
+        const durs = [...new Set(camItems.map(it => (it.cardPercent || '').trim()).filter(Boolean))];
+        durVals.push(durs.length > 0 ? durs.join(', ') : '-');
+
+        const lenses = [...new Set(camItems.map(it => it.lens ? `${it.lens}mm` : '').filter(Boolean))];
+        lensVals.push(lenses.length > 0 ? lenses.join(', ') : '-');
+
+        const fstops = [...new Set(camItems.map(it => (it.tstop || '').trim()).filter(Boolean))];
+        fstopVals.push(fstops.length > 0 ? fstops.join(', ') : '-');
+
+        const shutters = [...new Set(camItems.map(it => (it.shutter || '').trim()).filter(Boolean))];
+        shutterVals.push(shutters.length > 0 ? shutters.join(', ') : '180°');
+
+        const isos = [...new Set(camItems.map(it => (it.iso || '').trim()).filter(Boolean))];
+        isoVals.push(isos.length > 0 ? isos.join(', ') : '800');
+
+        const filters = [...new Set(camItems.map(it => (it.filter || '').trim()).filter(Boolean))];
+        filterVals.push(filters.length > 0 ? filters.join(', ') : '-');
+      });
+
+      const notes = items.filter(it => it.note && it.note.trim()).map(it => {
+        const code = getCamCode(it);
+        return camCodes.length > 1 ? `[${code}] ${it.note.trim()}` : it.note.trim();
+      });
+      const uniqueNotes = [...new Set(notes)];
+
+      return {
+        slate: g.slate || '-',
+        scene: g.scene || '1',
+        shot: g.shot || '1',
+        take: takeStr,
+        camLines: camVals,
+        camText: camVals.join('\n'),
+        cardLines: cardVals,
+        cardText: cardVals.join('\n'),
+        clipLines: clipVals,
+        clipText: clipVals.join('\n'),
+        durLines: durVals,
+        durText: durVals.join('\n'),
+        lensLines: lensVals,
+        lensText: lensVals.join('\n'),
+        fstopLines: fstopVals,
+        fstopText: fstopVals.join('\n'),
+        shutterLines: shutterVals,
+        shutterText: shutterVals.join('\n'),
+        isoLines: isoVals,
+        isoText: isoVals.join('\n'),
+        filterLines: filterVals,
+        filterText: filterVals.join('\n'),
+        noteText: uniqueNotes.length > 0 ? uniqueNotes.join('\n') : '-',
+        noteHtml: uniqueNotes.length > 0 ? uniqueNotes.map(n => escapeHtml(n)).join('<br>') : '-',
+        timeStr: g.ts ? new Date(g.ts).toLocaleString('id-ID') : '-',
+        good: items.some(it => it.good)
+      };
+    });
+  }
+
+  function exportDirectPdf() {
+    const list = entries.slice().sort((a,b) => (a.ts || 0) - (b.ts || 0));
+    if(list.length === 0) { showToast('Belum ada data untuk diexport'); return; }
+
+    try {
+      if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+        triggerPrint();
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const activeRoll = (entries[0] && entries[0].card) ? entries[0].card : (meta.cards && meta.cards[0]) || 'A001';
+
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text((meta.production || 'SHINOLOG').toUpperCase(), 10, 13.5);
+      doc.setFontSize(14);
+      doc.text('CAMERA REPORT', 242, 13.5);
+
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.4);
+      doc.rect(10, 16, 277, 24);
+
+      doc.line(192, 16, 192, 40);
+      doc.line(10, 28, 192, 28);
+      doc.line(44, 16, 44, 28);
+      doc.line(154, 16, 154, 28);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('PROD. NUMBER', 12, 19.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.prodNumber || '-', 12, 25);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('PRODUCTION TITLE', 46, 19.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.production || 'Untitled Production', 46, 25);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('DATE', 156, 19.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(new Date().toLocaleDateString('en-US'), 156, 25);
+
+      doc.line(55, 28, 55, 40);
+      doc.line(100, 28, 100, 40);
+      doc.line(146, 28, 146, 40);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('DIRECTOR', 12, 31.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.director || '-', 12, 37);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('1ST AC', 57, 31.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.firstAc || '-', 57, 37);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('DIR. OF PHOTOGRAPHY', 102, 31.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.dop || '-', 102, 37);
+
+      doc.setFontSize(6.5);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('2ND AC', 148, 31.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(meta.secondAc || '-', 148, 37);
+
+      doc.line(192, 22, 287, 22);
+      doc.line(192, 28, 287, 28);
+      doc.line(192, 34, 287, 34);
+      doc.line(240, 16, 240, 40);
+
+      doc.setFontSize(6);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('RDM / ROLL', 194, 18.5);
+      doc.text('SHEET', 242, 18.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(activeRoll, 194, 21.2);
+      doc.text('1 of 1', 242, 21.2);
+
+      doc.setFontSize(6);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('MEDIA ID', 194, 24.5);
+      doc.text('CAMERA ID', 242, 24.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(meta.mediaId || '-', 194, 27.2);
+      doc.text(meta.cameraId || '-', 242, 27.2);
+
+      doc.setFontSize(6);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('FILE FORMAT', 194, 30.5);
+      doc.text('PROJECT FRAME RATE', 242, 30.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(meta.fileFormat || '-', 194, 33.2);
+      doc.text((list[0] && list[0].fps) ? (list[0].fps + 'fps') : '24fps', 242, 33.2);
+
+      doc.setFontSize(6);
+      doc.setFont('Helvetica', 'bold');
+      doc.text('FRAMING ASPECT RATIO', 194, 36.5);
+      doc.text('LUT', 242, 36.5);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(meta.aspectRatio || '1.85:1', 194, 39.2);
+      doc.text(meta.lut || '-', 242, 39.2);
+
+      const reportRows = groupEntriesForReport(list);
+      const headers = [['SLATE', 'SCENE', 'SHOT', 'TAKE', 'CAM', 'CARD', 'CLIP NAME', 'DURASI', 'LENS', 'F-STOP', 'SHUTTER', 'ISO', 'FILTER', 'REMARKS / CATATAN', 'WAKTU', 'GOOD']];
+      const rows = reportRows.map(r => [
+        r.slate, r.scene, r.shot, r.take, r.camText, r.cardText, r.clipText, r.durText,
+        r.lensText, r.fstopText, r.shutterText, r.isoText, r.filterText, r.noteText, r.timeStr, r.good ? 'GOOD' : 'NO'
+      ]);
+
+      doc.autoTable({
+        head: headers,
+        body: rows,
+        startY: 42.5,
+        theme: 'grid',
+        tableWidth: 277,
+        headStyles: {
+          fillColor: [230, 230, 230],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 6.2,
+          halign: 'center',
+          lineWidth: 0.2,
+          lineColor: [0, 0, 0],
+          cellPadding: 1.0
+        },
+        bodyStyles: {
+          fontSize: 6.5,
+          textColor: [0, 0, 0],
+          halign: 'center',
+          lineWidth: 0.2,
+          lineColor: [0, 0, 0]
+        },
+        columnStyles: {
+          0: { cellWidth: 10, fontStyle: 'bold' },
+          1: { cellWidth: 11, fontStyle: 'bold' },
+          2: { cellWidth: 10 },
+          3: { cellWidth: 10 },
+          4: { cellWidth: 9, fontStyle: 'bold' },
+          5: { cellWidth: 13, fontStyle: 'bold' },
+          6: { cellWidth: 26, halign: 'left', fontStyle: 'bold' },
+          7: { cellWidth: 12 },
+          8: { cellWidth: 12 },
+          9: { cellWidth: 12 },
+          10: { cellWidth: 17 },
+          11: { cellWidth: 12 },
+          12: { cellWidth: 17, halign: 'left' },
+          13: { cellWidth: 46, halign: 'left' },
+          14: { cellWidth: 32, fontSize: 6 },
+          15: { cellWidth: 12, fontStyle: 'bold' }
+        },
+        didParseCell: function(data) {
+          if (data.section === 'body' && data.column.index === 15) {
+            if (data.cell.raw === 'GOOD') {
+              data.cell.styles.fillColor = [237, 249, 240];
+              data.cell.styles.textColor = [30, 130, 60];
+            }
+          }
+        },
+        styles: { cellPadding: 1.2, overflow: 'linebreak' },
+        margin: { left: 10, right: 10 }
+      });
+
+      const fileName = `${meta.production || 'shootlog'}_camera_report.pdf`;
+      doc.save(fileName);
+      closeSheets();
+      showToast('File PDF berhasil didownload! 📄');
+    } catch(err) {
+      console.error(err);
+      triggerPrint();
+    }
+  }
+
+  function triggerPrint() {
+    const list = entries.slice().sort((a,b) => (a.ts || 0) - (b.ts || 0));
+    if(list.length === 0) { showToast('Belum ada data untuk diexport'); return; }
+
+    const activeRoll = (entries[0] && entries[0].card) ? entries[0].card : (meta.cards && meta.cards[0]) || 'A001';
+
+    document.getElementById('printBrandTitle').textContent = meta.production || 'SHINOLOG';
+    document.getElementById('prProdNum').textContent = meta.prodNumber || '01';
+    document.getElementById('prProdTitle').textContent = meta.production || 'Untitled Production';
+    document.getElementById('prDate').textContent = new Date().toLocaleDateString('en-US');
+    document.getElementById('prDirector').textContent = meta.director || '-';
+    document.getElementById('prDop').textContent = meta.dop || '-';
+    document.getElementById('prFirstAc').textContent = meta.firstAc || '-';
+    document.getElementById('prSecondAc').textContent = meta.secondAc || '-';
+
+    document.getElementById('prRoll').textContent = activeRoll;
+    document.getElementById('prSheet').textContent = '1 of 1';
+    document.getElementById('prMediaId').textContent = meta.mediaId || 'SSD 56';
+    document.getElementById('prCamId').textContent = meta.cameraId || 'SN 002680';
+    document.getElementById('prFormat').textContent = meta.fileFormat || '2K ProRes 444';
+    document.getElementById('prFps').textContent = (list[0] && list[0].fps) ? (list[0].fps + 'fps') : '24fps';
+    document.getElementById('prAspect').textContent = meta.aspectRatio || '1.85:1';
+    document.getElementById('prLut').textContent = meta.lut || 'Med/Med';
+
+    const reportRows = groupEntriesForReport(list);
+    const body = reportRows.map(r => `
+      <tr class="${r.good ? 'good' : ''}">
+        <td><strong>${escapeHtml(r.slate)}</strong></td>
+        <td><strong>${escapeHtml(r.scene)}</strong></td>
+        <td>${escapeHtml(r.shot)}</td>
+        <td>${escapeHtml(r.take)}</td>
+        <td><strong>${r.camLines.map(c => escapeHtml(c)).join('<br>')}</strong></td>
+        <td><strong>${r.cardLines.map(c => escapeHtml(c)).join('<br>')}</strong></td>
+        <td class="text-left" style="font-family:'JetBrains Mono',monospace;">${r.clipLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td>${r.durLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td>${r.lensLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td>${r.fstopLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td>${r.shutterLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td>${r.isoLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td class="text-left">${r.filterLines.map(c => escapeHtml(c)).join('<br>')}</td>
+        <td class="text-left">${r.noteHtml}</td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:7.5px;white-space:nowrap;">${escapeHtml(r.timeStr)}</td>
+        <td>${r.good ? 'GOOD' : 'NO'}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('printBody').innerHTML = body;
+    closeSheets();
+    window.print();
+  }
+
+  document.getElementById('exportPdfBtn').addEventListener('click', exportDirectPdf);
+  document.getElementById('printReportBtn').addEventListener('click', triggerPrint);
+
+  document.getElementById('backupJsonBtn').addEventListener('click', () => {
+    const payload = {
+      sessionCode, meta, entries,
+      exportedAt: new Date().toISOString(),
+      version: 8
+    };
+    downloadBlob(JSON.stringify(payload, null, 2), `${meta.production || 'shootlog'}_backup.json`, 'application/json');
+    showToast('File backup JSON diunduh');
+  });
+
+  document.getElementById('restoreJsonInput').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if(!data.entries) throw new Error('Format tidak valid');
+        if(!confirm(`Restore akan menambahkan ${data.entries.length} take ke sesi saat ini (${sessionCode}). Lanjutkan?`)) return;
+
+        if(data.meta) {
+          setDoc(doc(db, 'sessions', sessionCode), data.meta, { merge: true }).catch(() => {});
+        }
+
+        const batchPromises = data.entries.map(e => {
+          const ref = doc(collection(db, 'sessions', sessionCode, 'entries'));
+          const clean = Object.assign({}, e);
+          delete clean.id;
+          return setDoc(ref, clean);
+        });
+
+        Promise.all(batchPromises)
+          .then(() => { showToast(`Restore selesai: ${data.entries.length} take ditambahkan`); })
+          .catch(() => { showToast('Sebagian gagal direstore'); });
+        closeSheets();
+      } catch(e) {
+        showToast('File JSON tidak valid');
+      }
+    };
+    reader.readAsText(file);
+    ev.target.value = '';
+  });
+
+  function downloadBlob(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  let deferredInstallPrompt = null;
+  const installAppBtn = document.getElementById('installAppBtn');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    if (installAppBtn) installAppBtn.style.display = 'inline-flex';
+  });
+
+  async function triggerPwaInstall() {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      const choiceResult = await deferredInstallPrompt.userChoice;
+      if (choiceResult && choiceResult.outcome === 'accepted') {
+        showToast('Terima kasih! ShinoLog sedang dipasang');
+      }
+      deferredInstallPrompt = null;
+      if (installAppBtn) installAppBtn.style.display = 'none';
+    } else {
+      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      if (isStandalone) {
+        showToast('ShinoLog sudah terpasang di perangkat Anda');
+      } else if (isIos) {
+        alert('Petunjuk Install di iPhone / iPad:\n1. Ketuk tombol Share (ikon kotak panah ke atas) di Safari\n2. Gulir ke bawah lalu pilih "Add to Home Screen" (Tambah ke Layar Utama)\n3. ShinoLog siap dibuka offline kapan saja!');
+      } else {
+        showToast('Aplikasi siap bekerja 100% offline di perangkat ini');
+      }
+    }
+  }
+
+  if (installAppBtn) installAppBtn.addEventListener('click', triggerPwaInstall);
+
+  window.addEventListener('appinstalled', () => {
+    showToast('🎉 ShinoLog berhasil dipasang di perangkat!');
+    if (installAppBtn) installAppBtn.style.display = 'none';
+  });
+
+  window.addEventListener('online', () => {
+    showToast('🟢 Internet tersambung — Menyinkronkan data...');
+    if (sessionCode) subscribeSession(sessionCode);
+  });
+
+  window.addEventListener('offline', () => {
+    setSyncStatus('offline', 'Mode Offline (Penyimpanan Lokal Aktif)');
+    showToast('📴 Mode Offline aktif — Data tersimpan aman di perangkat');
+  });
+
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => {
+          console.log('ShinoLog Service Worker ready:', reg.scope);
+        })
+        .catch((err) => {
+          console.warn('Service Worker registration skipped or failed:', err);
+        });
+    });
+  }
+
+  renderAll();
+
+})();
+</script>
+</body>
+</html>
