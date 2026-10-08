@@ -188,9 +188,62 @@ export const SlateControl: React.FC = () => {
         </View>
       </View>
 
-      {/* Clip Name & T-Stop */}
+      {/* Environment: INT/EXT and DAY/NIGHT Row */}
+      <View style={styles.envRow}>
+        <View style={styles.envGroup}>
+          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>LOC:</Text>
+          {(['INT', 'EXT'] as const).map((loc) => {
+            const isCur = (form.intExt || 'INT') === loc;
+            return (
+              <TouchableOpacity
+                key={loc}
+                style={[
+                  styles.envBtn,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                  isCur && { backgroundColor: theme.accentWash, borderColor: theme.accent },
+                ]}
+                onPress={() => {
+                  haptic();
+                  setForm({ intExt: loc });
+                }}
+              >
+                <Text style={[styles.envBtnText, { color: isCur ? theme.accent : theme.textSecondary }, isCur && { fontWeight: '800' }]}>
+                  {loc}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <View style={styles.envGroup}>
+          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>LIGHT:</Text>
+          {(['DAY', 'NIGHT'] as const).map((dn) => {
+            const isCur = (form.dayNight || 'DAY') === dn;
+            return (
+              <TouchableOpacity
+                key={dn}
+                style={[
+                  styles.envBtn,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                  isCur && { backgroundColor: theme.accentWash, borderColor: theme.accent },
+                ]}
+                onPress={() => {
+                  haptic();
+                  setForm({ dayNight: dn });
+                }}
+              >
+                <Text style={[styles.envBtnText, { color: isCur ? theme.accent : theme.textSecondary }, isCur && { fontWeight: '800' }]}>
+                  {dn}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Clip Name, Sound Roll & T-Stop */}
       <View style={styles.clipRow}>
-        <View style={styles.clipField}>
+        <View style={[styles.clipField, { flex: 1.3 }]}>
           <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
           <TextInput
             style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
@@ -200,8 +253,18 @@ export const SlateControl: React.FC = () => {
             placeholderTextColor={theme.textFaint}
           />
         </View>
-        <View style={styles.clipField}>
-          <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP / APERTURE</Text>
+        <View style={[styles.clipField, { flex: 1 }]}>
+          <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL</Text>
+          <TextInput
+            style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+            value={form.soundRoll || 'SR01'}
+            onChangeText={(t) => setForm({ soundRoll: t })}
+            placeholder="SR01"
+            placeholderTextColor={theme.textFaint}
+          />
+        </View>
+        <View style={[styles.clipField, { flex: 1 }]}>
+          <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
           <TextInput
             style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={form.tstop}
@@ -446,6 +509,28 @@ const styles = StyleSheet.create({
   },
   chipClearText: {
     fontSize: 11,
+  },
+  envRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    gap: 12,
+  },
+  envGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  envBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5,
+  },
+  envBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   clipRow: {
     flexDirection: 'row',

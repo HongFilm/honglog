@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -27,6 +27,25 @@ export const ProjectSetup: React.FC = () => {
   const [isosText, setIsosText] = useState(meta.isos.join(', '));
 
   const [newProjectName, setNewProjectName] = useState('');
+
+  useEffect(() => {
+    setProduction(meta.production);
+    setProdNumber(meta.prodNumber);
+    setDirector(meta.director);
+    setDop(meta.dop);
+    setFirstAc(meta.firstAc);
+    setSecondAc(meta.secondAc);
+    setFileFormat(meta.fileFormat);
+    setAspectRatio(meta.aspectRatio);
+    setLut(meta.lut);
+    setProjectFps(meta.projectFps);
+    setCamerasText(meta.cameras.join(', '));
+    setCardsText(meta.cards.join(', '));
+    setLensesText(meta.lenses.join(', '));
+    setShuttersText(meta.shutters.join(', '));
+    setFiltersText(meta.filters.join(', '));
+    setIsosText(meta.isos.join(', '));
+  }, [activeProjectId, meta]);
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {

@@ -108,6 +108,8 @@ export interface FormState {
   fps: string;
   notes: string;
   soundRoll: string;
+  intExt: 'INT' | 'EXT';
+  dayNight: 'DAY' | 'NIGHT';
 }
 
 interface HonglogStore {
@@ -202,6 +204,8 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
     fps: meta.projectFps || '24',
     notes: '',
     soundRoll: 'SR01',
+    intExt: 'INT',
+    dayNight: 'DAY',
   };
 };
 
@@ -577,6 +581,15 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const displayTstop = isMultiCam
       ? cameraItems.map((c) => (c.tstop ? `T${c.tstop}` : '-')).join(' ')
       : form.tstop;
+    const displayShutter = isMultiCam
+      ? cameraItems.map((c) => c.shutter || form.shutter).join(' ')
+      : form.shutter;
+    const displayIso = isMultiCam
+      ? cameraItems.map((c) => c.iso || form.iso).join(' ')
+      : form.iso;
+    const displayFilter = isMultiCam
+      ? cameraItems.map((c) => c.filter || form.filter).join(' ')
+      : form.filter;
     const displayFps = isMultiCam
       ? cameraItems.map((c) => c.fps || form.fps).join(' ')
       : form.fps;
@@ -595,13 +608,15 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       camera: displayCam,
       card: displayCard,
       lens: displayLens,
-      shutter: form.shutter,
-      iso: form.iso,
-      filter: form.filter,
+      shutter: displayShutter,
+      iso: displayIso,
+      filter: displayFilter,
       tstop: displayTstop,
       fps: displayFps,
       notes: form.notes,
       soundRoll: form.soundRoll || 'SR01',
+      intExt: form.intExt || 'INT',
+      dayNight: form.dayNight || 'DAY',
       timestamp: Date.now(),
       day: selectedDay,
       cameras: cameraItems,

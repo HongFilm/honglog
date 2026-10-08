@@ -111,7 +111,9 @@ export const TakesList: React.FC = () => {
         <View style={styles.cardHeader}>
           <View style={[styles.slateBadge, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}>
             <Text style={[styles.slateBadgeText, { color: theme.accent }]}>
-              SLATE {item.slate} · SCENE {item.scene} · SHOT {item.shot} · TAKE {item.take}
+              SLATE {item.slate} · SC {item.scene} · SH {item.shot} · TK {item.take}
+              {item.intExt ? ` · ${item.intExt}` : ''}
+              {item.dayNight ? ` · ${item.dayNight}` : ''}
             </Text>
           </View>
           <TouchableOpacity
@@ -126,7 +128,7 @@ export const TakesList: React.FC = () => {
                 color={item.isGood ? theme.good : theme.textFaint}
               />
               <Text style={[styles.starIcon, { color: item.isGood ? theme.good : theme.textFaint }]}>
-                {item.isGood ? 'PRINT' : 'HOLD'}
+                {item.status || (item.isGood ? 'PRINT' : 'HOLD')}
               </Text>
             </View>
           </TouchableOpacity>
@@ -144,7 +146,7 @@ export const TakesList: React.FC = () => {
                   {c.camera}:
                 </Text>
                 <Text style={[styles.multiCamRollClip, { color: theme.textSecondary }]}>
-                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Lens <Text style={{ color: theme.accent, fontWeight: '700' }}>{c.lens ? `${c.lens}mm` : '-'}</Text> · Clip <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.clipName}</Text>
+                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Lens <Text style={{ color: theme.accent, fontWeight: '700' }}>{c.lens ? `${c.lens}mm` : '-'}</Text> · FPS <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.fps || item.fps || '24'}</Text> · Clip <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.clipName}</Text>
                 </Text>
               </View>
             ))}

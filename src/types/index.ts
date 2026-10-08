@@ -33,6 +33,8 @@ export interface TakeEntry {
   timestamp: number;
   day: number;
   soundRoll?: string; // Audio track / sound roll ID
+  intExt?: 'INT' | 'EXT'; // Interior / Exterior
+  dayNight?: 'DAY' | 'NIGHT'; // Day / Night lighting
   cameras?: CameraTakeItem[]; // For multi-camera support
 }
 

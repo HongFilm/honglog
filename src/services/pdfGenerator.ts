@@ -51,15 +51,21 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       const filterText = isMulti
         ? t.cameras!.map((c) => c.filter || '-').join('<br/>')
         : t.filter || '-';
+      const fpsText = isMulti
+        ? t.cameras!.map((c) => c.fps || t.fps || '-').join('<br/>')
+        : t.fps || '-';
 
       const isPrint = t.status === 'PRINT' || t.isGood;
       const statusLabel = isPrint ? 'PRINT' : t.status === 'NG' ? 'NG' : 'HOLD';
       const statusColor = isPrint ? '#166534' : t.status === 'NG' ? '#dc2626' : '#6b7280';
 
+      const sceneStr = `${t.scene}${t.intExt ? ` ${t.intExt}` : ''}${t.dayNight ? ` ${t.dayNight}` : ''}`;
+      const notesStr = `${t.soundRoll ? `[Sound: ${t.soundRoll}] ` : ''}${t.notes || ''}`;
+
       return `
     <tr class="${isPrint ? 'good-row' : ''}">
       <td style="text-align:center;font-weight:bold;">${t.slate}</td>
-      <td style="text-align:center;font-weight:bold;">${t.scene}</td>
+      <td style="text-align:center;font-weight:bold;">${sceneStr}</td>
       <td style="text-align:center;">${t.shot}</td>
       <td style="text-align:center;font-weight:bold;">${t.take}</td>
       <td style="text-align:center;color:${statusColor};font-weight:bold;">${statusLabel}</td>
@@ -71,8 +77,8 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       <td style="text-align:center;">${isoText}</td>
       <td style="text-align:center;">${fstopText}</td>
       <td style="text-align:center;">${filterText}</td>
-      <td style="text-align:center;">${t.fps || '-'}</td>
-      <td style="font-size:10px;">${t.notes || ''}</td>
+      <td style="text-align:center;">${fpsText}</td>
+      <td style="font-size:10px;">${notesStr}</td>
     </tr>
   `;
     })
