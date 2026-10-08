@@ -17,6 +17,7 @@ export interface TakeEntry {
   notes: string;
   timestamp: number;
   day: number;
+  cameras?: Array<{ camera: string; card: string }>; // For multi-camera support
 }
 
 export interface Project {

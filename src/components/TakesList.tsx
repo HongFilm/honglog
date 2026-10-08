@@ -42,6 +42,21 @@ export const TakesList: React.FC = () => {
     updateTake(t.id, { isGood: !t.isGood });
   };
 
+  const handleEdit = (item: TakeEntry) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    // TODO: Implement edit modal or navigate to edit screen
+    Alert.alert('Edit Take', `Edit Scene ${item.scene} Take ${item.take}`, [
+      { text: 'Batal', style: 'cancel' },
+      { 
+        text: 'Edit', 
+        onPress: () => {
+          // For now, just show an alert. In a real app, you'd open a modal with form fields.
+          Alert.alert('Edit', `Editing take ${item.id}`);
+        }
+      },
+    ]);
+  };
+
   const renderItem = ({ item }: { item: TakeEntry }) => (
     <View style={[styles.card, { backgroundColor: theme.surface, borderColor: item.isGood ? theme.good : theme.border }, item.isGood && { backgroundColor: isDarkMode ? 'rgba(74, 222, 128, 0.05)' : 'rgba(34, 197, 94, 0.05)' }]}>
       <View style={styles.cardHeader}>
@@ -103,6 +118,14 @@ export const TakesList: React.FC = () => {
         onPress={() => handleDelete(item.id, `Scene ${item.scene} Take ${item.take}`)}
       >
         <Text style={[styles.delText, { color: theme.danger }]}>Hapus</Text>
+      </TouchableOpacity>
+      
+      {/* Edit Button */}
+      <TouchableOpacity
+        style={[styles.editBtn, { borderColor: theme.accent }]}
+        onPress={() => handleEdit(item)}
+      >
+        <Text style={[styles.editText, { color: theme.accent }]}>Edit</Text>
       </TouchableOpacity>
     </View>
   );
@@ -331,6 +354,18 @@ const styles = StyleSheet.create({
   delText: {
     fontSize: 10,
     color: THEME.danger,
+  },
+  editBtn: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderRadius: 4,
+  },
+  editText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   emptyWrap: {
     paddingVertical: 50,

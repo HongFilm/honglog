@@ -77,6 +77,7 @@ interface HonglogStore {
   deleteTake: (id: string) => Promise<void>;
   clearAllTakes: () => Promise<void>;
   setSelectedDay: (day: number) => void;
+  addCameraToTake: (camera: string, card: string) => Promise<void>;
 }
 
 const createInitialForm = (meta: ProductionMeta): FormState => ({
@@ -235,7 +236,15 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   },
 
   setForm: (partial) => {
-    set((state) => ({ form: { ...state.form, ...partial } }));
+    set((state) => {
+      const newForm = { ...state.form, ...partial };
+      // Auto-update clip name when card changes
+      if (partial.card && partial.card !== state.form.card) {
+        const cardTakes = state.takes.filter(t => t.card === partial.card).length;
+        newForm.clipName = `${partial.card}_${String(cardTakes + 1).padStart(3, '0')}`;
+      }
+      return { form: newForm };
+    });
   },
 
   incrementSlate: (delta) => {
@@ -376,5 +385,96 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const newMode = !isDarkMode;
     set({ isDarkMode: newMode });
     await AsyncStorage.setItem('@honglog_theme', newMode ? 'dark' : 'light');
+  },
+
+  addCameraToTake: async (camera: string, card: string) => {
+    const { form, takes, selectedDay, activeProjectId, projects } = get();
+    
+    // Find if there's an existing take for this slate/scene/shot/take combo
+    const existingTakeIndex = takes.findIndex(
+      t => t.slate === form.slate && 
+           t.scene === form.scene && 
+           t.shot === form.shot && 
+           t.take === form.take
+    );
+    
+    if (existingTakeIndex >= 0) {
+      // Update existing take to include this camera
+      const existing = takes[existingTakeIndex];
+      const updatedCameras = existing.cameras ? [...existing.cameras, { camera, card }] : [{ camera: existing.camera, card: existing.card }, { camera, card }];
+      
+      const updatedTake: TakeEntry = {
+        ...existing,
+        cameras: updatedCameras,
+        // Keep the primary camera/card as the first one
+        camera: existing.camera,
+        card: existing.card,
+      };
+      
+      const updatedTakes = [...takes];
+      updatedTakes[existingTakeIndex] = updatedTake;
+      
+      const updatedProjects = projects.map((p) =>
+        p.id === activeProjectId ? { ...p, takes: updatedTakes } : p
+      );
+      
+      set({ takes: updatedTakes, projects: updatedProjects });
+      await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
+    } else {
+      // Create new take with camera array
+      const newEntry: TakeEntry = {
+        id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        slate: form.slate,
+        scene: form.scene,
+        shot: form.shot,
+        take: form.take,
+        isGood: form.isGood,
+        clipName: form.clipName,
+        camera: form.camera,
+        card: form.card,
+        lens: form.lens,
+        shutter: form.shutter,
+        iso: form.iso,
+        filter: form.filter,
+        tstop: form.tstop,
+        fps: form.fps,
+        notes: form.notes,
+        timestamp: Date.now(),
+        day: selectedDay,
+        cameras: [{ camera: form.camera, card: form.card }],
+      };
+
+      const newTakes = [newEntry, ...takes];
+      
+      // RULE 4: Increment SLATE on save, reset take to 1
+      const nextSlate = form.slate + 1;
+      const nextTake = 1;
+      
+      // Generate next clip name based on selected card
+      const cardPrefix = form.card || 'A001';
+      const cardTakes = newTakes.filter(t => t.card === cardPrefix).length;
+      const nextClipNum = String(cardTakes + 1).padStart(3, '0');
+
+      const updatedForm = {
+        ...form,
+        slate: nextSlate,
+        take: nextTake,
+        isGood: false,
+        notes: '',
+        clipName: `${cardPrefix}_${nextClipNum}`,
+      };
+
+      const updatedProjects = projects.map((p) =>
+        p.id === activeProjectId ? { ...p, takes: newTakes } : p
+      );
+
+      set({
+        takes: newTakes,
+        projects: updatedProjects,
+        form: updatedForm,
+      });
+
+      await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
+    }
   },
 }));
