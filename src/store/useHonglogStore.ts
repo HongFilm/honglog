@@ -52,6 +52,8 @@ interface HonglogStore {
   form: FormState;
   isHydrated: boolean;
   selectedDay: number;
+  isDarkMode: boolean;
+  toggleTheme: () => Promise<void>;
 
   // Project Actions
   hydrate: () => Promise<void>;
@@ -102,18 +104,21 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   takes: [],
   isHydrated: false,
   selectedDay: 1,
+  isDarkMode: true, // Default to dark
 
   form: createInitialForm(defaultMeta),
 
   hydrate: async () => {
     try {
-      const [savedProjects, savedActiveId] = await Promise.all([
+      const [savedProjects, savedActiveId, savedTheme] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEY_PROJECTS),
         AsyncStorage.getItem(STORAGE_KEY_ACTIVE_PROJECT),
+        AsyncStorage.getItem('@honglog_theme'),
       ]);
 
       let projects: Project[] = savedProjects ? JSON.parse(savedProjects) : [];
       let activeId = savedActiveId;
+      const isDark = savedTheme ? savedTheme === 'dark' : true;
 
       // Migration/Init: create default project if empty
       if (projects.length === 0) {
@@ -140,6 +145,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
         meta: activeProject.meta,
         takes: activeProject.takes,
         isHydrated: true,
+        isDarkMode: isDark,
         form: createInitialForm(activeProject.meta),
       });
     } catch (e) {
@@ -363,5 +369,12 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
 
   setSelectedDay: (day) => {
     set({ selectedDay: day });
+  },
+
+  toggleTheme: async () => {
+    const { isDarkMode } = get();
+    const newMode = !isDarkMode;
+    set({ isDarkMode: newMode });
+    await AsyncStorage.setItem('@honglog_theme', newMode ? 'dark' : 'light');
   },
 }));

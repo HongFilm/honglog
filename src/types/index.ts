@@ -49,7 +49,28 @@ export interface ProductionMeta {
 }
 
 // Shared theme colors extracted from logo.jpeg (Red/White/Black)
-export const THEME = {
+export type ThemeColors = {
+  bg: string;
+  surface: string;
+  surfaceRaised: string;
+  surfaceHover: string;
+  border: string;
+  borderLight: string;
+  accent: string;
+  accentDim: string;
+  accentGlow: string;
+  accentWash: string;
+  textPrimary: string;
+  textSecondary: string;
+  textFaint: string;
+  good: string;
+  danger: string;
+  fontDisplay: string;
+  fontMono: string;
+  fontUI: string;
+};
+
+export const THEME: ThemeColors = {
   bg: '#000000',
   surface: '#111111',
   surfaceRaised: '#1A1A1A',
@@ -70,4 +91,23 @@ export const THEME = {
   fontUI: 'Inter',
 } as const;
 
-export type ThemeColors = typeof THEME;
+export const LIGHT_THEME: ThemeColors = {
+  bg: '#F5F5F5',
+  surface: '#FFFFFF',
+  surfaceRaised: '#F0F0F0',
+  surfaceHover: '#E5E5E5',
+  border: '#D4D4D4',
+  borderLight: '#C0C0C0',
+  accent: '#FF3838',
+  accentDim: '#D62828',
+  accentGlow: 'rgba(255, 56, 56, 0.15)',
+  accentWash: 'rgba(255, 56, 56, 0.08)',
+  textPrimary: '#000000',
+  textSecondary: '#4A4A4A',
+  textFaint: '#8A8A8A',
+  good: '#22C55E',
+  danger: '#EF4444',
+  fontDisplay: 'Oswald',
+  fontMono: 'Courier',
+  fontUI: 'Inter',
+} as const;

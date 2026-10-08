@@ -2,8 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
-
-import { THEME } from '../types';
+import { THEME, LIGHT_THEME, ThemeColors } from '../types';
 
 export const SlateControl: React.FC = () => {
   const {
@@ -16,7 +15,10 @@ export const SlateControl: React.FC = () => {
     stripSuffixScene,
     toggleGoodTake,
     addTake,
+    isDarkMode,
   } = useHonglogStore();
+
+  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   const handleSlateDelta = (delta: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -50,13 +52,13 @@ export const SlateControl: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {/* Brand Logo & Header */}
-      <View style={styles.brandHeader}>
+      <View style={[styles.brandHeader, { borderBottomColor: theme.border }]}>
         <Image source={require('../../assets/logo.jpeg')} style={styles.logoImage} resizeMode="contain" />
         <View>
-          <Text style={styles.brandTitle}>HONGLOG</Text>
-          <Text style={styles.brandSub}>CAMERA REPORT & SLATE LOG</Text>
+          <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
+          <Text style={[styles.brandSub, { color: theme.accent }]}>CAMERA REPORT & SLATE LOG</Text>
         </View>
       </View>
 
@@ -64,104 +66,104 @@ export const SlateControl: React.FC = () => {
       <View style={styles.grid}>
         {/* SLATE */}
         <View style={styles.col}>
-          <Text style={styles.label}>SLATE</Text>
-          <View style={styles.stepper}>
-            <TouchableOpacity style={styles.stepBtn} onPress={() => handleSlateDelta(-1)}>
-              <Text style={styles.stepBtnText}>−</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>SLATE</Text>
+          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleSlateDelta(-1)}>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
             </TouchableOpacity>
             <TextInput
-              style={styles.valInput}
+              style={[styles.valInput, { color: theme.textPrimary }]}
               keyboardType="numeric"
               value={String(form.slate)}
               onChangeText={(t) => setForm({ slate: parseInt(t) || 1 })}
             />
-            <TouchableOpacity style={styles.stepBtn} onPress={() => handleSlateDelta(1)}>
-              <Text style={styles.stepBtnText}>+</Text>
+            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleSlateDelta(1)}>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* SCENE */}
         <View style={styles.col}>
-          <Text style={styles.label}>SCENE</Text>
-          <View style={styles.stepper}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>SCENE</Text>
+          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
             <TouchableOpacity
-              style={styles.stepBtn}
+              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
               onPress={() => {
                 const num = parseInt(form.scene) || 1;
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setForm({ scene: String(Math.max(1, num - 1)) });
               }}
             >
-              <Text style={styles.stepBtnText}>−</Text>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
             </TouchableOpacity>
             <TextInput
-              style={styles.valInput}
+              style={[styles.valInput, { color: theme.textPrimary }]}
               value={form.scene}
               autoCapitalize="characters"
               onChangeText={(t) => setForm({ scene: t })}
             />
             <TouchableOpacity
-              style={styles.stepBtn}
+              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
               onPress={() => {
                 const num = parseInt(form.scene) || 1;
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setForm({ scene: String(num + 1) });
               }}
             >
-              <Text style={styles.stepBtnText}>+</Text>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* SHOT */}
         <View style={styles.col}>
-          <Text style={styles.label}>SHOT</Text>
-          <View style={styles.stepper}>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>SHOT</Text>
+          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
             <TouchableOpacity
-              style={styles.stepBtn}
+              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
               onPress={() => {
                 const num = parseInt(form.shot) || 1;
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setForm({ shot: String(Math.max(1, num - 1)) });
               }}
             >
-              <Text style={styles.stepBtnText}>−</Text>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
             </TouchableOpacity>
             <TextInput
-              style={styles.valInput}
+              style={[styles.valInput, { color: theme.textPrimary }]}
               value={form.shot}
               autoCapitalize="characters"
               onChangeText={(t) => setForm({ shot: t })}
             />
             <TouchableOpacity
-              style={styles.stepBtn}
+              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
               onPress={() => {
                 const num = parseInt(form.shot) || 1;
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 setForm({ shot: String(num + 1) });
               }}
             >
-              <Text style={styles.stepBtnText}>+</Text>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* TAKE */}
         <View style={styles.col}>
-          <Text style={styles.label}>TAKE</Text>
-          <View style={styles.stepper}>
-            <TouchableOpacity style={styles.stepBtn} onPress={() => handleTakeDelta(-1)}>
-              <Text style={styles.stepBtnText}>−</Text>
+          <Text style={[styles.label, { color: theme.textSecondary }]}>TAKE</Text>
+          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleTakeDelta(-1)}>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
             </TouchableOpacity>
             <TextInput
-              style={[styles.valInput, styles.takeInputHighlight]}
+              style={[styles.valInput, styles.takeInputHighlight, { color: theme.accent }]}
               keyboardType="numeric"
               value={String(form.take)}
               onChangeText={(t) => setForm({ take: parseInt(t) || 1 })}
             />
-            <TouchableOpacity style={styles.stepBtn} onPress={() => handleTakeDelta(1)}>
-              <Text style={styles.stepBtnText}>+</Text>
+            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleTakeDelta(1)}>
+              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,15 +171,15 @@ export const SlateControl: React.FC = () => {
 
       {/* Suffix Shortcuts */}
       <View style={styles.suffixRow}>
-        <Text style={styles.suffixLbl}>Suffix Scene:</Text>
+        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>Suffix Scene:</Text>
         <View style={styles.chipsWrap}>
           {['A', 'B', 'C', 'D'].map((s) => (
-            <TouchableOpacity key={s} style={styles.chip} onPress={() => handleSuffix('scene', s)}>
-              <Text style={styles.chipText}>+{s}</Text>
+            <TouchableOpacity key={s} style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]} onPress={() => handleSuffix('scene', s)}>
+              <Text style={[styles.chipText, { color: theme.accent }]}>+{s}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={[styles.chip, styles.chipClear]} onPress={handleStrip}>
-            <Text style={styles.chipClearText}>Reset</Text>
+          <TouchableOpacity style={[styles.chip, styles.chipClear, { borderColor: theme.borderLight }]} onPress={handleStrip}>
+            <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -185,53 +187,53 @@ export const SlateControl: React.FC = () => {
       {/* Clip Name & Card Info */}
       <View style={styles.clipRow}>
         <View style={styles.clipField}>
-          <Text style={styles.subLbl}>CLIP NAME</Text>
+          <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
           <TextInput
-            style={styles.clipInput}
+            style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={form.clipName}
             onChangeText={(t) => setForm({ clipName: t })}
             placeholder="A001_001"
-            placeholderTextColor="#52525b"
+            placeholderTextColor={theme.textFaint}
           />
         </View>
         <View style={styles.clipField}>
-          <Text style={styles.subLbl}>T-STOP / APERTURE</Text>
+          <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP / APERTURE</Text>
           <TextInput
-            style={styles.clipInput}
+            style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={form.tstop}
             onChangeText={(t) => setForm({ tstop: t })}
             placeholder="2.8"
-            placeholderTextColor="#52525b"
+            placeholderTextColor={theme.textFaint}
           />
         </View>
       </View>
 
       {/* Notes / Remarks */}
       <View style={styles.notesWrap}>
-        <Text style={styles.subLbl}>CATATAN / REMARKS</Text>
+        <Text style={[styles.subLbl, { color: theme.textFaint }]}>CATATAN / REMARKS</Text>
         <TextInput
-          style={styles.notesInput}
+          style={[styles.notesInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
           value={form.notes}
           onChangeText={(t) => setForm({ notes: t })}
           placeholder="Cth: Focus aman, talent senyum, boom in frame"
-          placeholderTextColor="#52525b"
+          placeholderTextColor={theme.textFaint}
         />
       </View>
 
       {/* Good Take & Action Row */}
       <View style={styles.actionRow}>
         <TouchableOpacity
-          style={[styles.goodToggle, form.isGood && styles.goodToggleActive]}
+          style={[styles.goodToggle, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }, form.isGood && { backgroundColor: 'rgba(74, 222, 128, 0.1)', borderColor: theme.good }]}
           onPress={handleToggleGood}
           activeOpacity={0.8}
         >
-          <Text style={[styles.goodIcon, form.isGood && styles.goodIconActive]}>★</Text>
-          <Text style={[styles.goodText, form.isGood && styles.goodTextActive]}>
+          <Text style={[styles.goodIcon, { color: theme.textFaint }, form.isGood && { color: theme.good }]}>★</Text>
+          <Text style={[styles.goodText, { color: theme.textSecondary }, form.isGood && { color: theme.good }]}>
             {form.isGood ? 'GOOD TAKE ⭐' : 'Tandai Good Take'}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]} onPress={handleSave} activeOpacity={0.85}>
           <Text style={styles.saveBtnText}>SIMPAN TAKE ❯</Text>
         </TouchableOpacity>
       </View>

@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
-import { TakeEntry, THEME } from '../types';
+import { TakeEntry, THEME, LIGHT_THEME, ThemeColors } from '../types';
 
 export const TakesList: React.FC = () => {
-  const { takes, deleteTake, updateTake } = useHonglogStore();
+  const { takes, deleteTake, updateTake, isDarkMode } = useHonglogStore();
+  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
   const [filterGood, setFilterGood] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -42,66 +43,66 @@ export const TakesList: React.FC = () => {
   };
 
   const renderItem = ({ item }: { item: TakeEntry }) => (
-    <View style={[styles.card, item.isGood && styles.cardGood]}>
+    <View style={[styles.card, { backgroundColor: theme.surface, borderColor: item.isGood ? theme.good : theme.border }, item.isGood && { backgroundColor: isDarkMode ? 'rgba(74, 222, 128, 0.05)' : 'rgba(34, 197, 94, 0.05)' }]}>
       <View style={styles.cardHeader}>
-        <View style={styles.slateBadge}>
-          <Text style={styles.slateBadgeText}>
+        <View style={[styles.slateBadge, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}>
+          <Text style={[styles.slateBadgeText, { color: theme.accent }]}>
             SLATE {item.slate} &bull; SCENE {item.scene} &bull; SHOT {item.shot} &bull; TK {item.take}
           </Text>
         </View>
 
         <TouchableOpacity onPress={() => handleToggleStar(item)} style={styles.starBtn}>
-          <Text style={[styles.starIcon, item.isGood && styles.starIconActive]}>
+          <Text style={[styles.starIcon, { color: item.isGood ? theme.good : theme.textFaint }]}>
             {item.isGood ? '★ GOOD' : '☆'}
           </Text>
         </TouchableOpacity>
       </View>
 
       <View style={styles.cardSpecs}>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>CAM: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>CAM: </Text>
           {item.camera || 'A'}
         </Text>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>ROLL: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>ROLL: </Text>
           {item.card}
         </Text>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>LENS: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>LENS: </Text>
           {item.lens}mm
         </Text>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>T-STOP: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>T-STOP: </Text>
           {item.tstop ? 'T' + item.tstop : '-'}
         </Text>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>ISO: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>ISO: </Text>
           {item.iso}
         </Text>
-        <Text style={styles.specItem}>
-          <Text style={styles.specKey}>SHUTTER: </Text>
+        <Text style={[styles.specItem, { color: theme.textPrimary }]}>
+          <Text style={[styles.specKey, { color: theme.textFaint }]}>SHUTTER: </Text>
           {item.shutter}
         </Text>
       </View>
 
       <View style={styles.clipRow}>
-        <Text style={styles.clipName}>📁 {item.clipName || 'No Clip ID'}</Text>
-        <Text style={styles.timeStr}>
+        <Text style={[styles.clipName, { color: theme.textSecondary }]}>📁 {item.clipName || 'No Clip ID'}</Text>
+        <Text style={[styles.timeStr, { color: theme.textFaint }]}>
           {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </View>
 
       {item.notes ? (
-        <View style={styles.notesBox}>
-          <Text style={styles.notesText}>{item.notes}</Text>
+        <View style={[styles.notesBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+          <Text style={[styles.notesText, { color: theme.textSecondary }]}>{item.notes}</Text>
         </View>
       ) : null}
 
       <TouchableOpacity
-        style={styles.delBtn}
+        style={[styles.delBtn, { borderColor: theme.danger }]}
         onPress={() => handleDelete(item.id, `Scene ${item.scene} Take ${item.take}`)}
       >
-        <Text style={styles.delText}>Hapus</Text>
+        <Text style={[styles.delText, { color: theme.danger }]}>Hapus</Text>
       </TouchableOpacity>
     </View>
   );
@@ -110,37 +111,37 @@ export const TakesList: React.FC = () => {
     <View style={styles.container}>
       {/* Stats Bar */}
       <View style={styles.statsBar}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNum}>{takes.length > 0 ? Math.max(...takes.map(t => t.slate)) : 0}</Text>
-          <Text style={styles.statLbl}>SLATE TERAKHIR</Text>
+        <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.statNum, { color: theme.textPrimary }]}>{takes.length > 0 ? Math.max(...takes.map(t => t.slate)) : 0}</Text>
+          <Text style={[styles.statLbl, { color: theme.textFaint }]}>SLATE TERAKHIR</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={[styles.statNum, { color: THEME.good }]}>{takes.filter((t) => t.isGood).length}</Text>
-          <Text style={styles.statLbl}>GOOD TAKES</Text>
+        <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.statNum, { color: theme.good }]}>{takes.filter((t) => t.isGood).length}</Text>
+          <Text style={[styles.statLbl, { color: theme.textFaint }]}>GOOD TAKES</Text>
         </View>
-        <View style={styles.statBox}>
-          <Text style={[styles.statNum, { color: THEME.accent }]}>{new Set(takes.map((t) => t.scene)).size}</Text>
-          <Text style={styles.statLbl}>SCENES</Text>
+        <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Text style={[styles.statNum, { color: theme.accent }]}>{new Set(takes.map((t) => t.scene)).size}</Text>
+          <Text style={[styles.statLbl, { color: theme.textFaint }]}>SCENES</Text>
         </View>
       </View>
 
       {/* Filter Row */}
       <View style={styles.filterRow}>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
           placeholder="Cari scene / clip / catatan..."
-          placeholderTextColor="#63656D"
+          placeholderTextColor={theme.textFaint}
           value={search}
           onChangeText={setSearch}
         />
         <TouchableOpacity
-          style={[styles.filterBtn, filterGood && styles.filterBtnActive]}
+          style={[styles.filterBtn, { backgroundColor: theme.surfaceRaised, borderColor: filterGood ? theme.good : theme.border }, filterGood && { backgroundColor: isDarkMode ? 'rgba(74, 222, 128, 0.1)' : 'rgba(34, 197, 94, 0.1)' }]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             setFilterGood(!filterGood);
           }}
         >
-          <Text style={[styles.filterBtnText, filterGood && styles.filterBtnTextActive]}>
+          <Text style={[styles.filterBtnText, { color: filterGood ? theme.good : theme.textSecondary }]}>
             {filterGood ? '★ Good Only' : 'Semua'}
           </Text>
         </TouchableOpacity>
@@ -154,8 +155,8 @@ export const TakesList: React.FC = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyTitle}>Belum ada Take</Text>
-            <Text style={styles.emptyDesc}>Buka tab "Slate" untuk mulai logging take kamera.</Text>
+            <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Belum ada Take</Text>
+            <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>Buka tab "Slate" untuk mulai logging take kamera.</Text>
           </View>
         }
       />

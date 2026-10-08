@@ -4,10 +4,11 @@ import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { generateAndShareCameraReport } from '../services/pdfGenerator';
-import { THEME } from '../types';
+import { THEME, LIGHT_THEME, ThemeColors } from '../types';
 
 export const ExportScreen: React.FC = () => {
-  const { meta, takes } = useHonglogStore();
+  const { meta, takes, isDarkMode } = useHonglogStore();
+  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
   const [loadingPdf, setLoadingPdf] = useState(false);
 
   const handleExportPdf = async () => {
@@ -61,28 +62,28 @@ export const ExportScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>EXPORT & CAMERA REPORT</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: theme.accent }]}>EXPORT & CAMERA REPORT</Text>
+      <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
         Download lembar laporan kamera resmi untuk tim DIT, editor, dan pascaproduksi.
       </Text>
 
       {/* Summary Box */}
-      <View style={styles.summaryBox}>
+      <View style={[styles.summaryBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.sumRow}>
-          <Text style={styles.sumLabel}>Produksi:</Text>
-          <Text style={styles.sumVal}>{meta.production || 'Hong Films Project'}</Text>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Produksi:</Text>
+          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{meta.production || 'Hong Films Project'}</Text>
         </View>
         <View style={styles.sumRow}>
-          <Text style={styles.sumLabel}>Total Take:</Text>
-          <Text style={styles.sumVal}>{takes.length} Takes</Text>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Total Take:</Text>
+          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{takes.length} Takes</Text>
         </View>
         <View style={styles.sumRow}>
-          <Text style={styles.sumLabel}>Good Takes (⭐):</Text>
-          <Text style={[styles.sumVal, { color: '#5FBF77' }]}>{takes.filter((t) => t.isGood).length} Takes</Text>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Good Takes (⭐):</Text>
+          <Text style={[styles.sumVal, { color: theme.good }]}>{takes.filter((t) => t.isGood).length} Takes</Text>
         </View>
         <View style={styles.sumRow}>
-          <Text style={styles.sumLabel}>DOP / 1st AC:</Text>
-          <Text style={styles.sumVal}>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>DOP / 1st AC:</Text>
+          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>
             {meta.dop || '-'} &bull; {meta.firstAc || '-'}
           </Text>
         </View>
@@ -90,13 +91,13 @@ export const ExportScreen: React.FC = () => {
 
       {/* Action Buttons */}
       <TouchableOpacity
-        style={styles.pdfBtn}
+        style={[styles.pdfBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]}
         onPress={handleExportPdf}
         disabled={loadingPdf}
         activeOpacity={0.85}
       >
         {loadingPdf ? (
-          <ActivityIndicator color="#120d06" />
+          <ActivityIndicator color="#000" />
         ) : (
           <>
             <Text style={styles.pdfBtnIcon}>📄</Text>
@@ -108,17 +109,17 @@ export const ExportScreen: React.FC = () => {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.secBtn} onPress={handleExportCsv} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.secBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleExportCsv} activeOpacity={0.85}>
         <Text style={styles.secBtnIcon}>📊</Text>
         <View style={styles.pdfBtnTextWrap}>
-          <Text style={styles.secBtnTitle}>EXPORT LAPORAN CSV (EXCEL)</Text>
-          <Text style={styles.secBtnSub}>Tabel data mentah untuk DIT & spreadsheet</Text>
+          <Text style={[styles.secBtnTitle, { color: theme.textPrimary }]}>EXPORT LAPORAN CSV (EXCEL)</Text>
+          <Text style={[styles.secBtnSub, { color: theme.textFaint }]}>Tabel data mentah untuk DIT & spreadsheet</Text>
         </View>
       </TouchableOpacity>
 
-      <View style={styles.infoCard}>
-        <Text style={styles.infoTitle}>💡 Info Penggunaan di Lokasi Syuting</Text>
-        <Text style={styles.infoText}>
+      <View style={[styles.infoCard, { backgroundColor: theme.accentWash, borderColor: 'rgba(255, 56, 56, 0.2)' }]}>
+        <Text style={[styles.infoTitle, { color: theme.accent }]}>💡 Info Penggunaan di Lokasi Syuting</Text>
+        <Text style={[styles.infoText, { color: theme.textSecondary }]}>
           Honglog dirancang offline-first. Anda dapat menggunakan aplikasi tanpa sinyal internet sama sekali di hutan,
           gunung, atau studio tertutup. Semua take tersimpan secara lokal dan dapat di-export kapan saja.
         </Text>

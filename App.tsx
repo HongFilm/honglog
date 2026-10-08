@@ -18,13 +18,15 @@ import { QuickPresets } from './src/components/QuickPresets';
 import { TakesList } from './src/components/TakesList';
 import { ProjectSetup } from './src/components/ProjectSetup';
 import { ExportScreen } from './src/components/ExportScreen';
-import { THEME } from './src/types';
+import { THEME, LIGHT_THEME, ThemeColors } from './src/types';
 
 type Tab = 'slate' | 'takes' | 'setup' | 'export';
 
 export default function App() {
-  const { hydrate, isHydrated, meta, takes } = useHonglogStore();
+  const { hydrate, isHydrated, meta, takes, isDarkMode, toggleTheme } = useHonglogStore();
   const [activeTab, setActiveTab] = useState<Tab>('slate');
+
+  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   useEffect(() => {
     hydrate();
@@ -35,33 +37,49 @@ export default function App() {
     setActiveTab(tab);
   };
 
+  const handleToggleTheme = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    toggleTheme();
+  };
+
   if (!isHydrated) {
     return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>🎬 Memuat Honglog...</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
+        <Text style={[styles.loadingText, { color: theme.accent }]}>🎬 Memuat Honglog...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F0F12" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
       {/* Top Header Bar */}
-      <View style={styles.topbar}>
+      <View style={[styles.topbar, { borderBottomColor: theme.border }]}>
         <View style={styles.brandRow}>
           <Image source={require('./assets/logo.jpeg')} style={styles.topLogo} resizeMode="contain" />
           <View>
-            <Text style={styles.appTitle}>HONGLOG</Text>
-            <Text style={styles.prodSubtitle} numberOfLines={1}>
+            <Text style={[styles.appTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
+            <Text style={[styles.prodSubtitle, { color: theme.accent }]} numberOfLines={1}>
               {meta.production || 'Hong Films Production'}
             </Text>
           </View>
         </View>
 
-        <View style={styles.statusPill}>
-          <View style={styles.statusDot} />
-          <Text style={styles.statusText}>OFFLINE READY</Text>
+        <View style={styles.headerRight}>
+          {/* Theme Toggle Button */}
+          <TouchableOpacity
+            style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            onPress={handleToggleTheme}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.themeToggleIcon}>{isDarkMode ? '☀️' : '🌙'}</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.statusPill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={[styles.statusDot, { backgroundColor: theme.good }]} />
+            <Text style={[styles.statusText, { color: theme.textSecondary }]}>OFFLINE</Text>
+          </View>
         </View>
       </View>
 
@@ -87,24 +105,24 @@ export default function App() {
       </KeyboardAvoidingView>
 
       {/* Bottom Tab Bar */}
-      <View style={styles.tabBar}>
+      <View style={[styles.tabBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'slate' && styles.tabItemActive]}
           onPress={() => handleTabChange('slate')}
         >
-          <Text style={[styles.tabIcon, activeTab === 'slate' && styles.tabIconActive]}>🎬</Text>
-          <Text style={[styles.tabLabel, activeTab === 'slate' && styles.tabLabelActive]}>SLATE</Text>
+          <Text style={styles.tabIcon}>🎬</Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'slate' ? theme.accent : theme.textFaint }]}>SLATE</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'takes' && styles.tabItemActive]}
           onPress={() => handleTabChange('takes')}
         >
-          <Text style={[styles.tabIcon, activeTab === 'takes' && styles.tabIconActive]}>📋</Text>
+          <Text style={styles.tabIcon}>📋</Text>
           <View style={styles.tabBadgeRow}>
-            <Text style={[styles.tabLabel, activeTab === 'takes' && styles.tabLabelActive]}>TAKES</Text>
+            <Text style={[styles.tabLabel, { color: activeTab === 'takes' ? theme.accent : theme.textFaint }]}>TAKES</Text>
             {takes.length > 0 && (
-              <View style={styles.badgeCount}>
+              <View style={[styles.badgeCount, { backgroundColor: theme.accent }]}>
                 <Text style={styles.badgeCountText}>{takes.length}</Text>
               </View>
             )}
@@ -115,16 +133,16 @@ export default function App() {
           style={[styles.tabItem, activeTab === 'setup' && styles.tabItemActive]}
           onPress={() => handleTabChange('setup')}
         >
-          <Text style={[styles.tabIcon, activeTab === 'setup' && styles.tabIconActive]}>⚙️</Text>
-          <Text style={[styles.tabLabel, activeTab === 'setup' && styles.tabLabelActive]}>SETUP</Text>
+          <Text style={styles.tabIcon}>⚙️</Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'setup' ? theme.accent : theme.textFaint }]}>SETUP</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'export' && styles.tabItemActive]}
           onPress={() => handleTabChange('export')}
         >
-          <Text style={[styles.tabIcon, activeTab === 'export' && styles.tabIconActive]}>📄</Text>
-          <Text style={[styles.tabLabel, activeTab === 'export' && styles.tabLabelActive]}>EXPORT</Text>
+          <Text style={styles.tabIcon}>📄</Text>
+          <Text style={[styles.tabLabel, { color: activeTab === 'export' ? theme.accent : theme.textFaint }]}>EXPORT</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -180,6 +198,22 @@ const styles = StyleSheet.create({
     color: THEME.accent,
     fontWeight: '600',
     maxWidth: 180,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  themeToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  themeToggleIcon: {
+    fontSize: 16,
   },
   statusPill: {
     flexDirection: 'row',

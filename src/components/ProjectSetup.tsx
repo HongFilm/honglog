@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
-import { THEME, Project } from '../types';
+import { THEME, LIGHT_THEME, ThemeColors, Project } from '../types';
 
 export const ProjectSetup: React.FC = () => {
-  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject } = useHonglogStore();
+  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject, isDarkMode } = useHonglogStore();
+  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   const [production, setProduction] = useState(meta.production);
   const [prodNumber, setProdNumber] = useState(meta.prodNumber);
@@ -116,25 +117,25 @@ export const ProjectSetup: React.FC = () => {
   const renderProjectItem = ({ item }: { item: Project }) => {
     const isActive = item.id === activeProjectId;
     return (
-      <View style={[styles.projectCard, isActive && styles.projectCardActive]}>
+      <View style={[styles.projectCard, { backgroundColor: theme.surfaceRaised, borderColor: isActive ? theme.accent : theme.border }, isActive && { backgroundColor: theme.accentWash }]}>
         <TouchableOpacity 
           style={styles.projectInfo} 
           onPress={() => handleSelectProject(item.id)}
         >
-          <Text style={[styles.projectName, isActive && styles.projectNameActive]} numberOfLines={1}>
+          <Text style={[styles.projectName, { color: isActive ? theme.accent : theme.textPrimary }]} numberOfLines={1}>
             {item.name}
           </Text>
-          <Text style={styles.projectMeta}>
+          <Text style={[styles.projectMeta, { color: theme.textSecondary }]}>
             {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
           </Text>
         </TouchableOpacity>
         {isActive ? (
-          <View style={styles.activeBadge}>
+          <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
             <Text style={styles.activeBadgeText}>AKTIF</Text>
           </View>
         ) : (
           <TouchableOpacity onPress={() => handleDeleteProject(item.id, item.name)} style={styles.deleteProjectBtn}>
-            <Text style={styles.deleteProjectText}>Hapus</Text>
+            <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -144,10 +145,10 @@ export const ProjectSetup: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Project Management Section */}
-      <Text style={styles.sectionHeader}>MANAJEMEN PROJECT FILM</Text>
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>MANAJEMEN PROJECT FILM</Text>
       
-      <View style={styles.card}>
-        <Text style={styles.label}>PROJECT AKTIF</Text>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+        <Text style={[styles.label, { color: theme.textFaint }]}>PROJECT AKTIF</Text>
         <FlatList
           data={projects}
           keyExtractor={(item) => item.id}
@@ -157,220 +158,220 @@ export const ProjectSetup: React.FC = () => {
         />
         
         <View style={styles.field}>
-          <Text style={styles.label}>BUAT PROJECT BARU</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>BUAT PROJECT BARU</Text>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             <TextInput
-              style={[styles.input, { flex: 1 }]}
+              style={[styles.input, { flex: 1, backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={newProjectName}
               onChangeText={setNewProjectName}
               placeholder="Nama film / produksi baru..."
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
-            <TouchableOpacity style={styles.createBtn} onPress={handleCreateProject}>
+            <TouchableOpacity style={[styles.createBtn, { backgroundColor: theme.accent }]} onPress={handleCreateProject}>
               <Text style={styles.createBtnText}>BUAT</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>INFORMASI PRODUKSI & KRU</Text>
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>INFORMASI PRODUKSI & KRU</Text>
 
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.field}>
-          <Text style={styles.label}>JUDUL FILM / PRODUKSI</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>JUDUL FILM / PRODUKSI</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={production}
             onChangeText={setProduction}
             placeholder="Cth: Sang Penebus"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>PROD. NUMBER</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>PROD. NUMBER</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={prodNumber}
               onChangeText={setProdNumber}
               placeholder="01"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>BASE FPS</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>BASE FPS</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={projectFps}
               onChangeText={setProjectFps}
               placeholder="24"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>DIRECTOR (SUTRADARA)</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>DIRECTOR (SUTRADARA)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={director}
               onChangeText={setDirector}
               placeholder="Nama Sutradara"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>D.O.P</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>D.O.P</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={dop}
               onChangeText={setDop}
               placeholder="Nama DOP"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>1ST AC (FOCUS PULLER)</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>1ST AC (FOCUS PULLER)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={firstAc}
               onChangeText={setFirstAc}
               placeholder="1st AC"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>2ND AC (CLAPPER/LOADER)</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>2ND AC (CLAPPER/LOADER)</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={secondAc}
               onChangeText={setSecondAc}
               placeholder="2nd AC"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>SPESIFIKASI FORMAT KAMERA</Text>
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>SPESIFIKASI FORMAT KAMERA</Text>
 
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.field}>
-          <Text style={styles.label}>CODEC / FILE FORMAT</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>CODEC / FILE FORMAT</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={fileFormat}
             onChangeText={setFileFormat}
             placeholder="ProRes 422 HQ / X-OCN"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.row}>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>ASPECT RATIO</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>ASPECT RATIO</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={aspectRatio}
               onChangeText={setAspectRatio}
               placeholder="1.85:1 / 2.39:1"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
           <View style={[styles.field, { flex: 1 }]}>
-            <Text style={styles.label}>LUT</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>LUT</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={lut}
               onChangeText={setLut}
               placeholder="Rec.709 / Film Look"
-              placeholderTextColor={THEME.textFaint}
+              placeholderTextColor={theme.textFaint}
             />
           </View>
         </View>
       </View>
 
-      <Text style={styles.sectionHeader}>PRESET DI SET (PISAHKAN KOMA)</Text>
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>PRESET DI SET (PISAHKAN KOMA)</Text>
 
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.field}>
-          <Text style={styles.label}>KAMERA DI SET</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>KAMERA DI SET</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={camerasText}
             onChangeText={setCamerasText}
             placeholder="A (FX6), B (FX3)"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>CARD / ROLL</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>CARD / ROLL</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={cardsText}
             onChangeText={setCardsText}
             placeholder="A001, B001, C001"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>PRESET LENSA (MM)</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET LENSA (MM)</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={lensesText}
             onChangeText={setLensesText}
             placeholder="18, 24, 35, 50, 75, 125"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>PRESET SHUTTER</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET SHUTTER</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={shuttersText}
             onChangeText={setShuttersText}
             placeholder="180°, 1/48, 1/50, 1/100"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>PRESET ISO</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET ISO</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={isosText}
             onChangeText={setIsosText}
             placeholder="100, 200, 400, 800, 1600, 3200, 6400"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>PRESET FILTER / ND</Text>
+          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET FILTER / ND</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={filtersText}
             onChangeText={setFiltersText}
             placeholder="Clear, ND3, ND6, Diffusion 1/4"
-            placeholderTextColor={THEME.textFaint}
+            placeholderTextColor={theme.textFaint}
           />
         </View>
       </View>
 
-      <TouchableOpacity style={styles.saveBtn} onPress={handleSave} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.accent }]} onPress={handleSave} activeOpacity={0.85}>
         <Text style={styles.saveBtnText}>SIMPAN PENGATURAN</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.dangerBtn} onPress={handleClearTakes} activeOpacity={0.85}>
-        <Text style={styles.dangerBtnText}>Hapus Seluruh Take ({takes.length})</Text>
+      <TouchableOpacity style={[styles.dangerBtn, { borderColor: theme.danger }]} onPress={handleClearTakes} activeOpacity={0.85}>
+        <Text style={[styles.dangerBtnText, { color: theme.danger }]}>Hapus Seluruh Take ({takes.length})</Text>
       </TouchableOpacity>
     </ScrollView>
   );
