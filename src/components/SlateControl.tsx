@@ -101,7 +101,7 @@ export const SlateControl: React.FC = () => {
           {form.selectedCameras && form.selectedCameras.length > 1 && (
             <View style={[styles.multiCamPill, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}>
               <Text style={[styles.multiCamPillText, { color: theme.accent }]}>
-                🎥 MULTI-CAM: {form.selectedCameras.map((c) => c.split(' ')[0]).join(' + ')} ({form.selectedCameras.length} KAMERA AKTIF)
+                MULTI-CAM: {form.selectedCameras.map((c) => c.split(' ')[0]).join(' + ')} ({form.selectedCameras.length} CAM)
               </Text>
             </View>
           )}

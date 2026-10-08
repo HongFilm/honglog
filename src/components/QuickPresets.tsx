@@ -1,30 +1,73 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
 
 export const QuickPresets: React.FC = () => {
-  const { meta, form, setForm, toggleCamera, isDarkMode } = useHonglogStore();
+  const {
+    meta,
+    form,
+    setForm,
+    toggleCamera,
+    setCameraCard,
+    setCameraLens,
+    isDarkMode,
+  } = useHonglogStore();
+
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
-  const handleSelect = (field: 'card' | 'lens' | 'shutter' | 'iso' | 'filter', val: string) => {
+  const selectedCams = form.selectedCameras && form.selectedCameras.length > 0
+    ? form.selectedCameras
+    : [form.camera];
+
+  const isMultiCam = selectedCams.length > 1;
+
+  // Active sub-tab for multi-cam lens/card configuration
+  const [activeCamTarget, setActiveCamTarget] = useState<string>(selectedCams[0] || form.camera);
+  const currentTarget = selectedCams.includes(activeCamTarget) ? activeCamTarget : selectedCams[0];
+
+  const handleSelect = (field: 'shutter' | 'iso' | 'filter', val: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setForm({ [field]: val });
   };
 
-  const isMultiCam = (form.selectedCameras || []).length > 1;
+  const handleCardSelect = (card: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isMultiCam) {
+      setCameraCard(currentTarget, card);
+    } else {
+      setForm({ card });
+    }
+  };
+
+  const handleLensSelect = (lens: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (isMultiCam) {
+      setCameraLens(currentTarget, lens);
+    } else {
+      setForm({ lens });
+    }
+  };
+
+  const currentTargetCard = isMultiCam
+    ? form.cameraCards[currentTarget] || form.card
+    : form.card;
+
+  const currentTargetLens = isMultiCam
+    ? form.cameraLenses[currentTarget] || form.lens
+    : form.lens;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {/* Camera Selection - Multiple Selection Support */}
+      {/* Camera Selection - Multi-Cam Toggle */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.headerLbl, { color: theme.textFaint }]}>CAMERA (BISA MULTI-KAMERA)</Text>
+          <Text style={[styles.headerLbl, { color: theme.textFaint }]}>CAMERA (MULTI-CAM TOGGLE)</Text>
           {isMultiCam && (
             <View style={[styles.multiCamTag, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}>
               <Text style={[styles.multiCamTagText, { color: theme.accent }]}>
-                🎥 {form.selectedCameras.length} KAMERA AKTIF
+                MULTI-CAM ({selectedCams.length} AKTIF)
               </Text>
             </View>
           )}
@@ -32,7 +75,7 @@ export const QuickPresets: React.FC = () => {
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.cameras.map((cam) => {
-            const isSelected = (form.selectedCameras || [form.camera]).includes(cam);
+            const isSelected = selectedCams.includes(cam);
             return (
               <TouchableOpacity
                 key={cam}
@@ -44,6 +87,7 @@ export const QuickPresets: React.FC = () => {
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   toggleCamera(cam);
+                  setActiveCamTarget(cam);
                 }}
               >
                 <Text
@@ -59,22 +103,59 @@ export const QuickPresets: React.FC = () => {
             );
           })}
         </ScrollView>
-        <Text style={[styles.hintText, { color: theme.textFaint }]}>
-          * Ketuk nama kamera untuk memilih/menambah kamera (bisa pilih Cam A + Cam B sekaligus untuk 1 slate).
-        </Text>
       </View>
 
-      {/* Media Card / Roll - Auto updates clip name */}
+      {/* Multi-Cam Sub-selector: Choose which camera to assign Card & Lens */}
+      {isMultiCam && (
+        <View style={[styles.multiCamConfigBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+          <Text style={[styles.multiCamConfigTitle, { color: theme.textFaint }]}>
+            PILIH KAMERA UNTUK SET ROLL & LENSA:
+          </Text>
+          <View style={styles.camTargetTabs}>
+            {selectedCams.map((cam) => {
+              const isActive = currentTarget === cam;
+              const camCard = form.cameraCards[cam] || '—';
+              const camLens = form.cameraLenses[cam] || form.lens || '—';
+
+              return (
+                <TouchableOpacity
+                  key={cam}
+                  style={[
+                    styles.camTargetTab,
+                    { backgroundColor: theme.surface, borderColor: isActive ? theme.accent : theme.border },
+                    isActive && { backgroundColor: theme.accentWash },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setActiveCamTarget(cam);
+                  }}
+                >
+                  <Text style={[styles.camTargetName, { color: isActive ? theme.accent : theme.textPrimary }]}>
+                    {cam.split(' ')[0]} ({cam.split('(')[1]?.replace(')', '') || cam})
+                  </Text>
+                  <Text style={[styles.camTargetDetail, { color: theme.textSecondary }]}>
+                    Roll: <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{camCard}</Text> · Lens: <Text style={{ color: theme.accent, fontWeight: '700' }}>{camLens}mm</Text>
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
+      {/* Media Card / Roll */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.headerLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
+          <Text style={[styles.headerLbl, { color: theme.textFaint }]}>
+            ROLL / CARD {isMultiCam ? `(UNTUK ${currentTarget})` : ''}
+          </Text>
           <Text style={[styles.clipHintBadge, { color: theme.accent }]}>
             NEXT: {form.clipName || '—'}
           </Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.cards.map((card) => {
-            const isSelected = form.card === card;
+            const isSelected = currentTargetCard === card;
             return (
               <TouchableOpacity
                 key={card}
@@ -83,7 +164,7 @@ export const QuickPresets: React.FC = () => {
                   { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
                   isSelected && { backgroundColor: theme.accentWash, borderColor: theme.accent },
                 ]}
-                onPress={() => handleSelect('card', card)}
+                onPress={() => handleCardSelect(card)}
               >
                 <Text
                   style={[
@@ -100,12 +181,19 @@ export const QuickPresets: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Lens */}
+      {/* Lens (Supports per-camera selection in Multi-Cam) */}
       <View style={styles.section}>
-        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.headerLbl, { color: theme.textFaint }]}>
+            LENS (MM) {isMultiCam ? `(UNTUK ${currentTarget})` : ''}
+          </Text>
+          <Text style={[styles.clipHintBadge, { color: theme.accent }]}>
+            ACTIVE: {currentTargetLens}mm
+          </Text>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.lenses.map((lens) => {
-            const isSelected = form.lens === lens;
+            const isSelected = currentTargetLens === lens;
             return (
               <TouchableOpacity
                 key={lens}
@@ -114,7 +202,7 @@ export const QuickPresets: React.FC = () => {
                   { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
                   isSelected && { backgroundColor: theme.accentWash, borderColor: theme.accent },
                 ]}
-                onPress={() => handleSelect('lens', lens)}
+                onPress={() => handleLensSelect(lens)}
               >
                 <Text
                   style={[
@@ -133,7 +221,7 @@ export const QuickPresets: React.FC = () => {
 
       {/* Shutter */}
       <View style={styles.section}>
-        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>SHUTTER</Text>
+        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>SHUTTER ANGLE / SPEED</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.shutters.map((sh) => {
             const isSelected = form.shutter === sh;
@@ -164,7 +252,7 @@ export const QuickPresets: React.FC = () => {
 
       {/* ISO */}
       <View style={styles.section}>
-        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>ISO</Text>
+        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>SENSOR ISO</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.isos.map((iso) => {
             const isSelected = form.iso === iso;
@@ -195,7 +283,7 @@ export const QuickPresets: React.FC = () => {
 
       {/* Filters / ND */}
       <View style={styles.section}>
-        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>FILTER / ND</Text>
+        <Text style={[styles.headerLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.filters.map((fil) => {
             const isSelected = form.filter === fil;
@@ -233,10 +321,10 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     marginBottom: 14,
-    gap: 10,
+    gap: 12,
   },
   section: {
-    gap: 4,
+    gap: 5,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -245,7 +333,7 @@ const styles = StyleSheet.create({
   },
   headerLbl: {
     fontSize: 9.5,
-    fontWeight: '700',
+    fontWeight: '800',
     letterSpacing: 0.8,
   },
   multiCamTag: {
@@ -257,16 +345,41 @@ const styles = StyleSheet.create({
   multiCamTagText: {
     fontSize: 9,
     fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  multiCamConfigBox: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+  },
+  multiCamConfigTitle: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  camTargetTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  camTargetTab: {
+    flex: 1,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 2,
+  },
+  camTargetName: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  camTargetDetail: {
+    fontSize: 10,
   },
   clipHintBadge: {
     fontSize: 10,
     fontWeight: '800',
     fontFamily: THEME.fontMono,
-  },
-  hintText: {
-    fontSize: 9.5,
-    marginTop: 2,
-    fontStyle: 'italic',
   },
   row: {
     flexDirection: 'row',

@@ -14,6 +14,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { TakeEntry, THEME, LIGHT_THEME, ThemeColors } from '../types';
 
@@ -118,9 +119,16 @@ export const TakesList: React.FC = () => {
             style={styles.starBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={[styles.starIcon, { color: item.isGood ? theme.good : theme.textFaint }]}>
-              {item.isGood ? '★ GOOD' : '☆'}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Feather
+                name={item.isGood ? 'check-circle' : 'circle'}
+                size={13}
+                color={item.isGood ? theme.good : theme.textFaint}
+              />
+              <Text style={[styles.starIcon, { color: item.isGood ? theme.good : theme.textFaint }]}>
+                {item.isGood ? 'PRINT' : 'HOLD'}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -128,7 +136,7 @@ export const TakesList: React.FC = () => {
         {isMultiCam && item.cameras && (
           <View style={[styles.multiCamContainer, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
             <Text style={[styles.multiCamTitle, { color: theme.accent }]}>
-              🎥 MULTI-KAMERA ({item.cameras.length} CAM):
+              MULTI-CAM ({item.cameras.length} CAM):
             </Text>
             {item.cameras.map((c, idx) => (
               <View key={idx} style={styles.multiCamItemRow}>
@@ -136,7 +144,7 @@ export const TakesList: React.FC = () => {
                   {c.camera}:
                 </Text>
                 <Text style={[styles.multiCamRollClip, { color: theme.textSecondary }]}>
-                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Clip <Text style={{ color: theme.accent, fontWeight: '700' }}>{c.clipName}</Text>
+                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Lens <Text style={{ color: theme.accent, fontWeight: '700' }}>{c.lens ? `${c.lens}mm` : '-'}</Text> · Clip <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.clipName}</Text>
                 </Text>
               </View>
             ))}
@@ -176,7 +184,7 @@ export const TakesList: React.FC = () => {
         {/* Clip & Timestamp Row */}
         <View style={[styles.clipRow, { borderTopColor: theme.border }]}>
           <Text style={[styles.clipName, { color: theme.textSecondary }]}>
-            📁 {item.clipName || 'No Clip ID'}
+            CLIP: {item.clipName || 'No Clip ID'}
           </Text>
           <Text style={[styles.timeStr, { color: theme.textFaint }]}>
             {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -199,31 +207,39 @@ export const TakesList: React.FC = () => {
               setEditing({ ...item });
             }}
           >
-            <Text style={[styles.actionBtnEditText, { color: theme.accent }]}>✏️ EDIT TAKE</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Feather name="edit-2" size={12} color={theme.accent} />
+              <Text style={[styles.actionBtnEditText, { color: theme.accent }]}>EDIT</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.actionBtnDel, { borderColor: theme.danger }]}
             onPress={() => handleDelete(item.id, `Slate ${item.slate} (Sc ${item.scene} Tk ${item.take})`)}
           >
-            <Text style={[styles.actionBtnDelText, { color: theme.danger }]}>🗑️ HAPUS</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Feather name="trash-2" size={12} color={theme.danger} />
+              <Text style={[styles.actionBtnDelText, { color: theme.danger }]}>HAPUS</Text>
+            </View>
           </TouchableOpacity>
         </View>
       </View>
     );
   };
 
+  const totalSlates = takes.length > 0 ? new Set(takes.map((t) => t.slate)).size : 0;
+
   return (
     <View style={styles.container}>
       {/* Stats Bar */}
       <View style={styles.statsBar}>
         <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-          <Text style={[styles.statNum, { color: theme.textPrimary }]}>{takes.length}</Text>
-          <Text style={[styles.statLbl, { color: theme.textFaint }]}>TOTAL TAKES</Text>
+          <Text style={[styles.statNum, { color: theme.textPrimary }]}>{totalSlates}</Text>
+          <Text style={[styles.statLbl, { color: theme.textFaint }]}>TOTAL SLATE</Text>
         </View>
         <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.statNum, { color: theme.good }]}>{takes.filter((t) => t.isGood).length}</Text>
-          <Text style={[styles.statLbl, { color: theme.textFaint }]}>GOOD TAKES</Text>
+          <Text style={[styles.statLbl, { color: theme.textFaint }]}>PRINT TAKES</Text>
         </View>
         <View style={[styles.statBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
           <Text style={[styles.statNum, { color: theme.accent }]}>{new Set(takes.map((t) => t.scene)).size}</Text>
@@ -295,7 +311,7 @@ export const TakesList: React.FC = () => {
           }}
         >
           <Text style={[styles.filterBtnText, { color: filterGood ? theme.good : theme.textSecondary }]}>
-            {filterGood ? '★ Good' : 'Semua'}
+            {filterGood ? 'PRINT ONLY' : 'SEMUA TAKE'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -315,7 +331,7 @@ export const TakesList: React.FC = () => {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.emptyEmoji}>🎬</Text>
+            <Feather name="film" size={36} color={theme.textFaint} />
             <Text style={[styles.emptyTitle, { color: theme.textPrimary }]}>Belum ada Take</Text>
             <Text style={[styles.emptyDesc, { color: theme.textSecondary }]}>
               Buka tab SLATE untuk mulai logging take kamera.
@@ -543,9 +559,16 @@ export const TakesList: React.FC = () => {
                     setEditing({ ...editing, isGood: !editing.isGood });
                   }}
                 >
-                  <Text style={[styles.modalGoodBtnText, { color: editing.isGood ? theme.good : theme.textSecondary }]}>
-                    {editing.isGood ? '★ GOOD TAKE (TERPILIH)' : '☆ TANDAI SEBAGAI GOOD TAKE'}
-                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Feather
+                      name={editing.isGood ? 'check-circle' : 'circle'}
+                      size={15}
+                      color={editing.isGood ? theme.good : theme.textSecondary}
+                    />
+                    <Text style={[styles.modalGoodBtnText, { color: editing.isGood ? theme.good : theme.textSecondary }]}>
+                      {editing.isGood ? 'PRINT TAKE (PILIHAN EDITOR/SUTRADARA)' : 'TANDAI SEBAGAI PRINT TAKE'}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
 
                 {/* BOTTOM ACTION BUTTONS */}
@@ -554,7 +577,7 @@ export const TakesList: React.FC = () => {
                     style={[styles.modalDelBtn, { borderColor: theme.danger }]}
                     onPress={() => handleDelete(editing.id, `Slate ${editing.slate} (Scene ${editing.scene} Take ${editing.take})`)}
                   >
-                    <Text style={{ color: theme.danger, fontWeight: '700', fontSize: 13 }}>🗑️ HAPUS</Text>
+                    <Text style={{ color: theme.danger, fontWeight: '800', fontSize: 12 }}>HAPUS TAKE</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -568,7 +591,7 @@ export const TakesList: React.FC = () => {
                     style={[styles.modalSaveBtn, { backgroundColor: theme.accent }]}
                     onPress={handleSaveEdit}
                   >
-                    <Text style={{ color: '#000', fontWeight: '800', fontSize: 13.5 }}>💾 SIMPAN</Text>
+                    <Text style={{ color: '#000', fontWeight: '800', fontSize: 13.5 }}>SIMPAN</Text>
                   </TouchableOpacity>
                 </View>
               </ScrollView>

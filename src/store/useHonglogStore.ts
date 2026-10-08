@@ -92,6 +92,8 @@ export interface FormState {
   camera: string;
   selectedCameras: string[];
   cameraCards: Record<string, string>;
+  cameraLenses: Record<string, string>;
+  cameraTstops: Record<string, string>;
   card: string;
   lens: string;
   shutter: string;
@@ -100,6 +102,7 @@ export interface FormState {
   tstop: string;
   fps: string;
   notes: string;
+  soundRoll: string;
 }
 
 interface HonglogStore {
@@ -124,6 +127,8 @@ interface HonglogStore {
   setForm: (partial: Partial<FormState>) => void;
   toggleCamera: (cam: string) => void;
   setCameraCard: (cam: string, card: string) => void;
+  setCameraLens: (cam: string, lens: string) => void;
+  setCameraTstop: (cam: string, tstop: string) => void;
   incrementSlate: (delta: number) => void;
   incrementTake: (delta: number) => void;
   addSuffixToScene: (suffix: string) => void;
@@ -143,8 +148,14 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
   const initialCam = meta.cameras[0] || 'A (FX6)';
   const initialCard = meta.cards[0] || 'A001';
   const cameraCards: Record<string, string> = {};
-  meta.cameras.forEach((cam) => {
+  const cameraLenses: Record<string, string> = {};
+  const cameraTstops: Record<string, string> = {};
+
+  meta.cameras.forEach((cam, idx) => {
     cameraCards[cam] = getDefaultCardForCam(cam, meta.cards);
+    // Assign reasonable default lenses across cameras (e.g. Cam A = 35/50, Cam B = 85)
+    cameraLenses[cam] = meta.lenses[idx % meta.lenses.length] || '35';
+    cameraTstops[cam] = '2.8';
   });
 
   return {
@@ -157,14 +168,17 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
     camera: initialCam,
     selectedCameras: [initialCam],
     cameraCards,
+    cameraLenses,
+    cameraTstops,
     card: initialCard,
-    lens: meta.lenses[2] || '35',
+    lens: cameraLenses[initialCam] || '35',
     shutter: meta.shutters[0] || '180°',
     iso: meta.isos[3] || '800',
     filter: meta.filters[0] || 'Clear',
     tstop: '2.8',
     fps: meta.projectFps || '24',
     notes: '',
+    soundRoll: 'SR01',
   };
 };
 
@@ -374,6 +388,34 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     });
   },
 
+  setCameraLens: (cam: string, lens: string) => {
+    set((state) => {
+      const updatedLenses = { ...state.form.cameraLenses, [cam]: lens };
+      const isPrimary = state.form.camera === cam;
+      return {
+        form: {
+          ...state.form,
+          cameraLenses: updatedLenses,
+          ...(isPrimary ? { lens } : {}),
+        },
+      };
+    });
+  },
+
+  setCameraTstop: (cam: string, tstop: string) => {
+    set((state) => {
+      const updatedTstops = { ...state.form.cameraTstops, [cam]: tstop };
+      const isPrimary = state.form.camera === cam;
+      return {
+        form: {
+          ...state.form,
+          cameraTstops: updatedTstops,
+          ...(isPrimary ? { tstop } : {}),
+        },
+      };
+    });
+  },
+
   incrementSlate: (delta) => {
     set((state) => ({
       form: { ...state.form, slate: Math.max(1, state.form.slate + delta) },
@@ -421,12 +463,14 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const cameraItems: CameraTakeItem[] = selectedCams.map((cam) => {
       const camCard = form.cameraCards[cam] || getDefaultCardForCam(cam, meta.cards);
       const camClip = getNextClipName(camCard, takes);
+      const camLens = form.cameraLenses[cam] || form.lens;
+      const camTstop = form.cameraTstops[cam] || form.tstop;
       return {
         camera: cam,
         card: camCard,
         clipName: camClip,
-        lens: form.lens,
-        tstop: form.tstop,
+        lens: camLens,
+        tstop: camTstop,
         shutter: form.shutter,
         iso: form.iso,
         filter: form.filter,
@@ -445,6 +489,12 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const displayClip = isMultiCam
       ? cameraItems.map((c) => c.clipName).join(' ')
       : form.clipName;
+    const displayLens = isMultiCam
+      ? cameraItems.map((c) => (c.lens ? `${c.lens}mm` : '-')).join(' ')
+      : form.lens;
+    const displayTstop = isMultiCam
+      ? cameraItems.map((c) => (c.tstop ? `T${c.tstop}` : '-')).join(' ')
+      : form.tstop;
 
     const newEntry: TakeEntry = {
       id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -456,13 +506,14 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       clipName: displayClip,
       camera: displayCam,
       card: displayCard,
-      lens: form.lens,
+      lens: displayLens,
       shutter: form.shutter,
       iso: form.iso,
       filter: form.filter,
-      tstop: form.tstop,
+      tstop: displayTstop,
       fps: form.fps,
       notes: form.notes,
+      soundRoll: form.soundRoll || 'SR01',
       timestamp: Date.now(),
       day: selectedDay,
       cameras: cameraItems,

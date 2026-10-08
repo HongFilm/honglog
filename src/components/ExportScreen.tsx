@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { generateAndShareCameraReport } from '../services/pdfGenerator';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
@@ -60,6 +61,8 @@ export const ExportScreen: React.FC = () => {
     }
   };
 
+  const totalSlates = takes.length > 0 ? new Set(takes.map((t) => t.slate)).size : 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={[styles.title, { color: theme.accent }]}>EXPORT & CAMERA REPORT</Text>
@@ -74,11 +77,11 @@ export const ExportScreen: React.FC = () => {
           <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{meta.production || 'Hong Films Project'}</Text>
         </View>
         <View style={styles.sumRow}>
-          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Total Take:</Text>
-          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{takes.length} Takes</Text>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Total Slate:</Text>
+          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{totalSlates} Slate ({takes.length} Takes)</Text>
         </View>
         <View style={styles.sumRow}>
-          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Good Takes (⭐):</Text>
+          <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Print Takes:</Text>
           <Text style={[styles.sumVal, { color: theme.good }]}>{takes.filter((t) => t.isGood).length} Takes</Text>
         </View>
         <View style={styles.sumRow}>
@@ -100,7 +103,7 @@ export const ExportScreen: React.FC = () => {
           <ActivityIndicator color="#000" />
         ) : (
           <>
-            <Text style={styles.pdfBtnIcon}>📄</Text>
+            <Feather name="file-text" size={24} color="#000" />
             <View style={styles.pdfBtnTextWrap}>
               <Text style={styles.pdfBtnTitle}>EXPORT & SHARE PDF REPORT</Text>
               <Text style={styles.pdfBtnSub}>Kirim via AirDrop, WhatsApp, Google Drive atau Simpan ke File</Text>
@@ -110,7 +113,7 @@ export const ExportScreen: React.FC = () => {
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.secBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleExportCsv} activeOpacity={0.85}>
-        <Text style={styles.secBtnIcon}>📊</Text>
+        <Feather name="grid" size={22} color={theme.textPrimary} />
         <View style={styles.pdfBtnTextWrap}>
           <Text style={[styles.secBtnTitle, { color: theme.textPrimary }]}>EXPORT LAPORAN CSV (EXCEL)</Text>
           <Text style={[styles.secBtnSub, { color: theme.textFaint }]}>Tabel data mentah untuk DIT & spreadsheet</Text>
@@ -118,7 +121,10 @@ export const ExportScreen: React.FC = () => {
       </TouchableOpacity>
 
       <View style={[styles.infoCard, { backgroundColor: theme.accentWash, borderColor: 'rgba(255, 56, 56, 0.2)' }]}>
-        <Text style={[styles.infoTitle, { color: theme.accent }]}>💡 Info Penggunaan di Lokasi Syuting</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Feather name="info" size={14} color={theme.accent} />
+          <Text style={[styles.infoTitle, { color: theme.accent }]}>Info Penggunaan di Lokasi Syuting</Text>
+        </View>
         <Text style={[styles.infoText, { color: theme.textSecondary }]}>
           Honglog dirancang offline-first. Anda dapat menggunakan aplikasi tanpa sinyal internet sama sekali di hutan,
           gunung, atau studio tertutup. Semua take tersimpan secara lokal dan dapat di-export kapan saja.

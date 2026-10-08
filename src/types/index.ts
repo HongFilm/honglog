@@ -28,6 +28,7 @@ export interface TakeEntry {
   notes: string;
   timestamp: number;
   day: number;
+  soundRoll?: string; // Audio track / sound roll ID
   cameras?: CameraTakeItem[]; // For multi-camera support
 }
 
