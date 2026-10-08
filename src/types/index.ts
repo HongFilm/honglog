@@ -1,3 +1,14 @@
+export interface CameraTakeItem {
+  camera: string;
+  card: string;
+  clipName?: string;
+  lens?: string;
+  tstop?: string;
+  shutter?: string;
+  iso?: string;
+  filter?: string;
+}
+
 export interface TakeEntry {
   id: string;
   slate: number;
@@ -17,7 +28,7 @@ export interface TakeEntry {
   notes: string;
   timestamp: number;
   day: number;
-  cameras?: Array<{ camera: string; card: string }>; // For multi-camera support
+  cameras?: CameraTakeItem[]; // For multi-camera support
 }
 
 export interface Project {

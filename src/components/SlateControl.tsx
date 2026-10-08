@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
@@ -15,35 +15,19 @@ export const SlateControl: React.FC = () => {
     stripSuffixScene,
     toggleGoodTake,
     addTake,
+    takes,
+    selectedDay,
+    setSelectedDay,
     isDarkMode,
   } = useHonglogStore();
 
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
-  const handleSlateDelta = (delta: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    incrementSlate(delta);
-  };
+  const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-  const handleTakeDelta = (delta: number) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    incrementTake(delta);
-  };
-
-  const handleSuffix = (type: 'scene' | 'shot', suffix: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (type === 'scene') addSuffixToScene(suffix);
-    else addSuffixToShot(suffix);
-  };
-
-  const handleStrip = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    stripSuffixScene();
-  };
-
-  const handleToggleGood = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    toggleGoodTake();
+  const stepAlphaNum = (val: string, delta: number) => {
+    const num = parseInt(val) || 1;
+    return String(Math.max(1, num + delta));
   };
 
   const handleSave = async () => {
@@ -51,140 +35,160 @@ export const SlateControl: React.FC = () => {
     await addTake();
   };
 
+  const dayTakes = takes.filter((t) => t.day === selectedDay);
+
   return (
     <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-      {/* Brand Logo & Header */}
-      <View style={[styles.brandHeader, { borderBottomColor: theme.border }]}>
-        <Image source={require('../../assets/logo.jpeg')} style={styles.logoImage} resizeMode="contain" />
-        <View>
-          <Text style={[styles.brandTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
-          <Text style={[styles.brandSub, { color: theme.accent }]}>CAMERA REPORT & SLATE LOG</Text>
+      {/* DAY Selector + mini stats */}
+      <View style={styles.dayRow}>
+        <View style={[styles.dayStepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+          <TouchableOpacity
+            style={styles.dayBtn}
+            onPress={() => {
+              haptic();
+              setSelectedDay(Math.max(1, selectedDay - 1));
+            }}
+          >
+            <Text style={[styles.dayBtnText, { color: theme.accent }]}>‹</Text>
+          </TouchableOpacity>
+          <View style={styles.dayLabelWrap}>
+            <Text style={[styles.dayLabel, { color: theme.textPrimary }]}>DAY {selectedDay}</Text>
+            <Text style={[styles.daySub, { color: theme.textFaint }]}>{dayTakes.length} take hari ini</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.dayBtn}
+            onPress={() => {
+              haptic();
+              setSelectedDay(selectedDay + 1);
+            }}
+          >
+            <Text style={[styles.dayBtnText, { color: theme.accent }]}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={[styles.clipPill, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}>
+          <Text style={[styles.clipPillLbl, { color: theme.textFaint }]}>NEXT CLIP</Text>
+          <Text style={[styles.clipPillVal, { color: theme.accent }]} numberOfLines={1}>
+            {form.clipName || '—'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Clapperboard Big Display */}
+      <View style={[styles.clapper, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}>
+        {/* Clapper stripes */}
+        <View style={styles.stripeRow}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.stripe,
+                { backgroundColor: i % 2 === 0 ? theme.textPrimary : theme.bg },
+              ]}
+            />
+          ))}
+        </View>
+        <View style={styles.clapperBody}>
+          <Text style={[styles.bigReadout, { color: theme.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+            {form.scene}
+            <Text style={{ color: theme.textFaint }}> / </Text>
+            {form.shot}
+            <Text style={{ color: theme.accent }}>  ·  TK {form.take}</Text>
+          </Text>
+          <Text style={[styles.bigReadoutLbl, { color: theme.textFaint }]}>
+            SLATE {form.slate} · SCENE / SHOT / TAKE
+          </Text>
+          {form.selectedCameras && form.selectedCameras.length > 1 && (
+            <View style={[styles.multiCamPill, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}>
+              <Text style={[styles.multiCamPillText, { color: theme.accent }]}>
+                🎥 MULTI-CAM: {form.selectedCameras.map((c) => c.split(' ')[0]).join(' + ')} ({form.selectedCameras.length} KAMERA AKTIF)
+              </Text>
+            </View>
+          )}
         </View>
       </View>
 
       {/* 4-Column Stepper: Slate, Scene, Shot, Take */}
       <View style={styles.grid}>
-        {/* SLATE */}
-        <View style={styles.col}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>SLATE</Text>
-          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleSlateDelta(-1)}>
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={[styles.valInput, { color: theme.textPrimary }]}
-              keyboardType="numeric"
-              value={String(form.slate)}
-              onChangeText={(t) => setForm({ slate: parseInt(t) || 1 })}
-            />
-            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleSlateDelta(1)}>
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
-            </TouchableOpacity>
+        {(
+          [
+            { label: 'SLATE', value: String(form.slate), onMinus: () => incrementSlate(-1), onPlus: () => incrementSlate(1), onChange: (t: string) => setForm({ slate: parseInt(t) || 1 }), numeric: true, accent: false },
+            { label: 'SCENE', value: form.scene, onMinus: () => setForm({ scene: stepAlphaNum(form.scene, -1) }), onPlus: () => setForm({ scene: stepAlphaNum(form.scene, 1) }), onChange: (t: string) => setForm({ scene: t }), numeric: false, accent: false },
+            { label: 'SHOT', value: form.shot, onMinus: () => setForm({ shot: stepAlphaNum(form.shot, -1) }), onPlus: () => setForm({ shot: stepAlphaNum(form.shot, 1) }), onChange: (t: string) => setForm({ shot: t }), numeric: false, accent: false },
+            { label: 'TAKE', value: String(form.take), onMinus: () => incrementTake(-1), onPlus: () => incrementTake(1), onChange: (t: string) => setForm({ take: parseInt(t) || 1 }), numeric: true, accent: true },
+          ] as const
+        ).map((c) => (
+          <View style={styles.col} key={c.label}>
+            <Text style={[styles.label, { color: theme.textSecondary }]}>{c.label}</Text>
+            <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+              <TouchableOpacity
+                style={[styles.stepBtn, { backgroundColor: theme.surface }]}
+                onPress={() => {
+                  haptic();
+                  c.onMinus();
+                }}
+              >
+                <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
+              </TouchableOpacity>
+              <TextInput
+                style={[styles.valInput, { color: c.accent ? theme.accent : theme.textPrimary }]}
+                keyboardType={c.numeric ? 'numeric' : 'default'}
+                autoCapitalize="characters"
+                value={c.value}
+                onChangeText={c.onChange}
+              />
+              <TouchableOpacity
+                style={[styles.stepBtn, { backgroundColor: theme.surface }]}
+                onPress={() => {
+                  haptic();
+                  c.onPlus();
+                }}
+              >
+                <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-
-        {/* SCENE */}
-        <View style={styles.col}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>SCENE</Text>
-          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-            <TouchableOpacity
-              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                const num = parseInt(form.scene) || 1;
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setForm({ scene: String(Math.max(1, num - 1)) });
-              }}
-            >
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={[styles.valInput, { color: theme.textPrimary }]}
-              value={form.scene}
-              autoCapitalize="characters"
-              onChangeText={(t) => setForm({ scene: t })}
-            />
-            <TouchableOpacity
-              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                const num = parseInt(form.scene) || 1;
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setForm({ scene: String(num + 1) });
-              }}
-            >
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* SHOT */}
-        <View style={styles.col}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>SHOT</Text>
-          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-            <TouchableOpacity
-              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                const num = parseInt(form.shot) || 1;
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setForm({ shot: String(Math.max(1, num - 1)) });
-              }}
-            >
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={[styles.valInput, { color: theme.textPrimary }]}
-              value={form.shot}
-              autoCapitalize="characters"
-              onChangeText={(t) => setForm({ shot: t })}
-            />
-            <TouchableOpacity
-              style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-              onPress={() => {
-                const num = parseInt(form.shot) || 1;
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setForm({ shot: String(num + 1) });
-              }}
-            >
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* TAKE */}
-        <View style={styles.col}>
-          <Text style={[styles.label, { color: theme.textSecondary }]}>TAKE</Text>
-          <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleTakeDelta(-1)}>
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
-            </TouchableOpacity>
-            <TextInput
-              style={[styles.valInput, styles.takeInputHighlight, { color: theme.accent }]}
-              keyboardType="numeric"
-              value={String(form.take)}
-              onChangeText={(t) => setForm({ take: parseInt(t) || 1 })}
-            />
-            <TouchableOpacity style={[styles.stepBtn, { backgroundColor: theme.surface }]} onPress={() => handleTakeDelta(1)}>
-              <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        ))}
       </View>
 
       {/* Suffix Shortcuts */}
       <View style={styles.suffixRow}>
-        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>Suffix Scene:</Text>
+        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SUFFIX</Text>
         <View style={styles.chipsWrap}>
           {['A', 'B', 'C', 'D'].map((s) => (
-            <TouchableOpacity key={s} style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]} onPress={() => handleSuffix('scene', s)}>
-              <Text style={[styles.chipText, { color: theme.accent }]}>+{s}</Text>
+            <TouchableOpacity
+              key={s}
+              style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+              onPress={() => {
+                haptic();
+                addSuffixToScene(s);
+              }}
+            >
+              <Text style={[styles.chipText, { color: theme.accent }]}>SC+{s}</Text>
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={[styles.chip, styles.chipClear, { borderColor: theme.borderLight }]} onPress={handleStrip}>
+          <TouchableOpacity
+            style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+            onPress={() => {
+              haptic();
+              addSuffixToShot('A');
+            }}
+          >
+            <Text style={[styles.chipText, { color: theme.accent }]}>SH+A</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+            onPress={() => {
+              haptic();
+              stripSuffixScene();
+            }}
+          >
             <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Clip Name & Card Info */}
+      {/* Clip Name & T-Stop */}
       <View style={styles.clipRow}>
         <View style={styles.clipField}>
           <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
@@ -208,7 +212,7 @@ export const SlateControl: React.FC = () => {
         </View>
       </View>
 
-      {/* Notes / Remarks */}
+      {/* Notes */}
       <View style={styles.notesWrap}>
         <Text style={[styles.subLbl, { color: theme.textFaint }]}>CATATAN / REMARKS</Text>
         <TextInput
@@ -220,20 +224,31 @@ export const SlateControl: React.FC = () => {
         />
       </View>
 
-      {/* Good Take & Action Row */}
+      {/* Good Take & Save */}
       <View style={styles.actionRow}>
         <TouchableOpacity
-          style={[styles.goodToggle, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }, form.isGood && { backgroundColor: 'rgba(74, 222, 128, 0.1)', borderColor: theme.good }]}
-          onPress={handleToggleGood}
+          style={[
+            styles.goodToggle,
+            { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+            form.isGood && { backgroundColor: 'rgba(74, 222, 128, 0.1)', borderColor: theme.good },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            toggleGoodTake();
+          }}
           activeOpacity={0.8}
         >
-          <Text style={[styles.goodIcon, { color: theme.textFaint }, form.isGood && { color: theme.good }]}>★</Text>
-          <Text style={[styles.goodText, { color: theme.textSecondary }, form.isGood && { color: theme.good }]}>
-            {form.isGood ? 'GOOD TAKE ⭐' : 'Tandai Good Take'}
+          <Text style={[styles.goodIcon, { color: form.isGood ? theme.good : theme.textFaint }]}>★</Text>
+          <Text style={[styles.goodText, { color: form.isGood ? theme.good : theme.textSecondary }]}>
+            {form.isGood ? 'GOOD TAKE' : 'Tandai Good'}
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]} onPress={handleSave} activeOpacity={0.85}>
+        <TouchableOpacity
+          style={[styles.saveBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]}
+          onPress={handleSave}
+          activeOpacity={0.85}
+        >
           <Text style={styles.saveBtnText}>SIMPAN TAKE ❯</Text>
         </TouchableOpacity>
       </View>
@@ -243,41 +258,108 @@ export const SlateControl: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: THEME.surface,
     borderRadius: 16,
     padding: 14,
     borderWidth: 1,
-    borderColor: THEME.border,
     marginBottom: 14,
   },
-  brandHeader: {
+  dayRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dayStepper: {
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: THEME.border,
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  logoImage: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
+  dayBtn: {
+    width: 38,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  brandTitle: {
-    fontSize: 18,
+  dayBtnText: {
+    fontSize: 22,
     fontWeight: '700',
-    color: THEME.textPrimary,
-    fontFamily: THEME.fontDisplay,
-    letterSpacing: 2,
   },
-  brandSub: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: THEME.accent,
+  dayLabelWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  dayLabel: {
+    fontSize: 16,
+    fontWeight: '800',
     fontFamily: THEME.fontMono,
+    letterSpacing: 1,
+  },
+  daySub: {
+    fontSize: 9.5,
+    marginTop: 1,
+  },
+  clipPill: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  clipPillLbl: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+  },
+  clipPillVal: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+    marginTop: 1,
+  },
+  clapper: {
+    borderRadius: 12,
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  stripeRow: {
+    flexDirection: 'row',
+    height: 14,
+  },
+  stripe: {
+    flex: 1,
+    transform: [{ skewX: '-20deg' }],
+  },
+  clapperBody: {
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+  },
+  bigReadout: {
+    fontSize: 40,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+    letterSpacing: 1,
+  },
+  bigReadoutLbl: {
+    fontSize: 9,
+    fontWeight: '700',
     letterSpacing: 1.5,
-    marginTop: 2,
+    marginTop: 4,
+  },
+  multiCamPill: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  multiCamPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   grid: {
     flexDirection: 'row',
@@ -290,16 +372,13 @@ const styles = StyleSheet.create({
     fontFamily: THEME.fontMono,
     fontSize: 10,
     fontWeight: '700',
-    color: THEME.textSecondary,
     letterSpacing: 1,
     marginBottom: 6,
     textAlign: 'center',
   },
   stepper: {
-    backgroundColor: THEME.surfaceRaised,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: THEME.border,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -309,25 +388,19 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: THEME.surface,
   },
   stepBtnText: {
-    color: THEME.accent,
     fontSize: 18,
     fontWeight: '700',
   },
   valInput: {
     flex: 1,
     height: 42,
-    color: THEME.textPrimary,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
     fontFamily: THEME.fontMono,
     padding: 0,
-  },
-  takeInputHighlight: {
-    color: THEME.accent,
   },
   suffixRow: {
     flexDirection: 'row',
@@ -337,32 +410,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   suffixLbl: {
-    fontSize: 11,
-    color: THEME.textFaint,
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.8,
   },
   chipsWrap: {
     flexDirection: 'row',
     gap: 6,
   },
   chip: {
-    backgroundColor: THEME.surfaceRaised,
     paddingVertical: 3,
     paddingHorizontal: 8,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: THEME.borderLight,
   },
   chipText: {
-    color: THEME.accent,
     fontSize: 11,
     fontWeight: '600',
   },
-  chipClear: {
-    backgroundColor: 'transparent',
-    borderColor: THEME.borderLight,
-  },
   chipClearText: {
-    color: THEME.textSecondary,
     fontSize: 11,
   },
   clipRow: {
@@ -376,18 +442,14 @@ const styles = StyleSheet.create({
   subLbl: {
     fontSize: 9.5,
     fontWeight: '700',
-    color: THEME.textFaint,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   clipInput: {
-    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    color: THEME.textPrimary,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -395,13 +457,10 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   notesInput: {
-    backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
-    borderColor: THEME.border,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    color: THEME.textPrimary,
     fontSize: 12.5,
   },
   actionRow: {
@@ -414,40 +473,24 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: THEME.border,
-    backgroundColor: THEME.surfaceRaised,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
   },
-  goodToggleActive: {
-    backgroundColor: 'rgba(74, 222, 128, 0.1)',
-    borderColor: THEME.good,
-  },
   goodIcon: {
     fontSize: 16,
-    color: THEME.textFaint,
-  },
-  goodIconActive: {
-    color: THEME.good,
   },
   goodText: {
     fontSize: 12,
     fontWeight: '700',
-    color: THEME.textSecondary,
-  },
-  goodTextActive: {
-    color: THEME.good,
   },
   saveBtn: {
     flex: 1.3,
     height: 44,
     borderRadius: 10,
-    backgroundColor: THEME.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: THEME.accent,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

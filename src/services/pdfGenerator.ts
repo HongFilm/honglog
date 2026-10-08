@@ -13,27 +13,57 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
   const goodTakes = takes.filter((t) => t.isGood).length;
 
   const rowsHtml = takes
-    .map(
-      (t) => `
+    .map((t) => {
+      const isMulti = t.cameras && t.cameras.length > 1;
+      const camText = isMulti
+        ? t.cameras!.map((c) => c.camera.split(' ')[0]).join('<br/>')
+        : t.camera || '-';
+      const rollText = isMulti
+        ? t.cameras!.map((c) => c.card).join('<br/>')
+        : t.card || '-';
+      const clipText = isMulti
+        ? t.cameras!.map((c) => c.clipName || '-').join('<br/>')
+        : t.clipName || '-';
+      const lensText = isMulti
+        ? t.cameras!.map((c) => (c.lens ? c.lens + 'mm' : '-')).join('<br/>')
+        : t.lens
+        ? t.lens + 'mm'
+        : '-';
+      const fstopText = isMulti
+        ? t.cameras!.map((c) => (c.tstop ? 'T' + c.tstop : '-')).join('<br/>')
+        : t.tstop
+        ? 'T' + t.tstop
+        : '-';
+      const shutterText = isMulti
+        ? t.cameras!.map((c) => c.shutter || '-').join('<br/>')
+        : t.shutter || '-';
+      const isoText = isMulti
+        ? t.cameras!.map((c) => c.iso || '-').join('<br/>')
+        : t.iso || '-';
+      const filterText = isMulti
+        ? t.cameras!.map((c) => c.filter || '-').join('<br/>')
+        : t.filter || '-';
+
+      return `
     <tr class="${t.isGood ? 'good-row' : ''}">
       <td style="text-align:center;font-weight:bold;">${t.slate}</td>
       <td style="text-align:center;font-weight:bold;">${t.scene}</td>
       <td style="text-align:center;">${t.shot}</td>
       <td style="text-align:center;font-weight:bold;">${t.take}</td>
       <td style="text-align:center;color:${t.isGood ? '#166534' : '#9ca3af'};font-weight:bold;">${t.isGood ? '★ GOOD' : '—'}</td>
-      <td style="font-family:monospace;font-weight:600;">${t.clipName || '-'}</td>
-      <td style="text-align:center;">${t.camera || '-'}</td>
-      <td style="text-align:center;">${t.card || '-'}</td>
-      <td style="text-align:center;">${t.lens ? t.lens + 'mm' : '-'}</td>
-      <td style="text-align:center;">${t.shutter || '-'}</td>
-      <td style="text-align:center;">${t.iso || '-'}</td>
-      <td style="text-align:center;">${t.tstop ? 'T' + t.tstop : '-'}</td>
-      <td style="text-align:center;">${t.filter || '-'}</td>
+      <td style="font-family:monospace;font-weight:600;">${clipText}</td>
+      <td style="text-align:center;font-weight:bold;">${camText}</td>
+      <td style="text-align:center;font-weight:600;">${rollText}</td>
+      <td style="text-align:center;">${lensText}</td>
+      <td style="text-align:center;">${shutterText}</td>
+      <td style="text-align:center;">${isoText}</td>
+      <td style="text-align:center;">${fstopText}</td>
+      <td style="text-align:center;">${filterText}</td>
       <td style="text-align:center;">${t.fps || '-'}</td>
       <td style="font-size:10px;">${t.notes || ''}</td>
     </tr>
-  `
-    )
+  `;
+    })
     .join('');
 
   const html = `
@@ -116,6 +146,7 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       border: 1px solid #d1d5db;
       padding: 5px 4px;
       vertical-align: middle;
+      line-height: 1.4;
     }
     tr.good-row {
       background-color: #f0fdf4;
@@ -164,8 +195,8 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
         <th style="width:4%;">Shot</th>
         <th style="width:4%;">Take</th>
         <th style="width:7%;">Status</th>
-        <th style="width:12%;">Clip Name</th>
-        <th style="width:7%;">Cam</th>
+        <th style="width:13%;">Clip Name</th>
+        <th style="width:6%;">Cam</th>
         <th style="width:6%;">Roll</th>
         <th style="width:6%;">Lens</th>
         <th style="width:6%;">Shutter</th>

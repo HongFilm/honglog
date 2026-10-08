@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TakeEntry, ProductionMeta, Project } from '../types';
+import { TakeEntry, CameraTakeItem, ProductionMeta, Project } from '../types';
 
 const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
 const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
@@ -26,7 +26,63 @@ export const defaultMeta: ProductionMeta = {
   isos: ['100', '200', '400', '800', '1600', '3200', '6400'],
 };
 
-interface FormState {
+export function getDefaultCardForCam(cam: string, cards: string[]): string {
+  const c = cam.toUpperCase();
+  if (c.startsWith('B')) {
+    const bCard = cards.find((x) => /^[D-Fd-f]/.test(x) || /^[Bb]/.test(x));
+    if (bCard) return bCard;
+  } else if (c.startsWith('C')) {
+    const cCard = cards.find((x) => /^[G-Ig-i]/.test(x) || /^[Cc]/.test(x));
+    if (cCard) return cCard;
+  }
+  const aCard = cards.find((x) => /^[Aa]/.test(x));
+  return aCard || cards[0] || 'A001';
+}
+
+export function getNextClipName(card: string, takes: TakeEntry[]): string {
+  const normCard = (card || 'A001').trim().toUpperCase();
+  let maxIndex = 0;
+
+  for (const t of takes) {
+    if ((t.card || '').trim().toUpperCase().includes(normCard) && t.clipName) {
+      const clips = t.clipName.split(' ');
+      for (const cl of clips) {
+        if (cl.toUpperCase().startsWith(normCard)) {
+          const match = cl.match(/_(\d+)$/);
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (n > maxIndex) maxIndex = n;
+          }
+        }
+      }
+    }
+    if (t.cameras) {
+      for (const c of t.cameras) {
+        if ((c.card || '').trim().toUpperCase() === normCard && c.clipName) {
+          const match = c.clipName.match(/_(\d+)$/);
+          if (match) {
+            const n = parseInt(match[1], 10);
+            if (n > maxIndex) maxIndex = n;
+          }
+        }
+      }
+    }
+  }
+
+  if (maxIndex === 0) {
+    const count = takes.filter(
+      (t) =>
+        (t.card || '').toUpperCase().includes(normCard) ||
+        (t.cameras && t.cameras.some((c) => (c.card || '').toUpperCase().includes(normCard)))
+    ).length;
+    maxIndex = count;
+  }
+
+  const nextNum = maxIndex + 1;
+  return `${normCard}_${String(nextNum).padStart(3, '0')}`;
+}
+
+export interface FormState {
   slate: number;
   scene: string;
   shot: string;
@@ -34,6 +90,8 @@ interface FormState {
   isGood: boolean;
   clipName: string;
   camera: string;
+  selectedCameras: string[];
+  cameraCards: Record<string, string>;
   card: string;
   lens: string;
   shutter: string;
@@ -47,8 +105,8 @@ interface FormState {
 interface HonglogStore {
   projects: Project[];
   activeProjectId: string | null;
-  meta: ProductionMeta; // derived from active project
-  takes: TakeEntry[]; // derived from active project
+  meta: ProductionMeta;
+  takes: TakeEntry[];
   form: FormState;
   isHydrated: boolean;
   selectedDay: number;
@@ -64,6 +122,8 @@ interface HonglogStore {
   // Meta & Form
   updateMeta: (partial: Partial<ProductionMeta>) => Promise<void>;
   setForm: (partial: Partial<FormState>) => void;
+  toggleCamera: (cam: string) => void;
+  setCameraCard: (cam: string, card: string) => void;
   incrementSlate: (delta: number) => void;
   incrementTake: (delta: number) => void;
   addSuffixToScene: (suffix: string) => void;
@@ -77,26 +137,36 @@ interface HonglogStore {
   deleteTake: (id: string) => Promise<void>;
   clearAllTakes: () => Promise<void>;
   setSelectedDay: (day: number) => void;
-  addCameraToTake: (camera: string, card: string) => Promise<void>;
 }
 
-const createInitialForm = (meta: ProductionMeta): FormState => ({
-  slate: 1,
-  scene: '1',
-  shot: '1',
-  take: 1,
-  isGood: false,
-  clipName: `${meta.cards[0] || 'A001'}_001`,
-  camera: meta.cameras[0] || 'A',
-  card: meta.cards[0] || 'A001',
-  lens: meta.lenses[2] || '35',
-  shutter: meta.shutters[0] || '180°',
-  iso: meta.isos[3] || '800',
-  filter: meta.filters[0] || 'Clear',
-  tstop: '2.8',
-  fps: meta.projectFps || '24',
-  notes: '',
-});
+const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []): FormState => {
+  const initialCam = meta.cameras[0] || 'A (FX6)';
+  const initialCard = meta.cards[0] || 'A001';
+  const cameraCards: Record<string, string> = {};
+  meta.cameras.forEach((cam) => {
+    cameraCards[cam] = getDefaultCardForCam(cam, meta.cards);
+  });
+
+  return {
+    slate: 1,
+    scene: '1',
+    shot: '1',
+    take: 1,
+    isGood: false,
+    clipName: getNextClipName(initialCard, existingTakes),
+    camera: initialCam,
+    selectedCameras: [initialCam],
+    cameraCards,
+    card: initialCard,
+    lens: meta.lenses[2] || '35',
+    shutter: meta.shutters[0] || '180°',
+    iso: meta.isos[3] || '800',
+    filter: meta.filters[0] || 'Clear',
+    tstop: '2.8',
+    fps: meta.projectFps || '24',
+    notes: '',
+  };
+};
 
 export const useHonglogStore = create<HonglogStore>((set, get) => ({
   projects: [],
@@ -105,7 +175,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   takes: [],
   isHydrated: false,
   selectedDay: 1,
-  isDarkMode: true, // Default to dark
+  isDarkMode: true,
 
   form: createInitialForm(defaultMeta),
 
@@ -121,7 +191,6 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       let activeId = savedActiveId;
       const isDark = savedTheme ? savedTheme === 'dark' : true;
 
-      // Migration/Init: create default project if empty
       if (projects.length === 0) {
         const defaultProject: Project = {
           id: 'proj_default',
@@ -136,7 +205,6 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
         await AsyncStorage.setItem(STORAGE_KEY_ACTIVE_PROJECT, activeId);
       }
 
-      // Ensure activeId exists
       const activeProject = projects.find((p) => p.id === activeId) || projects[0];
       activeId = activeProject.id;
 
@@ -147,7 +215,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
         takes: activeProject.takes,
         isHydrated: true,
         isDarkMode: isDark,
-        form: createInitialForm(activeProject.meta),
+        form: createInitialForm(activeProject.meta, activeProject.takes),
       });
     } catch (e) {
       console.warn('Failed to load store', e);
@@ -170,7 +238,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       activeProjectId: newProject.id,
       meta: newProject.meta,
       takes: [],
-      form: createInitialForm(newProject.meta),
+      form: createInitialForm(newProject.meta, []),
     });
 
     await AsyncStorage.multiSet([
@@ -189,7 +257,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       activeProjectId: id,
       meta: proj.meta,
       takes: proj.takes,
-      form: createInitialForm(proj.meta),
+      form: createInitialForm(proj.meta, proj.takes),
     });
 
     await AsyncStorage.setItem(STORAGE_KEY_ACTIVE_PROJECT, id);
@@ -198,7 +266,6 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   deleteProject: async (id: string) => {
     const updated = get().projects.filter((p) => p.id !== id);
     if (updated.length === 0) {
-      // Create default if all deleted
       const defaultProject: Project = {
         id: 'proj_default_' + Date.now(),
         name: 'Produksi Utama',
@@ -217,6 +284,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       activeProjectId: newActiveId,
       meta: activeProj.meta,
       takes: activeProj.takes,
+      form: createInitialForm(activeProj.meta, activeProj.takes),
     });
 
     await AsyncStorage.multiSet([
@@ -238,12 +306,71 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   setForm: (partial) => {
     set((state) => {
       const newForm = { ...state.form, ...partial };
-      // Auto-update clip name when card changes
-      if (partial.card && partial.card !== state.form.card) {
-        const cardTakes = state.takes.filter(t => t.card === partial.card).length;
-        newForm.clipName = `${partial.card}_${String(cardTakes + 1).padStart(3, '0')}`;
+
+      // When card changes, automatically calculate next clip name for that card
+      if (partial.card !== undefined && partial.card !== state.form.card) {
+        newForm.clipName = getNextClipName(partial.card, state.takes);
+        if (newForm.camera) {
+          newForm.cameraCards = {
+            ...newForm.cameraCards,
+            [newForm.camera]: partial.card,
+          };
+        }
       }
+
+      // When primary camera changes, switch to camera's assigned card & clip name
+      if (partial.camera !== undefined && partial.camera !== state.form.camera) {
+        const assignedCard =
+          newForm.cameraCards[partial.camera] || getDefaultCardForCam(partial.camera, state.meta.cards);
+        newForm.card = assignedCard;
+        newForm.clipName = getNextClipName(assignedCard, state.takes);
+      }
+
       return { form: newForm };
+    });
+  },
+
+  toggleCamera: (cam: string) => {
+    set((state) => {
+      const current = state.form.selectedCameras || [state.form.camera];
+      let next: string[];
+      if (current.includes(cam)) {
+        if (current.length > 1) {
+          next = current.filter((c) => c !== cam);
+        } else {
+          next = current;
+        }
+      } else {
+        next = [...current, cam];
+      }
+
+      const primaryCam = next[0] || cam;
+      const assignedCard =
+        state.form.cameraCards[primaryCam] || getDefaultCardForCam(primaryCam, state.meta.cards);
+
+      return {
+        form: {
+          ...state.form,
+          camera: primaryCam,
+          selectedCameras: next,
+          card: assignedCard,
+          clipName: getNextClipName(assignedCard, state.takes),
+        },
+      };
+    });
+  },
+
+  setCameraCard: (cam: string, card: string) => {
+    set((state) => {
+      const updatedCameraCards = { ...state.form.cameraCards, [cam]: card };
+      const isPrimary = state.form.camera === cam;
+      return {
+        form: {
+          ...state.form,
+          cameraCards: updatedCameraCards,
+          ...(isPrimary ? { card, clipName: getNextClipName(card, state.takes) } : {}),
+        },
+      };
     });
   },
 
@@ -286,7 +413,39 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   },
 
   addTake: async () => {
-    const { form, takes, selectedDay, activeProjectId, projects } = get();
+    const { form, takes, selectedDay, activeProjectId, projects, meta } = get();
+    const selectedCams =
+      form.selectedCameras && form.selectedCameras.length > 0 ? form.selectedCameras : [form.camera];
+
+    // Build multi-camera items
+    const cameraItems: CameraTakeItem[] = selectedCams.map((cam) => {
+      const camCard = form.cameraCards[cam] || getDefaultCardForCam(cam, meta.cards);
+      const camClip = getNextClipName(camCard, takes);
+      return {
+        camera: cam,
+        card: camCard,
+        clipName: camClip,
+        lens: form.lens,
+        tstop: form.tstop,
+        shutter: form.shutter,
+        iso: form.iso,
+        filter: form.filter,
+      };
+    });
+
+    const isMultiCam = cameraItems.length > 1;
+    const primaryCard = isMultiCam ? cameraItems[0].card : form.card;
+
+    const displayCam = isMultiCam
+      ? cameraItems.map((c) => c.camera.split(' ')[0]).join(' ')
+      : form.camera;
+    const displayCard = isMultiCam
+      ? cameraItems.map((c) => c.card).join(' ')
+      : form.card;
+    const displayClip = isMultiCam
+      ? cameraItems.map((c) => c.clipName).join(' ')
+      : form.clipName;
+
     const newEntry: TakeEntry = {
       id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       slate: form.slate,
@@ -294,9 +453,9 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       shot: form.shot,
       take: form.take,
       isGood: form.isGood,
-      clipName: form.clipName,
-      camera: form.camera,
-      card: form.card,
+      clipName: displayClip,
+      camera: displayCam,
+      card: displayCard,
       lens: form.lens,
       shutter: form.shutter,
       iso: form.iso,
@@ -306,27 +465,25 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       notes: form.notes,
       timestamp: Date.now(),
       day: selectedDay,
+      cameras: cameraItems,
     };
 
     const newTakes = [newEntry, ...takes];
-    
+
     // RULE 4: Increment SLATE on save, reset take to 1
     const nextSlate = form.slate + 1;
     const nextTake = 1;
-    
-    // Generate next clip name based on selected card
-    const cardPrefix = form.card || 'A001';
-    // Count existing takes for this card to determine next number
-    const cardTakes = newTakes.filter(t => t.card === cardPrefix).length;
-    const nextClipNum = String(cardTakes + 1).padStart(3, '0');
 
-    const updatedForm = {
+    // Advance clip name for primary card
+    const nextClip = getNextClipName(primaryCard, newTakes);
+
+    const updatedForm: FormState = {
       ...form,
       slate: nextSlate,
       take: nextTake,
       isGood: false,
       notes: '',
-      clipName: `${cardPrefix}_${nextClipNum}`,
+      clipName: nextClip,
     };
 
     const updatedProjects = projects.map((p) =>
@@ -340,7 +497,6 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     });
 
     await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
-
     return newEntry;
   },
 
@@ -385,96 +541,5 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const newMode = !isDarkMode;
     set({ isDarkMode: newMode });
     await AsyncStorage.setItem('@honglog_theme', newMode ? 'dark' : 'light');
-  },
-
-  addCameraToTake: async (camera: string, card: string) => {
-    const { form, takes, selectedDay, activeProjectId, projects } = get();
-    
-    // Find if there's an existing take for this slate/scene/shot/take combo
-    const existingTakeIndex = takes.findIndex(
-      t => t.slate === form.slate && 
-           t.scene === form.scene && 
-           t.shot === form.shot && 
-           t.take === form.take
-    );
-    
-    if (existingTakeIndex >= 0) {
-      // Update existing take to include this camera
-      const existing = takes[existingTakeIndex];
-      const updatedCameras = existing.cameras ? [...existing.cameras, { camera, card }] : [{ camera: existing.camera, card: existing.card }, { camera, card }];
-      
-      const updatedTake: TakeEntry = {
-        ...existing,
-        cameras: updatedCameras,
-        // Keep the primary camera/card as the first one
-        camera: existing.camera,
-        card: existing.card,
-      };
-      
-      const updatedTakes = [...takes];
-      updatedTakes[existingTakeIndex] = updatedTake;
-      
-      const updatedProjects = projects.map((p) =>
-        p.id === activeProjectId ? { ...p, takes: updatedTakes } : p
-      );
-      
-      set({ takes: updatedTakes, projects: updatedProjects });
-      await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
-    } else {
-      // Create new take with camera array
-      const newEntry: TakeEntry = {
-        id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
-        slate: form.slate,
-        scene: form.scene,
-        shot: form.shot,
-        take: form.take,
-        isGood: form.isGood,
-        clipName: form.clipName,
-        camera: form.camera,
-        card: form.card,
-        lens: form.lens,
-        shutter: form.shutter,
-        iso: form.iso,
-        filter: form.filter,
-        tstop: form.tstop,
-        fps: form.fps,
-        notes: form.notes,
-        timestamp: Date.now(),
-        day: selectedDay,
-        cameras: [{ camera: form.camera, card: form.card }],
-      };
-
-      const newTakes = [newEntry, ...takes];
-      
-      // RULE 4: Increment SLATE on save, reset take to 1
-      const nextSlate = form.slate + 1;
-      const nextTake = 1;
-      
-      // Generate next clip name based on selected card
-      const cardPrefix = form.card || 'A001';
-      const cardTakes = newTakes.filter(t => t.card === cardPrefix).length;
-      const nextClipNum = String(cardTakes + 1).padStart(3, '0');
-
-      const updatedForm = {
-        ...form,
-        slate: nextSlate,
-        take: nextTake,
-        isGood: false,
-        notes: '',
-        clipName: `${cardPrefix}_${nextClipNum}`,
-      };
-
-      const updatedProjects = projects.map((p) =>
-        p.id === activeProjectId ? { ...p, takes: newTakes } : p
-      );
-
-      set({
-        takes: newTakes,
-        projects: updatedProjects,
-        form: updatedForm,
-      });
-
-      await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
-    }
   },
 }));
