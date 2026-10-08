@@ -23,6 +23,12 @@
     },
     "plugins": [
       "expo-sharing"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "30ec129b-3563-42d9-aef8-2c0c4cec5aed"
+      }
+    },
+    "owner": "hongfilm"
   }
 }
