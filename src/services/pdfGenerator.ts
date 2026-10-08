@@ -10,9 +10,17 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
   });
 
   const totalTakes = takes.length;
-  const goodTakes = takes.filter((t) => t.isGood).length;
+  const goodTakes = takes.filter((t) => t.isGood || t.status === 'PRINT').length;
 
-  const rowsHtml = takes
+  // Urutkan take secara ascending (Slate 1 sampai slate terakhir, lalu Take 1 sampai take terakhir)
+  const sortedTakes = [...takes].sort((a, b) => {
+    if (a.slate !== b.slate) {
+      return a.slate - b.slate;
+    }
+    return a.take - b.take;
+  });
+
+  const rowsHtml = sortedTakes
     .map((t) => {
       const isMulti = t.cameras && t.cameras.length > 1;
       const camText = isMulti
@@ -44,13 +52,17 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
         ? t.cameras!.map((c) => c.filter || '-').join('<br/>')
         : t.filter || '-';
 
+      const isPrint = t.status === 'PRINT' || t.isGood;
+      const statusLabel = isPrint ? 'PRINT' : t.status === 'NG' ? 'NG' : 'HOLD';
+      const statusColor = isPrint ? '#166534' : t.status === 'NG' ? '#dc2626' : '#6b7280';
+
       return `
-    <tr class="${t.isGood ? 'good-row' : ''}">
+    <tr class="${isPrint ? 'good-row' : ''}">
       <td style="text-align:center;font-weight:bold;">${t.slate}</td>
       <td style="text-align:center;font-weight:bold;">${t.scene}</td>
       <td style="text-align:center;">${t.shot}</td>
       <td style="text-align:center;font-weight:bold;">${t.take}</td>
-      <td style="text-align:center;color:${t.isGood ? '#166534' : '#9ca3af'};font-weight:bold;">${t.isGood ? '★ GOOD' : '—'}</td>
+      <td style="text-align:center;color:${statusColor};font-weight:bold;">${statusLabel}</td>
       <td style="font-family:monospace;font-weight:600;">${clipText}</td>
       <td style="text-align:center;font-weight:bold;">${camText}</td>
       <td style="text-align:center;font-weight:600;">${rollText}</td>

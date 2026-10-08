@@ -34,7 +34,12 @@ export const ExportScreen: React.FC = () => {
       setLoadingCsv(true);
 
       const headers = 'Slate,Scene,Shot,Take,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Sound Roll,Notes,Timestamp,Date\n';
-      const rows = takes
+      const sortedTakes = [...takes].sort((a, b) => {
+        if (a.slate !== b.slate) return a.slate - b.slate;
+        return a.take - b.take;
+      });
+
+      const rows = sortedTakes
         .flatMap((t) => {
           const statusStr = t.status || (t.isGood ? 'PRINT' : 'HOLD');
           const timeIso = new Date(t.timestamp).toISOString();
