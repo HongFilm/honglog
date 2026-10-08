@@ -241,9 +241,9 @@ export const SlateControl: React.FC = () => {
         </View>
       </View>
 
-      {/* Clip Name, Sound Roll & T-Stop */}
+      {/* Clip Name & T-Stop */}
       <View style={styles.clipRow}>
-        <View style={[styles.clipField, { flex: 1.3 }]}>
+        <View style={[styles.clipField, { flex: 1.5 }]}>
           <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
           <TextInput
             style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
@@ -254,17 +254,7 @@ export const SlateControl: React.FC = () => {
           />
         </View>
         <View style={[styles.clipField, { flex: 1 }]}>
-          <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL</Text>
-          <TextInput
-            style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={form.soundRoll || 'SR01'}
-            onChangeText={(t) => setForm({ soundRoll: t })}
-            placeholder="SR01"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-        <View style={[styles.clipField, { flex: 1 }]}>
-          <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
+          <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP / APERTURE</Text>
           <TextInput
             style={[styles.clipInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
             value={form.tstop}

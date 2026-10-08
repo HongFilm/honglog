@@ -33,7 +33,7 @@ export const ExportScreen: React.FC = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setLoadingCsv(true);
 
-      const headers = 'Slate,Scene,Shot,Take,Location,Lighting,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Sound Roll,Notes,Timestamp,Date\n';
+      const headers = 'Slate,Scene,Shot,Take,Location,Lighting,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Notes,Timestamp,Date\n';
       const sortedTakes = [...takes].sort((a, b) => {
         if (a.slate !== b.slate) return a.slate - b.slate;
         return a.take - b.take;
@@ -66,7 +66,6 @@ export const ExportScreen: React.FC = () => {
                 `"${c.iso || t.iso || ''}"`,
                 `"${c.filter || t.filter || ''}"`,
                 `"${c.fps || t.fps || ''}"`,
-                `"${t.soundRoll || ''}"`,
                 `"${(t.notes || '').replace(/"/g, '""')}"`,
                 `"${timeIso}"`,
                 `"${dateLocal}"`,
@@ -92,7 +91,6 @@ export const ExportScreen: React.FC = () => {
               `"${t.iso || ''}"`,
               `"${t.filter || ''}"`,
               `"${t.fps || ''}"`,
-              `"${t.soundRoll || ''}"`,
               `"${(t.notes || '').replace(/"/g, '""')}"`,
               `"${timeIso}"`,
               `"${dateLocal}"`,

@@ -107,7 +107,6 @@ export interface FormState {
   tstop: string;
   fps: string;
   notes: string;
-  soundRoll: string;
   intExt: 'INT' | 'EXT';
   dayNight: 'DAY' | 'NIGHT';
 }
@@ -204,7 +203,6 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
     tstop: '2.8',
     fps: meta.projectFps || '24',
     notes: '',
-    soundRoll: 'SR01',
     intExt: 'INT',
     dayNight: 'DAY',
   };
@@ -654,7 +652,6 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       tstop: displayTstop,
       fps: displayFps,
       notes: form.notes,
-      soundRoll: form.soundRoll || 'SR01',
       intExt: form.intExt || 'INT',
       dayNight: form.dayNight || 'DAY',
       timestamp: Date.now(),

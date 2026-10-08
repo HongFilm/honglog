@@ -30,7 +30,6 @@ Honglog dibangun dengan prinsip estetika industri perfilman profesional:
 - **Metadata Lokasi & Pencahayaan (Clapper Standard)**:
   * **LOC**: `INT` (Interior) atau `EXT` (Exterior).
   * **LIGHT**: `DAY` (Siang) atau `NIGHT` (Malam).
-- **Audio Sync Identifier**: Kolom input **Sound Roll** (misal `SR01`) untuk sinkronisasi audio post-production.
 - **Penamaan Klip Otomatis (Auto Clip Naming)**: Format cerdas `<CARD>_<PADDED_3_DIGIT>` (misal `A001_001`, `B001_004`) yang otomatis beradaptasi saat roll media berpindah.
 
 ### 2. Multi-Kamera Independen Penuh
@@ -50,7 +49,7 @@ Honglog dibangun dengan prinsip estetika industri perfilman profesional:
 - **Modal Edit Take Komprehensif**:
   * **Mode Multi-Cam**: Jika take memiliki lebih dari satu kamera, form single-cam dihilangkan secara otomatis. Pengguna disajikan kotak editor spesifik per-kamera tanpa ada input yang tertumpuk atau membingungkan.
   * **Mode Single-Cam**: Form fokus pada satu kamera dengan chip pilihan preset Roll dan Filter optik.
-  * Mampu mengedit seluruh metadata: Slate, Scene, Shot, Take, Loc (INT/EXT), Light (DAY/NIGHT), Sound Roll, dan Remarks.
+  * Mampu mengedit seluruh metadata: Slate, Scene, Shot, Take, Loc (INT/EXT), Light (DAY/NIGHT), dan Remarks dengan sistem Dropdown Picker cepat tanpa perlu mengetik manual.
 
 ### 4. Manajemen Multi-Project Terpusat
 - Mendukung banyak judul produksi film sekaligus.
@@ -71,7 +70,7 @@ Honglog dibangun dengan prinsip estetika industri perfilman profesional:
   * Catatan bebas dari tag sintetis, hanya menampilkan catatan kru yang sebenarnya.
 - **Ekspor CSV Fisik (Excel / Spreadsheet)**:
   * Menggunakan `expo-file-system/legacy` dan native share sheet (`expo-sharing`).
-  * Header kolom lengkap: `Slate, Scene, Shot, Take, Location, Lighting, Status, Clip Name, Camera, Roll/Card, Lens, T-Stop, Shutter, ISO, Filter, FPS, Sound Roll, Notes, Timestamp, Date`.
+  * Header kolom lengkap: `Slate, Scene, Shot, Take, Location, Lighting, Status, Clip Name, Camera, Roll/Card, Lens, T-Stop, Shutter, ISO, Filter, FPS, Notes, Timestamp, Date`.
   * Siap diimpor langsung ke software editing dan database post-production (DaVinci Resolve, Avid, Silverstack, Excel).
 
 ### 6. Tampilan & Pengalaman Pengguna (UX)
@@ -172,7 +171,6 @@ npx tsc --noEmit
    - Buka tab **SLATE**.
    - Tentukan status lokasi (`INT`/`EXT`) dan waktu (`DAY`/`NIGHT`).
    - Masukkan nomor Scene, Shot, dan Take (gunakan tombol `+A`, `+B` jika ada sub-shot).
-   - Masukkan ID Sound Roll audio recording.
 4. **Evaluasi Sutradara / DP**:
    - Pilih status take: **PRINT** (take terpilih), **HOLD** (cadangan), atau **NG** (rusak).
    - Tambahkan catatan singkat jika perlu (*misal: "fokus meleset di ujung", "acting terbaik"*).

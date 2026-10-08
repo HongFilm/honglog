@@ -27,6 +27,22 @@ export const TakesList: React.FC = () => {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<TakeEntry | null>(null);
 
+  const [picker, setPicker] = useState<{
+    title: string;
+    options: string[];
+    currentValue: string;
+    onSelect: (val: string) => void;
+  } | null>(null);
+
+  const standardTstops = ['1.4', '1.8', '2.0', '2.8', '4.0', '5.6', '8.0', '11', '16', '22'];
+  const standardFps = ['23.976', '24', '25', '29.97', '48', '50', '59.94', '60', '100', '120'];
+  const lensOptions = meta.lenses.length > 0 ? meta.lenses : ['18', '24', '35', '50', '85', '100', '135'];
+  const shutterOptions = meta.shutters.length > 0 ? meta.shutters : ['180°', '90°', '45°', '1/48', '1/50', '1/100', '1/120'];
+  const isoOptions = meta.isos.length > 0 ? meta.isos : ['100', '200', '400', '800', '1600', '3200', '6400', '12800'];
+  const filterOptions = meta.filters.length > 0 ? meta.filters : ['Clear', 'ND.3', 'ND.6', 'ND.9', 'ND 1.2', 'Polarizer', 'Diffusion 1/4'];
+  const cardOptions = meta.cards.length > 0 ? meta.cards : ['A001', 'A002', 'B001', 'B002'];
+  const cameraOptions = meta.cameras.length > 0 ? meta.cameras : ['A', 'B', 'C', 'D'];
+
   const days = useMemo(
     () => Array.from(new Set(takes.map((t) => t.day))).sort((a, b) => b - a),
     [takes]
@@ -81,6 +97,50 @@ export const TakesList: React.FC = () => {
   const handleToggleStar = (t: TakeEntry) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     updateTake(t.id, { isGood: !t.isGood });
+  };
+
+  const renderDropdownField = (
+    label: string,
+    value: string,
+    options: string[],
+    onSelect: (val: string) => void,
+    config?: { suffix?: string; prefix?: string; placeholder?: string; flex?: number }
+  ) => {
+    const prefix = config?.prefix || '';
+    const suffix = config?.suffix || '';
+    const displayVal = value ? `${prefix}${value}${suffix}` : (config?.placeholder || 'Pilih...');
+    return (
+      <View style={[styles.modalField, config?.flex !== undefined ? { flex: config.flex } : null]}>
+        <Text style={[styles.subLbl, { color: theme.textFaint }]}>{label}</Text>
+        <TouchableOpacity
+          style={[
+            styles.dropdownTrigger,
+            { backgroundColor: theme.surface, borderColor: theme.border },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setPicker({
+              title: label,
+              options,
+              currentValue: value,
+              onSelect,
+            });
+          }}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.dropdownValue,
+              { color: value ? theme.textPrimary : theme.textFaint },
+            ]}
+            numberOfLines={1}
+          >
+            {displayVal}
+          </Text>
+          <Feather name="chevron-down" size={13} color={theme.accent} />
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   const handleSaveEdit = async () => {
@@ -511,7 +571,7 @@ export const TakesList: React.FC = () => {
 
                 {/* CAMERA SPECIFICATIONS: MULTICAM OR SINGLE CAM */}
                 {editing.cameras && editing.cameras.length > 1 ? (
-                  /* MULTI-CAMERA: ONLY SHOW EACH INDEPENDENT CAMERA */
+                  /* MULTI-CAMERA: DROPDOWNS PER CAMERA */
                   <View style={{ gap: 10, marginVertical: 6 }}>
                     <Text style={[styles.subLbl, { color: theme.accent, letterSpacing: 0.8 }]}>
                       SPESIFIKASI TIAP KAMERA ({editing.cameras.length} KAMERA):
@@ -530,18 +590,17 @@ export const TakesList: React.FC = () => {
                         
                         {/* ROLL & CLIP NAME */}
                         <View style={styles.modalGrid}>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.card}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], card: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
+                          {renderDropdownField(
+                            'ROLL / CARD',
+                            c.card,
+                            cardOptions,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              const newClip = `${val}_${String(editing.take).padStart(3, '0')}`;
+                              updatedCams[idx] = { ...updatedCams[idx], card: val, clipName: newClip };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            }
+                          )}
                           <View style={styles.modalField}>
                             <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
                             <TextInput
@@ -558,140 +617,98 @@ export const TakesList: React.FC = () => {
 
                         {/* LENS & T-STOP */}
                         <View style={styles.modalGrid}>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.lens}
-                              placeholder="Cth: 35, 50, 85"
-                              placeholderTextColor={theme.textFaint}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], lens: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.tstop}
-                              placeholder="2.8"
-                              placeholderTextColor={theme.textFaint}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], tstop: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
+                          {renderDropdownField(
+                            'LENS',
+                            c.lens || '',
+                            lensOptions,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], lens: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            },
+                            { suffix: 'mm' }
+                          )}
+                          {renderDropdownField(
+                            'T-STOP',
+                            c.tstop || '',
+                            standardTstops,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], tstop: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            },
+                            { prefix: 'T' }
+                          )}
                         </View>
 
                         {/* SHUTTER, ISO, FPS */}
                         <View style={styles.modalGrid}>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.shutter || editing.shutter}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], shutter: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.iso || editing.iso}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], iso: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
-                          <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
-                            <TextInput
-                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                              value={c.fps || editing.fps}
-                              onChangeText={(val) => {
-                                const updatedCams = [...editing.cameras!];
-                                updatedCams[idx] = { ...updatedCams[idx], fps: val };
-                                setEditing({ ...editing, cameras: updatedCams });
-                              }}
-                            />
-                          </View>
+                          {renderDropdownField(
+                            'SHUTTER',
+                            c.shutter || editing.shutter,
+                            shutterOptions,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], shutter: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            }
+                          )}
+                          {renderDropdownField(
+                            'ISO',
+                            c.iso || editing.iso,
+                            isoOptions,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], iso: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            }
+                          )}
+                          {renderDropdownField(
+                            'FPS',
+                            c.fps || editing.fps,
+                            standardFps,
+                            (val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], fps: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            }
+                          )}
                         </View>
 
                         {/* OPTICAL FILTER / ND */}
-                        <View style={styles.modalFieldSingle}>
-                          <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND ({c.camera.split(' ')[0]})</Text>
-                          <TextInput
-                            style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                            value={c.filter || editing.filter}
-                            placeholder="Clear, ND3, ND6, Diffusion..."
-                            placeholderTextColor={theme.textFaint}
-                            onChangeText={(val) => {
-                              const updatedCams = [...editing.cameras!];
-                              updatedCams[idx] = { ...updatedCams[idx], filter: val };
-                              setEditing({ ...editing, cameras: updatedCams });
-                            }}
-                          />
-                        </View>
+                        {renderDropdownField(
+                          `OPTICAL FILTER / ND (${c.camera.split(' ')[0]})`,
+                          c.filter || editing.filter,
+                          filterOptions,
+                          (val) => {
+                            const updatedCams = [...editing.cameras!];
+                            updatedCams[idx] = { ...updatedCams[idx], filter: val };
+                            setEditing({ ...editing, cameras: updatedCams });
+                          }
+                        )}
                       </View>
                     ))}
                   </View>
                 ) : (
-                  /* SINGLE-CAMERA: STANDARD SINGLE CAM FIELDS */
+                  /* SINGLE-CAMERA: DROPDOWNS */
                   <>
                     {/* CAMERA & ROLL */}
                     <View style={styles.modalGrid}>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>CAMERA</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.camera}
-                          onChangeText={(t) => setEditing({ ...editing, camera: t })}
-                        />
-                      </View>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.card}
-                          onChangeText={(t) => setEditing({ ...editing, card: t })}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Quick Card Presets */}
-                    <View style={{ marginBottom: 6 }}>
-                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>PILIH ROLL PRESET:</Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-                        {meta.cards.map((c) => (
-                          <TouchableOpacity
-                            key={c}
-                            style={[
-                              styles.presetChip,
-                              { backgroundColor: theme.surfaceRaised, borderColor: editing.card === c ? theme.accent : theme.border },
-                              editing.card === c && { backgroundColor: theme.accentWash },
-                            ]}
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setEditing({ ...editing, card: c });
-                            }}
-                          >
-                            <Text style={[styles.presetChipText, { color: editing.card === c ? theme.accent : theme.textSecondary }]}>
-                              {c}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
+                      {renderDropdownField(
+                        'CAMERA',
+                        editing.camera,
+                        cameraOptions,
+                        (val) => setEditing({ ...editing, camera: val })
+                      )}
+                      {renderDropdownField(
+                        'ROLL / CARD',
+                        editing.card,
+                        cardOptions,
+                        (val) => {
+                          const newClip = `${val}_${String(editing.take).padStart(3, '0')}`;
+                          setEditing({ ...editing, card: val, clipName: newClip });
+                        }
+                      )}
                     </View>
 
                     {/* CLIP NAME */}
@@ -706,95 +723,53 @@ export const TakesList: React.FC = () => {
 
                     {/* LENS & T-STOP & SHUTTER */}
                     <View style={styles.modalGrid}>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.lens}
-                          onChangeText={(t) => setEditing({ ...editing, lens: t })}
-                        />
-                      </View>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.tstop}
-                          onChangeText={(t) => setEditing({ ...editing, tstop: t })}
-                        />
-                      </View>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.shutter}
-                          onChangeText={(t) => setEditing({ ...editing, shutter: t })}
-                        />
-                      </View>
+                      {renderDropdownField(
+                        'LENS',
+                        editing.lens,
+                        lensOptions,
+                        (val) => setEditing({ ...editing, lens: val }),
+                        { suffix: 'mm' }
+                      )}
+                      {renderDropdownField(
+                        'T-STOP',
+                        editing.tstop,
+                        standardTstops,
+                        (val) => setEditing({ ...editing, tstop: val }),
+                        { prefix: 'T' }
+                      )}
+                      {renderDropdownField(
+                        'SHUTTER',
+                        editing.shutter,
+                        shutterOptions,
+                        (val) => setEditing({ ...editing, shutter: val })
+                      )}
                     </View>
 
                     {/* ISO & FPS */}
                     <View style={styles.modalGrid}>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.iso}
-                          onChangeText={(t) => setEditing({ ...editing, iso: t })}
-                        />
-                      </View>
-                      <View style={styles.modalField}>
-                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
-                        <TextInput
-                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                          value={editing.fps}
-                          onChangeText={(t) => setEditing({ ...editing, fps: t })}
-                        />
-                      </View>
+                      {renderDropdownField(
+                        'ISO',
+                        editing.iso,
+                        isoOptions,
+                        (val) => setEditing({ ...editing, iso: val })
+                      )}
+                      {renderDropdownField(
+                        'FPS',
+                        editing.fps,
+                        standardFps,
+                        (val) => setEditing({ ...editing, fps: val })
+                      )}
                     </View>
 
                     {/* OPTICAL FILTER / ND */}
-                    <View style={styles.modalFieldSingle}>
-                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND</Text>
-                      <TextInput
-                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                        value={editing.filter}
-                        placeholder="Clear, ND3, ND6, Diffusion 1/4..."
-                        placeholderTextColor={theme.textFaint}
-                        onChangeText={(t) => setEditing({ ...editing, filter: t })}
-                      />
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 6 }}>
-                        {meta.filters.map((fil) => (
-                          <TouchableOpacity
-                            key={fil}
-                            style={[
-                              styles.presetChip,
-                              { backgroundColor: theme.surfaceRaised, borderColor: editing.filter === fil ? theme.accent : theme.border },
-                              editing.filter === fil && { backgroundColor: theme.accentWash },
-                            ]}
-                            onPress={() => {
-                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                              setEditing({ ...editing, filter: fil });
-                            }}
-                          >
-                            <Text style={[styles.presetChipText, { color: editing.filter === fil ? theme.accent : theme.textSecondary }]}>
-                              {fil}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </ScrollView>
-                    </View>
+                    {renderDropdownField(
+                      'OPTICAL FILTER / ND',
+                      editing.filter,
+                      filterOptions,
+                      (val) => setEditing({ ...editing, filter: val })
+                    )}
                   </>
                 )}
-
-                {/* SOUND ROLL (AUDIO) */}
-                <View style={styles.modalFieldSingle}>
-                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL (AUDIO)</Text>
-                  <TextInput
-                    style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                    value={editing.soundRoll || 'SR01'}
-                    onChangeText={(t) => setEditing({ ...editing, soundRoll: t })}
-                  />
-                </View>
 
                 {/* REMARKS / CATATAN */}
                 <View style={styles.modalFieldSingle}>
@@ -871,6 +846,67 @@ export const TakesList: React.FC = () => {
             </KeyboardAvoidingView>
           </SafeAreaView>
         )}
+      </Modal>
+
+      {/* Universal Dropdown Picker Modal */}
+      <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
+        <TouchableOpacity
+          style={styles.pickerOverlay}
+          activeOpacity={1}
+          onPress={() => setPicker(null)}
+        >
+          <View
+            style={[
+              styles.pickerSheet,
+              { backgroundColor: theme.surface, borderColor: theme.border },
+            ]}
+            onStartShouldSetResponder={() => true}
+          >
+            <View style={styles.pickerHeader}>
+              <Text style={[styles.pickerTitle, { color: theme.accent }]}>
+                PILIH {picker?.title.toUpperCase()}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setPicker(null)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Feather name="x" size={20} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              {picker?.options.map((opt) => {
+                const isSelected = picker.currentValue === opt;
+                return (
+                  <TouchableOpacity
+                    key={opt}
+                    style={[
+                      styles.pickerOption,
+                      { borderBottomColor: theme.borderLight },
+                      isSelected && { backgroundColor: theme.accentWash },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      picker.onSelect(opt);
+                      setPicker(null);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.pickerOptionText,
+                        { color: isSelected ? theme.accent : theme.textPrimary },
+                        isSelected && { fontWeight: '800' },
+                      ]}
+                    >
+                      {opt}
+                    </Text>
+                    {isSelected && <Feather name="check" size={16} color={theme.accent} />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -1173,5 +1209,59 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dropdownTrigger: {
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dropdownValue: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    flex: 1,
+  },
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    paddingBottom: 36,
+    gap: 10,
+  },
+  pickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)',
+  },
+  pickerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginVertical: 2,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  pickerOptionText: {
+    fontSize: 13.5,
+    fontWeight: '600',
   },
 });
