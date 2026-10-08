@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { TakeEntry, CameraTakeItem, ProductionMeta, Project } from '../types';
+import { TakeEntry, CameraTakeItem, ProductionMeta, Project, TakeStatus } from '../types';
 
 const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
 const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
@@ -88,12 +88,17 @@ export interface FormState {
   shot: string;
   take: number;
   isGood: boolean;
+  takeStatus: TakeStatus;
   clipName: string;
   camera: string;
   selectedCameras: string[];
   cameraCards: Record<string, string>;
   cameraLenses: Record<string, string>;
   cameraTstops: Record<string, string>;
+  cameraShutters: Record<string, string>;
+  cameraIsos: Record<string, string>;
+  cameraFilters: Record<string, string>;
+  cameraFps: Record<string, string>;
   card: string;
   lens: string;
   shutter: string;
@@ -126,9 +131,15 @@ interface HonglogStore {
   updateMeta: (partial: Partial<ProductionMeta>) => Promise<void>;
   setForm: (partial: Partial<FormState>) => void;
   toggleCamera: (cam: string) => void;
+  setCameraParam: (
+    cam: string,
+    param: 'card' | 'lens' | 'tstop' | 'shutter' | 'iso' | 'filter' | 'fps',
+    value: string
+  ) => void;
   setCameraCard: (cam: string, card: string) => void;
   setCameraLens: (cam: string, lens: string) => void;
   setCameraTstop: (cam: string, tstop: string) => void;
+  setTakeStatus: (status: TakeStatus) => void;
   incrementSlate: (delta: number) => void;
   incrementTake: (delta: number) => void;
   addSuffixToScene: (suffix: string) => void;
@@ -150,12 +161,19 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
   const cameraCards: Record<string, string> = {};
   const cameraLenses: Record<string, string> = {};
   const cameraTstops: Record<string, string> = {};
+  const cameraShutters: Record<string, string> = {};
+  const cameraIsos: Record<string, string> = {};
+  const cameraFilters: Record<string, string> = {};
+  const cameraFps: Record<string, string> = {};
 
   meta.cameras.forEach((cam, idx) => {
     cameraCards[cam] = getDefaultCardForCam(cam, meta.cards);
-    // Assign reasonable default lenses across cameras (e.g. Cam A = 35/50, Cam B = 85)
     cameraLenses[cam] = meta.lenses[idx % meta.lenses.length] || '35';
     cameraTstops[cam] = '2.8';
+    cameraShutters[cam] = meta.shutters[0] || '180°';
+    cameraIsos[cam] = meta.isos[3] || '800';
+    cameraFilters[cam] = meta.filters[0] || 'Clear';
+    cameraFps[cam] = meta.projectFps || '24';
   });
 
   return {
@@ -164,12 +182,17 @@ const createInitialForm = (meta: ProductionMeta, existingTakes: TakeEntry[] = []
     shot: '1',
     take: 1,
     isGood: false,
+    takeStatus: 'HOLD',
     clipName: getNextClipName(initialCard, existingTakes),
     camera: initialCam,
     selectedCameras: [initialCam],
     cameraCards,
     cameraLenses,
     cameraTstops,
+    cameraShutters,
+    cameraIsos,
+    cameraFilters,
+    cameraFps,
     card: initialCard,
     lens: cameraLenses[initialCam] || '35',
     shutter: meta.shutters[0] || '180°',
@@ -388,6 +411,43 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     });
   },
 
+  setCameraParam: (cam, param, value) => {
+    set((state) => {
+      const isPrimary = state.form.camera === cam;
+      const f = state.form;
+
+      if (param === 'card') {
+        const updated = { ...f.cameraCards, [cam]: value };
+        return {
+          form: {
+            ...f,
+            cameraCards: updated,
+            ...(isPrimary ? { card: value, clipName: getNextClipName(value, state.takes) } : {}),
+          },
+        };
+      } else if (param === 'lens') {
+        const updated = { ...f.cameraLenses, [cam]: value };
+        return { form: { ...f, cameraLenses: updated, ...(isPrimary ? { lens: value } : {}) } };
+      } else if (param === 'tstop') {
+        const updated = { ...f.cameraTstops, [cam]: value };
+        return { form: { ...f, cameraTstops: updated, ...(isPrimary ? { tstop: value } : {}) } };
+      } else if (param === 'shutter') {
+        const updated = { ...f.cameraShutters, [cam]: value };
+        return { form: { ...f, cameraShutters: updated, ...(isPrimary ? { shutter: value } : {}) } };
+      } else if (param === 'iso') {
+        const updated = { ...f.cameraIsos, [cam]: value };
+        return { form: { ...f, cameraIsos: updated, ...(isPrimary ? { iso: value } : {}) } };
+      } else if (param === 'filter') {
+        const updated = { ...f.cameraFilters, [cam]: value };
+        return { form: { ...f, cameraFilters: updated, ...(isPrimary ? { filter: value } : {}) } };
+      } else if (param === 'fps') {
+        const updated = { ...f.cameraFps, [cam]: value };
+        return { form: { ...f, cameraFps: updated, ...(isPrimary ? { fps: value } : {}) } };
+      }
+      return { form: f };
+    });
+  },
+
   setCameraLens: (cam: string, lens: string) => {
     set((state) => {
       const updatedLenses = { ...state.form.cameraLenses, [cam]: lens };
@@ -414,6 +474,16 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
         },
       };
     });
+  },
+
+  setTakeStatus: (status) => {
+    set((state) => ({
+      form: {
+        ...state.form,
+        takeStatus: status,
+        isGood: status === 'PRINT',
+      },
+    }));
   },
 
   incrementSlate: (delta) => {
@@ -449,9 +519,16 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
   },
 
   toggleGoodTake: () => {
-    set((state) => ({
-      form: { ...state.form, isGood: !state.form.isGood },
-    }));
+    set((state) => {
+      const nextStatus: TakeStatus = state.form.takeStatus === 'PRINT' ? 'HOLD' : 'PRINT';
+      return {
+        form: {
+          ...state.form,
+          takeStatus: nextStatus,
+          isGood: nextStatus === 'PRINT',
+        },
+      };
+    });
   },
 
   addTake: async () => {
@@ -459,21 +536,26 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const selectedCams =
       form.selectedCameras && form.selectedCameras.length > 0 ? form.selectedCameras : [form.camera];
 
-    // Build multi-camera items
+    // Build multi-camera items with individual Roll, Lens, T-Stop, Shutter, ISO, Filter, FPS
     const cameraItems: CameraTakeItem[] = selectedCams.map((cam) => {
       const camCard = form.cameraCards[cam] || getDefaultCardForCam(cam, meta.cards);
       const camClip = getNextClipName(camCard, takes);
       const camLens = form.cameraLenses[cam] || form.lens;
       const camTstop = form.cameraTstops[cam] || form.tstop;
+      const camShutter = form.cameraShutters[cam] || form.shutter;
+      const camIso = form.cameraIsos[cam] || form.iso;
+      const camFilter = form.cameraFilters[cam] || form.filter;
+      const camFps = form.cameraFps[cam] || form.fps;
       return {
         camera: cam,
         card: camCard,
         clipName: camClip,
         lens: camLens,
         tstop: camTstop,
-        shutter: form.shutter,
-        iso: form.iso,
-        filter: form.filter,
+        shutter: camShutter,
+        iso: camIso,
+        filter: camFilter,
+        fps: camFps,
       };
     });
 
@@ -495,6 +577,11 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const displayTstop = isMultiCam
       ? cameraItems.map((c) => (c.tstop ? `T${c.tstop}` : '-')).join(' ')
       : form.tstop;
+    const displayFps = isMultiCam
+      ? cameraItems.map((c) => c.fps || form.fps).join(' ')
+      : form.fps;
+
+    const isPrint = form.takeStatus === 'PRINT' || form.isGood;
 
     const newEntry: TakeEntry = {
       id: 'take_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
@@ -502,7 +589,8 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       scene: form.scene,
       shot: form.shot,
       take: form.take,
-      isGood: form.isGood,
+      isGood: isPrint,
+      status: form.takeStatus || (isPrint ? 'PRINT' : 'HOLD'),
       clipName: displayClip,
       camera: displayCam,
       card: displayCard,
@@ -511,7 +599,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       iso: form.iso,
       filter: form.filter,
       tstop: displayTstop,
-      fps: form.fps,
+      fps: displayFps,
       notes: form.notes,
       soundRoll: form.soundRoll || 'SR01',
       timestamp: Date.now(),
@@ -533,6 +621,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       slate: nextSlate,
       take: nextTake,
       isGood: false,
+      takeStatus: 'HOLD',
       notes: '',
       clipName: nextClip,
     };

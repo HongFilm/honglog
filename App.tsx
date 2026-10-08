@@ -1,17 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
   StatusBar,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
   Image,
-  ActivityIndicator,
+  Animated,
 } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from './src/store/useHonglogStore';
@@ -24,15 +24,34 @@ import { THEME, LIGHT_THEME, ThemeColors } from './src/types';
 
 type Tab = 'slate' | 'takes' | 'setup' | 'export';
 
-export default function App() {
+function MainApp() {
   const { hydrate, isHydrated, meta, takes, isDarkMode, toggleTheme } = useHonglogStore();
   const [activeTab, setActiveTab] = useState<Tab>('slate');
+  const insets = useSafeAreaInsets();
+
+  const [showSplash, setShowSplash] = useState(true);
+  const splashOpacity = useRef(new Animated.Value(1)).current;
 
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   useEffect(() => {
     hydrate();
   }, []);
+
+  useEffect(() => {
+    if (isHydrated) {
+      const timer = setTimeout(() => {
+        Animated.timing(splashOpacity, {
+          toValue: 0,
+          duration: 600,
+          useNativeDriver: true,
+        }).start(() => {
+          setShowSplash(false);
+        });
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [isHydrated]);
 
   const handleTabChange = (tab: Tab) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -44,21 +63,21 @@ export default function App() {
     toggleTheme();
   };
 
-  if (!isHydrated) {
-    return (
-      <View style={[styles.loadingContainer, { backgroundColor: theme.bg }]}>
-        <ActivityIndicator size="small" color={theme.accent} />
-        <Text style={[styles.loadingText, { color: theme.textSecondary }]}>INITIALIZING HONGLOG...</Text>
-      </View>
-    );
-  }
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+    <View style={[styles.rootContainer, { backgroundColor: theme.bg }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
-      {/* Top Header Bar */}
-      <View style={[styles.topbar, { borderBottomColor: theme.border }]}>
+      {/* Top Header Bar - Docked to top safe area */}
+      <View
+        style={[
+          styles.topbar,
+          {
+            backgroundColor: theme.surface,
+            borderBottomColor: theme.border,
+            paddingTop: Math.max(insets.top, 12),
+          },
+        ]}
+      >
         <View style={styles.brandRow}>
           <Image source={require('./assets/logo.jpeg')} style={styles.topLogo} resizeMode="contain" />
           <View>
@@ -72,14 +91,14 @@ export default function App() {
         <View style={styles.headerRight}>
           {/* Minimalist Theme Toggle Button */}
           <TouchableOpacity
-            style={[styles.themeToggle, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            style={[styles.themeToggle, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
             onPress={handleToggleTheme}
             activeOpacity={0.7}
           >
             <Feather name={isDarkMode ? 'sun' : 'moon'} size={15} color={theme.textPrimary} />
           </TouchableOpacity>
 
-          <View style={[styles.statusPill, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.statusPill, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
             <View style={[styles.statusDot, { backgroundColor: theme.good }]} />
             <Text style={[styles.statusText, { color: theme.textSecondary }]}>OFFLINE</Text>
           </View>
@@ -107,8 +126,17 @@ export default function App() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Bottom Tab Bar */}
-      <View style={[styles.tabBar, { backgroundColor: theme.surface, borderTopColor: theme.border }]}>
+      {/* Bottom Tab Bar - DOCKED TO BOTTOM (Natap Layar Bawah) */}
+      <View
+        style={[
+          styles.tabBar,
+          {
+            backgroundColor: theme.surface,
+            borderTopColor: theme.border,
+            paddingBottom: Math.max(insets.bottom, 12),
+          },
+        ]}
+      >
         <TouchableOpacity
           style={[styles.tabItem, activeTab === 'slate' && styles.tabItemActive]}
           onPress={() => handleTabChange('slate')}
@@ -148,31 +176,50 @@ export default function App() {
           <Text style={[styles.tabLabel, { color: activeTab === 'export' ? theme.accent : theme.textFaint }]}>EXPORT</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      {/* Branded Fading Splash Screen Overlay */}
+      {showSplash && (
+        <Animated.View
+          style={[
+            styles.splashOverlay,
+            {
+              opacity: splashOpacity,
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <View style={styles.splashCenter}>
+            <Image
+              source={require('./assets/logo.jpeg')}
+              style={styles.splashLogo}
+              resizeMode="contain"
+            />
+            <Text style={styles.splashTitle}>HONGLOG</Text>
+            <Text style={styles.splashSub}>DIGITAL CAMERA REPORT & SLATE</Text>
+          </View>
+          <View style={[styles.splashFooter, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+            <Text style={styles.splashBy}>HONG FILMS</Text>
+          </View>
+        </Animated.View>
+      )}
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MainApp />
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  rootContainer: {
     flex: 1,
-    backgroundColor: '#000000',
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: '#000000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 12,
-    fontWeight: '700',
-    fontFamily: THEME.fontMono,
-    letterSpacing: 1.5,
   },
   topbar: {
     paddingHorizontal: 16,
-    paddingTop: 8,
     paddingBottom: 10,
     borderBottomWidth: 1,
     flexDirection: 'row',
@@ -246,8 +293,8 @@ const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
     borderTopWidth: 1,
-    paddingVertical: 8,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 8,
+    paddingTop: 8,
+    elevation: 8,
   },
   tabItem: {
     flex: 1,
@@ -278,5 +325,49 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     fontWeight: '800',
     color: '#000',
+  },
+
+  // Splash Screen Styles
+  splashOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#000000',
+    zIndex: 99999,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  splashLogo: {
+    width: 96,
+    height: 96,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  splashTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 4,
+  },
+  splashSub: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: THEME.accent,
+    fontFamily: THEME.fontMono,
+    letterSpacing: 2,
+  },
+  splashFooter: {
+    position: 'absolute',
+    bottom: 0,
+    alignItems: 'center',
+  },
+  splashBy: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#555555',
+    letterSpacing: 2.5,
   },
 });

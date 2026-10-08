@@ -247,40 +247,56 @@ export const TakesList: React.FC = () => {
         </View>
       </View>
 
-      {/* Day Filter Chips */}
+      {/* Day Filter Chips - Elevated Cinema Design */}
       {days.length > 0 && (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayChips}>
           <TouchableOpacity
             style={[
               styles.dayChip,
               { backgroundColor: theme.surfaceRaised, borderColor: filterDay === null ? theme.accent : theme.border },
+              filterDay === null && { backgroundColor: theme.accentWash },
             ]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setFilterDay(null);
             }}
           >
-            <Text style={[styles.dayChipText, { color: filterDay === null ? theme.accent : theme.textSecondary }]}>
+            <Text style={[styles.dayChipText, { color: filterDay === null ? theme.accent : theme.textPrimary }]}>
               Semua Day
             </Text>
-          </TouchableOpacity>
-          {days.map((d) => (
-            <TouchableOpacity
-              key={d}
-              style={[
-                styles.dayChip,
-                { backgroundColor: theme.surfaceRaised, borderColor: filterDay === d ? theme.accent : theme.border },
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setFilterDay(filterDay === d ? null : d);
-              }}
-            >
-              <Text style={[styles.dayChipText, { color: filterDay === d ? theme.accent : theme.textSecondary }]}>
-                DAY {d}
+            <View style={[styles.dayChipCountBadge, { backgroundColor: filterDay === null ? theme.accent : theme.surface }]}>
+              <Text style={[styles.dayChipCountText, { color: filterDay === null ? '#000' : theme.textFaint }]}>
+                {takes.length}
               </Text>
-            </TouchableOpacity>
-          ))}
+            </View>
+          </TouchableOpacity>
+          {days.map((d) => {
+            const isSelected = filterDay === d;
+            const countForDay = takes.filter((t) => t.day === d).length;
+            return (
+              <TouchableOpacity
+                key={d}
+                style={[
+                  styles.dayChip,
+                  { backgroundColor: theme.surfaceRaised, borderColor: isSelected ? theme.accent : theme.border },
+                  isSelected && { backgroundColor: theme.accentWash },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setFilterDay(filterDay === d ? null : d);
+                }}
+              >
+                <Text style={[styles.dayChipText, { color: isSelected ? theme.accent : theme.textPrimary }]}>
+                  DAY {d}
+                </Text>
+                <View style={[styles.dayChipCountBadge, { backgroundColor: isSelected ? theme.accent : theme.surface }]}>
+                  <Text style={[styles.dayChipCountText, { color: isSelected ? '#000' : theme.textFaint }]}>
+                    {countForDay}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       )}
 
@@ -547,29 +563,138 @@ export const TakesList: React.FC = () => {
                   />
                 </View>
 
-                {/* GOOD TAKE TOGGLE */}
-                <TouchableOpacity
-                  style={[
-                    styles.modalGoodBtn,
-                    { borderColor: editing.isGood ? theme.good : theme.border, backgroundColor: theme.surfaceRaised },
-                    editing.isGood && { backgroundColor: 'rgba(74, 222, 128, 0.15)', borderColor: theme.good },
-                  ]}
-                  onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    setEditing({ ...editing, isGood: !editing.isGood });
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Feather
-                      name={editing.isGood ? 'check-circle' : 'circle'}
-                      size={15}
-                      color={editing.isGood ? theme.good : theme.textSecondary}
-                    />
-                    <Text style={[styles.modalGoodBtnText, { color: editing.isGood ? theme.good : theme.textSecondary }]}>
-                      {editing.isGood ? 'PRINT TAKE (PILIHAN EDITOR/SUTRADARA)' : 'TANDAI SEBAGAI PRINT TAKE'}
+                {/* MULTI-CAMERA EDITORS (IF TAKE HAS MULTI-CAM) */}
+                {editing.cameras && editing.cameras.length > 1 && (
+                  <View style={{ gap: 8, marginVertical: 6 }}>
+                    <Text style={[styles.subLbl, { color: theme.accent }]}>
+                      SPESIFIKASI TIAP KAMERA ({editing.cameras.length} KAMERA):
                     </Text>
+                    {editing.cameras.map((c, idx) => (
+                      <View
+                        key={idx}
+                        style={[
+                          styles.modalCamBox,
+                          { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                        ]}
+                      >
+                        <Text style={[styles.modalCamTitle, { color: theme.accent }]}>
+                          {c.camera}
+                        </Text>
+                        <View style={styles.modalGrid}>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.card}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], card: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.lens}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], lens: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.tstop}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], tstop: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                        </View>
+                        <View style={styles.modalGrid}>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.shutter || editing.shutter}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], shutter: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.iso || editing.iso}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], iso: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                          <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.fps || editing.fps}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], fps: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                        </View>
+                      </View>
+                    ))}
                   </View>
-                </TouchableOpacity>
+                )}
+
+                {/* TAKE STATUS (PRINT / HOLD / NG) */}
+                <View style={{ marginVertical: 6, gap: 4 }}>
+                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>STATUS TAKE (EDITOR & SUTRADARA)</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {(['PRINT', 'HOLD', 'NG'] as const).map((st) => {
+                      const isCur = (editing.status || (editing.isGood ? 'PRINT' : 'HOLD')) === st;
+                      const col = st === 'PRINT' ? theme.good : st === 'NG' ? theme.danger : theme.textSecondary;
+                      return (
+                        <TouchableOpacity
+                          key={st}
+                          style={[
+                            styles.modalStatusBtn,
+                            { backgroundColor: theme.surfaceRaised, borderColor: isCur ? col : theme.border },
+                            isCur && {
+                              backgroundColor: st === 'PRINT' ? 'rgba(74, 222, 128, 0.15)' : st === 'NG' ? 'rgba(255, 107, 107, 0.15)' : theme.accentWash,
+                            },
+                          ]}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setEditing({
+                              ...editing,
+                              status: st,
+                              isGood: st === 'PRINT',
+                            });
+                          }}
+                        >
+                          <Text style={[styles.modalStatusText, { color: isCur ? col : theme.textFaint }, isCur && { fontWeight: '800' }]}>
+                            {st}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
 
                 {/* BOTTOM ACTION BUTTONS */}
                 <View style={styles.modalActions}>
@@ -615,14 +740,27 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 20, fontWeight: '800', fontFamily: THEME.fontMono },
   statLbl: { fontSize: 9, fontWeight: '700', marginTop: 2, letterSpacing: 0.5 },
-  dayChips: { flexDirection: 'row', gap: 6, paddingBottom: 10 },
+  dayChips: { flexDirection: 'row', gap: 8, paddingVertical: 8, marginBottom: 4 },
   dayChip: {
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    borderWidth: 1,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-  dayChipText: { fontSize: 11.5, fontWeight: '700' },
+  dayChipText: { fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5 },
+  dayChipCountBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  dayChipCountText: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+  },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   searchInput: {
     flex: 1,
@@ -818,6 +956,31 @@ const styles = StyleSheet.create({
   presetChipText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  modalCamBox: {
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    gap: 8,
+    marginBottom: 6,
+  },
+  modalCamTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+    letterSpacing: 0.8,
+  },
+  modalStatusBtn: {
+    flex: 1,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalStatusText: {
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   modalNotes: {
     minHeight: 64,

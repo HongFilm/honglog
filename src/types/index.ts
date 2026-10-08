@@ -1,3 +1,5 @@
+export type TakeStatus = 'PRINT' | 'HOLD' | 'NG';
+
 export interface CameraTakeItem {
   camera: string;
   card: string;
@@ -7,6 +9,7 @@ export interface CameraTakeItem {
   shutter?: string;
   iso?: string;
   filter?: string;
+  fps?: string;
 }
 
 export interface TakeEntry {
@@ -15,7 +18,8 @@ export interface TakeEntry {
   scene: string;
   shot: string;
   take: number;
-  isGood: boolean;
+  isGood: boolean; // true = PRINT
+  status?: TakeStatus; // 'PRINT' | 'HOLD' | 'NG'
   clipName: string;
   camera: string;
   card: string;

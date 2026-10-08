@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { generateAndShareCameraReport } from '../services/pdfGenerator';
@@ -11,6 +12,7 @@ export const ExportScreen: React.FC = () => {
   const { meta, takes, isDarkMode } = useHonglogStore();
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
   const [loadingPdf, setLoadingPdf] = useState(false);
+  const [loadingCsv, setLoadingCsv] = useState(false);
 
   const handleExportPdf = async () => {
     try {
@@ -29,39 +31,95 @@ export const ExportScreen: React.FC = () => {
   const handleExportCsv = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const headers = 'Slate,Scene,Shot,Take,Good,Clip Name,Camera,Card,Lens,Shutter,ISO,T-Stop,Filter,FPS,Notes,Time\n';
+      setLoadingCsv(true);
+
+      const headers = 'Slate,Scene,Shot,Take,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Sound Roll,Notes,Timestamp,Date\n';
       const rows = takes
-        .map((t) =>
-          [
-            t.slate,
-            `"${t.scene}"`,
-            `"${t.shot}"`,
-            t.take,
-            t.isGood ? 'YES' : 'NO',
-            `"${t.clipName || ''}"`,
-            `"${t.camera || ''}"`,
-            `"${t.card || ''}"`,
-            `"${t.lens || ''}"`,
-            `"${t.shutter || ''}"`,
-            `"${t.iso || ''}"`,
-            `"${t.tstop || ''}"`,
-            `"${t.filter || ''}"`,
-            `"${t.fps || ''}"`,
-            `"${(t.notes || '').replace(/"/g, '""')}"`,
-            `"${new Date(t.timestamp).toISOString()}"`,
-          ].join(',')
-        )
+        .flatMap((t) => {
+          const statusStr = t.status || (t.isGood ? 'PRINT' : 'HOLD');
+          const timeIso = new Date(t.timestamp).toISOString();
+          const dateLocal = new Date(t.timestamp).toLocaleDateString('id-ID');
+
+          if (t.cameras && t.cameras.length > 1) {
+            return t.cameras.map((c) =>
+              [
+                t.slate,
+                `"${t.scene}"`,
+                `"${t.shot}"`,
+                t.take,
+                `"${statusStr}"`,
+                `"${c.clipName || ''}"`,
+                `"${c.camera || ''}"`,
+                `"${c.card || ''}"`,
+                `"${c.lens ? c.lens + 'mm' : ''}"`,
+                `"${c.tstop ? 'T' + c.tstop : ''}"`,
+                `"${c.shutter || t.shutter || ''}"`,
+                `"${c.iso || t.iso || ''}"`,
+                `"${c.filter || t.filter || ''}"`,
+                `"${c.fps || t.fps || ''}"`,
+                `"${t.soundRoll || ''}"`,
+                `"${(t.notes || '').replace(/"/g, '""')}"`,
+                `"${timeIso}"`,
+                `"${dateLocal}"`,
+              ].join(',')
+            );
+          }
+
+          return [
+            [
+              t.slate,
+              `"${t.scene}"`,
+              `"${t.shot}"`,
+              t.take,
+              `"${statusStr}"`,
+              `"${t.clipName || ''}"`,
+              `"${t.camera || ''}"`,
+              `"${t.card || ''}"`,
+              `"${t.lens ? t.lens + 'mm' : ''}"`,
+              `"${t.tstop ? 'T' + t.tstop : ''}"`,
+              `"${t.shutter || ''}"`,
+              `"${t.iso || ''}"`,
+              `"${t.filter || ''}"`,
+              `"${t.fps || ''}"`,
+              `"${t.soundRoll || ''}"`,
+              `"${(t.notes || '').replace(/"/g, '""')}"`,
+              `"${timeIso}"`,
+              `"${dateLocal}"`,
+            ].join(','),
+          ];
+        })
         .join('\n');
 
-      const csvContent = headers + rows;
-      // In web or sharing:
-      Alert.alert('CSV Ready', `CSV berhasil di-generate dengan ${takes.length} baris data.`);
+      const csvData = headers + rows;
+      const cleanProd = (meta.production || 'honglog').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const filename = `${cleanProd}_camera_report_${Date.now()}.csv`;
+      const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || '';
+      const fileUri = `${baseDir}${filename}`;
+
+      await FileSystem.writeAsStringAsync(fileUri, csvData, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Share CSV Camera Report',
+          UTI: 'public.comma-separated-values-text',
+        });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Alert.alert('Sukses', `File CSV tersimpan di ${fileUri}`);
+      }
     } catch (e) {
       console.error(e);
+      Alert.alert('Gagal Export CSV', 'Terjadi kesalahan saat membuat atau membagikan file CSV.');
+    } finally {
+      setLoadingCsv(false);
     }
   };
 
   const totalSlates = takes.length > 0 ? new Set(takes.map((t) => t.slate)).size : 0;
+  const printTakesCount = takes.filter((t) => t.status === 'PRINT' || t.isGood).length;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -82,7 +140,7 @@ export const ExportScreen: React.FC = () => {
         </View>
         <View style={styles.sumRow}>
           <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Print Takes:</Text>
-          <Text style={[styles.sumVal, { color: theme.good }]}>{takes.filter((t) => t.isGood).length} Takes</Text>
+          <Text style={[styles.sumVal, { color: theme.good }]}>{printTakesCount} Takes</Text>
         </View>
         <View style={styles.sumRow}>
           <Text style={[styles.sumLabel, { color: theme.textFaint }]}>DOP / 1st AC:</Text>
@@ -96,14 +154,14 @@ export const ExportScreen: React.FC = () => {
       <TouchableOpacity
         style={[styles.pdfBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]}
         onPress={handleExportPdf}
-        disabled={loadingPdf}
+        disabled={loadingPdf || loadingCsv}
         activeOpacity={0.85}
       >
         {loadingPdf ? (
           <ActivityIndicator color="#000" />
         ) : (
           <>
-            <Feather name="file-text" size={24} color="#000" />
+            <Feather name="file-text" size={22} color="#000" />
             <View style={styles.pdfBtnTextWrap}>
               <Text style={styles.pdfBtnTitle}>EXPORT & SHARE PDF REPORT</Text>
               <Text style={styles.pdfBtnSub}>Kirim via AirDrop, WhatsApp, Google Drive atau Simpan ke File</Text>
@@ -112,24 +170,24 @@ export const ExportScreen: React.FC = () => {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.secBtn, { backgroundColor: theme.surface, borderColor: theme.border }]} onPress={handleExportCsv} activeOpacity={0.85}>
-        <Feather name="grid" size={22} color={theme.textPrimary} />
-        <View style={styles.pdfBtnTextWrap}>
-          <Text style={[styles.secBtnTitle, { color: theme.textPrimary }]}>EXPORT LAPORAN CSV (EXCEL)</Text>
-          <Text style={[styles.secBtnSub, { color: theme.textFaint }]}>Tabel data mentah untuk DIT & spreadsheet</Text>
-        </View>
+      <TouchableOpacity
+        style={[styles.secBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+        onPress={handleExportCsv}
+        disabled={loadingPdf || loadingCsv}
+        activeOpacity={0.85}
+      >
+        {loadingCsv ? (
+          <ActivityIndicator color={theme.accent} />
+        ) : (
+          <>
+            <Feather name="grid" size={20} color={theme.textPrimary} />
+            <View style={styles.pdfBtnTextWrap}>
+              <Text style={[styles.secBtnTitle, { color: theme.textPrimary }]}>EXPORT LAPORAN CSV (EXCEL / DIT)</Text>
+              <Text style={[styles.secBtnSub, { color: theme.textFaint }]}>File spreadsheet tabel data mentah untuk DIT & editor</Text>
+            </View>
+          </>
+        )}
       </TouchableOpacity>
-
-      <View style={[styles.infoCard, { backgroundColor: theme.accentWash, borderColor: 'rgba(255, 56, 56, 0.2)' }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <Feather name="info" size={14} color={theme.accent} />
-          <Text style={[styles.infoTitle, { color: theme.accent }]}>Info Penggunaan di Lokasi Syuting</Text>
-        </View>
-        <Text style={[styles.infoText, { color: theme.textSecondary }]}>
-          Honglog dirancang offline-first. Anda dapat menggunakan aplikasi tanpa sinyal internet sama sekali di hutan,
-          gunung, atau studio tertutup. Semua take tersimpan secara lokal dan dapat di-export kapan saja.
-        </Text>
-      </View>
     </ScrollView>
   );
 };
@@ -156,10 +214,8 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   summaryBox: {
-    backgroundColor: THEME.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: THEME.border,
     padding: 14,
     gap: 8,
     marginVertical: 4,
@@ -171,29 +227,22 @@ const styles = StyleSheet.create({
   },
   sumLabel: {
     fontSize: 11.5,
-    color: THEME.textFaint,
     fontWeight: '600',
   },
   sumVal: {
     fontSize: 12,
-    color: THEME.textPrimary,
     fontWeight: '700',
   },
   pdfBtn: {
-    backgroundColor: THEME.accent,
     borderRadius: 14,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    shadowColor: THEME.accent,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 4,
-  },
-  pdfBtnIcon: {
-    fontSize: 26,
   },
   pdfBtnTextWrap: {
     flex: 1,
@@ -210,45 +259,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   secBtn: {
-    backgroundColor: THEME.surface,
     borderWidth: 1,
-    borderColor: THEME.border,
     borderRadius: 14,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  secBtnIcon: {
-    fontSize: 24,
-  },
   secBtnTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: THEME.textPrimary,
   },
   secBtnSub: {
     fontSize: 11,
-    color: THEME.textFaint,
     marginTop: 2,
-  },
-  infoCard: {
-    backgroundColor: THEME.accentWash,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 56, 56, 0.2)',
-    padding: 14,
-    marginTop: 8,
-    gap: 6,
-  },
-  infoTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: THEME.accent,
-  },
-  infoText: {
-    fontSize: 11.5,
-    color: THEME.textSecondary,
-    lineHeight: 18,
   },
 });

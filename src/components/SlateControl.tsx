@@ -224,32 +224,48 @@ export const SlateControl: React.FC = () => {
         />
       </View>
 
-      {/* Good Take & Save */}
+      {/* Take Status (PRINT / HOLD / NG) & Save Row */}
       <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={[
-            styles.goodToggle,
-            { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
-            form.isGood && { backgroundColor: 'rgba(74, 222, 128, 0.1)', borderColor: theme.good },
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-            toggleGoodTake();
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.goodIcon, { color: form.isGood ? theme.good : theme.textFaint }]}>★</Text>
-          <Text style={[styles.goodText, { color: form.isGood ? theme.good : theme.textSecondary }]}>
-            {form.isGood ? 'GOOD TAKE' : 'Tandai Good'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.statusToggleGroup}>
+          {(['PRINT', 'HOLD', 'NG'] as const).map((st) => {
+            const isSelected = (form.takeStatus || (form.isGood ? 'PRINT' : 'HOLD')) === st;
+            const statusColor = st === 'PRINT' ? theme.good : st === 'NG' ? theme.danger : theme.textSecondary;
+            return (
+              <TouchableOpacity
+                key={st}
+                style={[
+                  styles.statusToggleBtn,
+                  { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                  isSelected && {
+                    borderColor: statusColor,
+                    backgroundColor: st === 'PRINT' ? 'rgba(74, 222, 128, 0.15)' : st === 'NG' ? 'rgba(255, 107, 107, 0.15)' : theme.accentWash,
+                  },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  useHonglogStore.getState().setTakeStatus(st);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.statusToggleText,
+                    { color: isSelected ? statusColor : theme.textFaint },
+                    isSelected && { fontWeight: '800' },
+                  ]}
+                >
+                  {st}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
 
         <TouchableOpacity
           style={[styles.saveBtn, { backgroundColor: theme.accent, shadowColor: theme.accent }]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
-          <Text style={styles.saveBtnText}>SIMPAN TAKE ❯</Text>
+          <Text style={styles.saveBtnText}>SIMPAN TAKE</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -468,25 +484,25 @@ const styles = StyleSheet.create({
     gap: 10,
     marginTop: 14,
   },
-  goodToggle: {
-    flex: 1.1,
+  statusToggleGroup: {
+    flex: 1.2,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  statusToggleBtn: {
+    flex: 1,
     height: 44,
     borderRadius: 10,
     borderWidth: 1.5,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
   },
-  goodIcon: {
-    fontSize: 16,
-  },
-  goodText: {
-    fontSize: 12,
-    fontWeight: '700',
+  statusToggleText: {
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   saveBtn: {
-    flex: 1.3,
+    flex: 1.2,
     height: 44,
     borderRadius: 10,
     alignItems: 'center',
@@ -498,8 +514,8 @@ const styles = StyleSheet.create({
   },
   saveBtnText: {
     color: '#000000',
-    fontSize: 13.5,
+    fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
 });
