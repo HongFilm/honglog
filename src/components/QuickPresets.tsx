@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
 
@@ -103,7 +104,8 @@ export const QuickPresets: React.FC = () => {
                     isSelected && { color: theme.accent, fontWeight: '700' },
                   ]}
                 >
-                  {isSelected ? '✓ ' : ''}{cam}
+                  {isSelected && <Feather name="check" size={13} color={theme.accent} />}
+                  {cam}
                 </Text>
               </TouchableOpacity>
             );
@@ -120,8 +122,8 @@ export const QuickPresets: React.FC = () => {
           <View style={styles.camTargetTabs}>
             {selectedCams.map((cam) => {
               const isActive = currentTarget === cam;
-              const camCard = form.cameraCards[cam] || '—';
-              const camLens = form.cameraLenses[cam] || form.lens || '—';
+              const camCard = form.cameraCards[cam] || '-';
+              const camLens = form.cameraLenses[cam] || form.lens || '-';
               const camFps = form.cameraFps[cam] || form.fps || '24';
 
               return (
@@ -157,7 +159,7 @@ export const QuickPresets: React.FC = () => {
             ROLL / CARD {isMultiCam ? `(UNTUK ${currentTarget})` : ''}
           </Text>
           <Text style={[styles.clipHintBadge, { color: theme.accent }]}>
-            NEXT: {form.clipName || '—'}
+            NEXT: {form.clipName || '-'}
           </Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
@@ -383,10 +385,10 @@ export const QuickPresets: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    marginBottom: 14,
+    marginBottom: 16,
     gap: 12,
   },
   section: {
@@ -414,8 +416,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   multiCamConfigBox: {
-    padding: 10,
-    borderRadius: 10,
+    padding: 12,
+    borderRadius: 14,
     borderWidth: 1,
     gap: 8,
   },
@@ -430,8 +432,9 @@ const styles = StyleSheet.create({
   },
   camTargetTab: {
     flex: 1,
-    padding: 8,
-    borderRadius: 8,
+    minHeight: 52,
+    padding: 10,
+    borderRadius: 10,
     borderWidth: 1,
     gap: 2,
   },
@@ -454,9 +457,13 @@ const styles = StyleSheet.create({
   },
   chip: {
     borderWidth: 1,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    minHeight: 44,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   chipText: {
     fontSize: 12,

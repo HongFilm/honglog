@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
 
@@ -13,7 +14,6 @@ export const SlateControl: React.FC = () => {
     addSuffixToScene,
     addSuffixToShot,
     stripSuffixScene,
-    toggleGoodTake,
     addTake,
     takes,
     selectedDay,
@@ -49,7 +49,7 @@ export const SlateControl: React.FC = () => {
               setSelectedDay(Math.max(1, selectedDay - 1));
             }}
           >
-            <Text style={[styles.dayBtnText, { color: theme.accent }]}>‹</Text>
+            <Feather name="chevron-left" size={20} color={theme.accent} />
           </TouchableOpacity>
           <View style={styles.dayLabelWrap}>
             <Text style={[styles.dayLabel, { color: theme.textPrimary }]}>DAY {selectedDay}</Text>
@@ -62,14 +62,14 @@ export const SlateControl: React.FC = () => {
               setSelectedDay(selectedDay + 1);
             }}
           >
-            <Text style={[styles.dayBtnText, { color: theme.accent }]}>›</Text>
+            <Feather name="chevron-right" size={20} color={theme.accent} />
           </TouchableOpacity>
         </View>
 
         <View style={[styles.clipPill, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}>
           <Text style={[styles.clipPillLbl, { color: theme.textFaint }]}>NEXT CLIP</Text>
           <Text style={[styles.clipPillVal, { color: theme.accent }]} numberOfLines={1}>
-            {form.clipName || '—'}
+            {form.clipName || '-'}
           </Text>
         </View>
       </View>
@@ -128,7 +128,7 @@ export const SlateControl: React.FC = () => {
                   c.onMinus();
                 }}
               >
-                <Text style={[styles.stepBtnText, { color: theme.accent }]}>−</Text>
+                <Feather name="minus" size={17} color={theme.accent} />
               </TouchableOpacity>
               <TextInput
                 style={[styles.valInput, { color: c.accent ? theme.accent : theme.textPrimary }]}
@@ -144,7 +144,7 @@ export const SlateControl: React.FC = () => {
                   c.onPlus();
                 }}
               >
-                <Text style={[styles.stepBtnText, { color: theme.accent }]}>+</Text>
+                <Feather name="plus" size={17} color={theme.accent} />
               </TouchableOpacity>
             </View>
           </View>
@@ -327,10 +327,10 @@ export const SlateControl: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     borderWidth: 1,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   dayRow: {
     flexDirection: 'row',
@@ -346,8 +346,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dayBtn: {
-    width: 38,
-    height: 48,
+    width: 44,
+    height: 52,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -371,10 +371,10 @@ const styles = StyleSheet.create({
   },
   clipPill: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     justifyContent: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
   },
   clipPillLbl: {
     fontSize: 8.5,
@@ -388,14 +388,14 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   clapper: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   stripeRow: {
     flexDirection: 'row',
-    height: 14,
+    height: 16,
   },
   stripe: {
     flex: 1,
@@ -403,7 +403,7 @@ const styles = StyleSheet.create({
   },
   clapperBody: {
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 18,
     paddingHorizontal: 10,
   },
   bigReadout: {
@@ -453,8 +453,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   stepBtn: {
-    width: 26,
-    height: 42,
+    width: 36,
+    height: 46,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   },
   valInput: {
     flex: 1,
-    height: 42,
+    height: 46,
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '700',
@@ -488,9 +488,10 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   chip: {
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
+    minHeight: 36,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    borderRadius: 9,
     borderWidth: 1,
   },
   chipText: {

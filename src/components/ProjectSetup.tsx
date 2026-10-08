@@ -31,6 +31,8 @@ export const ProjectSetup: React.FC = () => {
   const [renamingProj, setRenamingProj] = useState<{ id: string; name: string } | null>(null);
   const [renameText, setRenameText] = useState('');
 
+  // Local draft fields mirror the active project whenever the selected project changes.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setProduction(meta.production);
     setProdNumber(meta.prodNumber);
@@ -49,6 +51,7 @@ export const ProjectSetup: React.FC = () => {
     setFiltersText(meta.filters.join(', '));
     setIsosText(meta.isos.join(', '));
   }, [activeProjectId, meta]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleConfirmRename = async () => {
     if (!renamingProj || !renameText.trim()) return;
@@ -462,25 +465,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 40,
-    gap: 12,
+    paddingBottom: 48,
+    gap: 14,
   },
   sectionHeader: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontFamily: THEME.fontMono,
     fontWeight: '700',
     color: THEME.accent,
     letterSpacing: 1.2,
-    marginTop: 6,
-    marginBottom: 2,
+    marginTop: 8,
+    marginBottom: 3,
   },
   card: {
     backgroundColor: THEME.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
     borderColor: THEME.border,
-    padding: 14,
-    gap: 10,
+    padding: 16,
+    gap: 12,
   },
   row: {
     flexDirection: 'row',
@@ -499,7 +502,8 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.surfaceRaised,
     borderWidth: 1,
     borderColor: THEME.border,
-    borderRadius: 8,
+    minHeight: 44,
+    borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 8,
     color: THEME.textPrimary,
@@ -510,10 +514,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: THEME.surfaceRaised,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: THEME.border,
-    padding: 12,
+    padding: 14,
     marginBottom: 8,
   },
   projectCardActive: {
@@ -556,9 +560,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 6,
+    minHeight: 40,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 9,
     borderWidth: 1,
   },
   renameProjectText: {
@@ -576,7 +581,8 @@ const styles = StyleSheet.create({
   },
   createBtn: {
     backgroundColor: THEME.accent,
-    borderRadius: 8,
+    minHeight: 44,
+    borderRadius: 10,
     paddingHorizontal: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -588,8 +594,8 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: THEME.accent,
-    borderRadius: 10,
-    height: 44,
+    borderRadius: 12,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 8,

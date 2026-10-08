@@ -450,7 +450,7 @@ export const TakesList: React.FC = () => {
                   style={[styles.modalCloseIconBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
                   onPress={() => setEditing(null)}
                 >
-                  <Text style={[styles.modalCloseIconText, { color: theme.textSecondary }]}>✕</Text>
+                  <Feather name="x" size={16} color={theme.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -917,18 +917,18 @@ const styles = StyleSheet.create({
   statsBar: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   statBox: {
     flex: 1,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    paddingVertical: 10,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   statNum: { fontSize: 20, fontWeight: '800', fontFamily: THEME.fontMono },
   statLbl: { fontSize: 9, fontWeight: '700', marginTop: 2, letterSpacing: 0.5 },
   dayChips: { flexDirection: 'row', gap: 8, paddingVertical: 8, marginBottom: 4 },
   dayChip: {
-    height: 40,
+    minHeight: 44,
     paddingHorizontal: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
@@ -949,14 +949,15 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 12,
-    height: 38,
+    minHeight: 44,
     fontSize: 12.5,
   },
   filterBtn: {
     paddingHorizontal: 12,
-    height: 38,
+    minWidth: 44,
+    height: 44,
     borderWidth: 1,
     borderRadius: 8,
     alignItems: 'center',
@@ -974,10 +975,10 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 12, fontWeight: '800', fontFamily: THEME.fontMono, letterSpacing: 1 },
   sectionCount: { fontSize: 10.5, fontWeight: '600' },
   card: {
-    borderRadius: 14,
+    borderRadius: 18,
     borderWidth: 1,
-    padding: 12,
-    marginBottom: 10,
+    padding: 14,
+    marginBottom: 12,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   slateBadge: {
@@ -1037,8 +1038,9 @@ const styles = StyleSheet.create({
   },
   actionBtnEdit: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    minHeight: 40,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -1049,8 +1051,9 @@ const styles = StyleSheet.create({
   },
   actionBtnDel: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    minHeight: 40,
+    paddingVertical: 8,
+    borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
