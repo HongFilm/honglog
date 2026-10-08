@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Pressable,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
@@ -844,69 +845,65 @@ export const TakesList: React.FC = () => {
                 </View>
               </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* Universal Dropdown Picker Overlay (Inside Edit Modal to bypass iOS nested Modal limitations) */}
+            {!!picker && (
+              <View style={styles.pickerOverlay}>
+                <Pressable style={StyleSheet.absoluteFill} onPress={() => setPicker(null)} />
+                <View
+                  style={[
+                    styles.pickerSheet,
+                    { backgroundColor: theme.surface, borderColor: theme.border },
+                  ]}
+                >
+                  <View style={styles.pickerHeader}>
+                    <Text style={[styles.pickerTitle, { color: theme.accent }]}>
+                      PILIH {picker.title.toUpperCase()}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setPicker(null)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Feather name="x" size={20} color={theme.textSecondary} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    {picker.options.map((opt) => {
+                      const isSelected = picker.currentValue === opt;
+                      return (
+                        <TouchableOpacity
+                          key={opt}
+                          style={[
+                            styles.pickerOption,
+                            { borderBottomColor: theme.borderLight },
+                            isSelected && { backgroundColor: theme.accentWash },
+                          ]}
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            picker.onSelect(opt);
+                            setPicker(null);
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.pickerOptionText,
+                              { color: isSelected ? theme.accent : theme.textPrimary },
+                              isSelected && { fontWeight: '800' },
+                            ]}
+                          >
+                            {opt}
+                          </Text>
+                          {isSelected && <Feather name="check" size={16} color={theme.accent} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+            )}
           </SafeAreaView>
         )}
-      </Modal>
-
-      {/* Universal Dropdown Picker Modal */}
-      <Modal visible={!!picker} transparent animationType="fade" onRequestClose={() => setPicker(null)}>
-        <TouchableOpacity
-          style={styles.pickerOverlay}
-          activeOpacity={1}
-          onPress={() => setPicker(null)}
-        >
-          <View
-            style={[
-              styles.pickerSheet,
-              { backgroundColor: theme.surface, borderColor: theme.border },
-            ]}
-            onStartShouldSetResponder={() => true}
-          >
-            <View style={styles.pickerHeader}>
-              <Text style={[styles.pickerTitle, { color: theme.accent }]}>
-                PILIH {picker?.title.toUpperCase()}
-              </Text>
-              <TouchableOpacity
-                onPress={() => setPicker(null)}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Feather name="x" size={20} color={theme.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-              {picker?.options.map((opt) => {
-                const isSelected = picker.currentValue === opt;
-                return (
-                  <TouchableOpacity
-                    key={opt}
-                    style={[
-                      styles.pickerOption,
-                      { borderBottomColor: theme.borderLight },
-                      isSelected && { backgroundColor: theme.accentWash },
-                    ]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      picker.onSelect(opt);
-                      setPicker(null);
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.pickerOptionText,
-                        { color: isSelected ? theme.accent : theme.textPrimary },
-                        isSelected && { fontWeight: '800' },
-                      ]}
-                    >
-                      {opt}
-                    </Text>
-                    {isSelected && <Feather name="check" size={16} color={theme.accent} />}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </TouchableOpacity>
       </Modal>
     </View>
   );
@@ -1228,16 +1225,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   pickerOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.76)',
     justifyContent: 'flex-end',
+    zIndex: 9999,
+    elevation: 999,
   },
   pickerSheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     borderWidth: 1,
     padding: 18,
-    paddingBottom: 36,
+    paddingBottom: 28,
     gap: 10,
   },
   pickerHeader: {
