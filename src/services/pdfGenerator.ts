@@ -59,15 +59,14 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       const statusLabel = isPrint ? 'PRINT' : t.status === 'NG' ? 'NG' : 'HOLD';
       const statusColor = isPrint ? '#166534' : t.status === 'NG' ? '#dc2626' : '#6b7280';
 
-      const sceneStr = `${t.scene}${t.intExt ? ` ${t.intExt}` : ''}${t.dayNight ? ` ${t.dayNight}` : ''}`;
-      const notesStr = `${t.soundRoll ? `[Sound: ${t.soundRoll}] ` : ''}${t.notes || ''}`;
-
       return `
     <tr class="${isPrint ? 'good-row' : ''}">
       <td style="text-align:center;font-weight:bold;">${t.slate}</td>
-      <td style="text-align:center;font-weight:bold;">${sceneStr}</td>
+      <td style="text-align:center;font-weight:bold;">${t.scene}</td>
       <td style="text-align:center;">${t.shot}</td>
       <td style="text-align:center;font-weight:bold;">${t.take}</td>
+      <td style="text-align:center;font-weight:700;">${t.intExt || '-'}</td>
+      <td style="text-align:center;font-weight:700;">${t.dayNight || '-'}</td>
       <td style="text-align:center;color:${statusColor};font-weight:bold;">${statusLabel}</td>
       <td style="font-family:monospace;font-weight:600;">${clipText}</td>
       <td style="text-align:center;font-weight:bold;">${camText}</td>
@@ -78,7 +77,7 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       <td style="text-align:center;">${fstopText}</td>
       <td style="text-align:center;">${filterText}</td>
       <td style="text-align:center;">${fpsText}</td>
-      <td style="font-size:10px;">${notesStr}</td>
+      <td style="font-size:10px;">${t.notes || ''}</td>
     </tr>
   `;
     })
@@ -212,21 +211,23 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
         <th style="width:5%;">Scene</th>
         <th style="width:4%;">Shot</th>
         <th style="width:4%;">Take</th>
-        <th style="width:7%;">Status</th>
-        <th style="width:13%;">Clip Name</th>
-        <th style="width:6%;">Cam</th>
+        <th style="width:4%;">Loc</th>
+        <th style="width:5%;">Light</th>
+        <th style="width:6%;">Status</th>
+        <th style="width:12%;">Clip Name</th>
+        <th style="width:5%;">Cam</th>
         <th style="width:6%;">Roll</th>
         <th style="width:6%;">Lens</th>
         <th style="width:6%;">Shutter</th>
         <th style="width:5%;">ISO</th>
         <th style="width:5%;">T-Stop</th>
-        <th style="width:7%;">Filter</th>
+        <th style="width:6%;">Filter</th>
         <th style="width:4%;">FPS</th>
-        <th style="width:18%;">Remarks / Notes</th>
+        <th style="width:13%;">Remarks / Notes</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="15" style="text-align:center;padding:20px;color:#9ca3af;">Belum ada take yang tercatat</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="17" style="text-align:center;padding:20px;color:#9ca3af;">Belum ada take yang tercatat</td></tr>'}
     </tbody>
   </table>
 

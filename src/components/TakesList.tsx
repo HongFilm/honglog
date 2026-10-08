@@ -87,7 +87,19 @@ export const TakesList: React.FC = () => {
     if (!editing) return;
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      await updateTake(editing.id, editing);
+      let payload = { ...editing };
+      if (payload.cameras && payload.cameras.length > 1) {
+        payload.camera = payload.cameras.map((c) => c.camera.split(' ')[0]).join(' ');
+        payload.card = payload.cameras.map((c) => c.card).join(' ');
+        payload.clipName = payload.cameras.map((c) => c.clipName || '').join(' ');
+        payload.lens = payload.cameras.map((c) => (c.lens ? `${c.lens}mm` : '-')).join(' ');
+        payload.tstop = payload.cameras.map((c) => (c.tstop ? `T${c.tstop}` : '-')).join(' ');
+        payload.shutter = payload.cameras.map((c) => c.shutter || '').join(' ');
+        payload.iso = payload.cameras.map((c) => c.iso || '').join(' ');
+        payload.filter = payload.cameras.map((c) => c.filter || '').join(' ');
+        payload.fps = payload.cameras.map((c) => c.fps || '').join(' ');
+      }
+      await updateTake(editing.id, payload);
       setEditing(null);
       Alert.alert('Sukses', 'Perubahan take berhasil disimpan!');
     } catch (e) {
@@ -441,149 +453,6 @@ export const TakesList: React.FC = () => {
                   </View>
                 </View>
 
-                {/* CAMERA & ROLL */}
-                <View style={styles.modalGrid}>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>CAMERA</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.camera}
-                      onChangeText={(t) => setEditing({ ...editing, camera: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.card}
-                      onChangeText={(t) => setEditing({ ...editing, card: t })}
-                    />
-                  </View>
-                </View>
-
-                {/* Quick Card Presets */}
-                <View style={{ marginBottom: 6 }}>
-                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>PILIH ROLL PRESET:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
-                    {meta.cards.map((c) => (
-                      <TouchableOpacity
-                        key={c}
-                        style={[
-                          styles.presetChip,
-                          { backgroundColor: theme.surfaceRaised, borderColor: editing.card === c ? theme.accent : theme.border },
-                          editing.card === c && { backgroundColor: theme.accentWash },
-                        ]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setEditing({ ...editing, card: c });
-                        }}
-                      >
-                        <Text style={[styles.presetChipText, { color: editing.card === c ? theme.accent : theme.textSecondary }]}>
-                          {c}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* CLIP NAME */}
-                <View style={styles.modalFieldSingle}>
-                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
-                  <TextInput
-                    style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                    value={editing.clipName}
-                    onChangeText={(t) => setEditing({ ...editing, clipName: t })}
-                  />
-                </View>
-
-                {/* LENS & T-STOP & SHUTTER */}
-                <View style={styles.modalGrid}>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.lens}
-                      onChangeText={(t) => setEditing({ ...editing, lens: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.tstop}
-                      onChangeText={(t) => setEditing({ ...editing, tstop: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.shutter}
-                      onChangeText={(t) => setEditing({ ...editing, shutter: t })}
-                    />
-                  </View>
-                </View>
-
-                {/* ISO & FPS & SOUND ROLL */}
-                <View style={styles.modalGrid}>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.iso}
-                      onChangeText={(t) => setEditing({ ...editing, iso: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.fps}
-                      onChangeText={(t) => setEditing({ ...editing, fps: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.soundRoll || 'SR01'}
-                      onChangeText={(t) => setEditing({ ...editing, soundRoll: t })}
-                    />
-                  </View>
-                </View>
-
-                {/* OPTICAL FILTER / ND */}
-                <View style={styles.modalFieldSingle}>
-                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND</Text>
-                  <TextInput
-                    style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                    value={editing.filter}
-                    placeholder="Clear, ND3, ND6, Diffusion 1/4..."
-                    placeholderTextColor={theme.textFaint}
-                    onChangeText={(t) => setEditing({ ...editing, filter: t })}
-                  />
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 6 }}>
-                    {meta.filters.map((fil) => (
-                      <TouchableOpacity
-                        key={fil}
-                        style={[
-                          styles.presetChip,
-                          { backgroundColor: theme.surfaceRaised, borderColor: editing.filter === fil ? theme.accent : theme.border },
-                          editing.filter === fil && { backgroundColor: theme.accentWash },
-                        ]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setEditing({ ...editing, filter: fil });
-                        }}
-                      >
-                        <Text style={[styles.presetChipText, { color: editing.filter === fil ? theme.accent : theme.textSecondary }]}>
-                          {fil}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
                 {/* LOC (INT/EXT) & LIGHT (DAY/NIGHT) */}
                 <View style={styles.modalGrid}>
                   <View style={styles.modalField}>
@@ -640,23 +509,11 @@ export const TakesList: React.FC = () => {
                   </View>
                 </View>
 
-                {/* REMARKS / CATATAN */}
-                <View style={styles.modalFieldSingle}>
-                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>CATATAN / REMARKS</Text>
-                  <TextInput
-                    style={[styles.modalInput, styles.modalNotes, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                    value={editing.notes}
-                    multiline
-                    placeholder="Catatan sutradara / 1st AC..."
-                    placeholderTextColor={theme.textFaint}
-                    onChangeText={(t) => setEditing({ ...editing, notes: t })}
-                  />
-                </View>
-
-                {/* MULTI-CAMERA EDITORS (IF TAKE HAS MULTI-CAM) */}
-                {editing.cameras && editing.cameras.length > 1 && (
-                  <View style={{ gap: 8, marginVertical: 6 }}>
-                    <Text style={[styles.subLbl, { color: theme.accent }]}>
+                {/* CAMERA SPECIFICATIONS: MULTICAM OR SINGLE CAM */}
+                {editing.cameras && editing.cameras.length > 1 ? (
+                  /* MULTI-CAMERA: ONLY SHOW EACH INDEPENDENT CAMERA */
+                  <View style={{ gap: 10, marginVertical: 6 }}>
+                    <Text style={[styles.subLbl, { color: theme.accent, letterSpacing: 0.8 }]}>
                       SPESIFIKASI TIAP KAMERA ({editing.cameras.length} KAMERA):
                     </Text>
                     {editing.cameras.map((c, idx) => (
@@ -664,15 +521,17 @@ export const TakesList: React.FC = () => {
                         key={idx}
                         style={[
                           styles.modalCamBox,
-                          { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                          { backgroundColor: theme.surfaceRaised, borderColor: theme.border, padding: 12, borderRadius: 10, gap: 8 },
                         ]}
                       >
-                        <Text style={[styles.modalCamTitle, { color: theme.accent }]}>
-                          {c.camera}
+                        <Text style={[styles.modalCamTitle, { color: theme.accent, fontSize: 13, fontWeight: '800' }]}>
+                          KAMERA {c.camera}
                         </Text>
+                        
+                        {/* ROLL & CLIP NAME */}
                         <View style={styles.modalGrid}>
                           <View style={styles.modalField}>
-                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL</Text>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
                             <TextInput
                               style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                               value={c.card}
@@ -684,10 +543,28 @@ export const TakesList: React.FC = () => {
                             />
                           </View>
                           <View style={styles.modalField}>
+                            <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
+                            <TextInput
+                              style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                              value={c.clipName}
+                              onChangeText={(val) => {
+                                const updatedCams = [...editing.cameras!];
+                                updatedCams[idx] = { ...updatedCams[idx], clipName: val };
+                                setEditing({ ...editing, cameras: updatedCams });
+                              }}
+                            />
+                          </View>
+                        </View>
+
+                        {/* LENS & T-STOP */}
+                        <View style={styles.modalGrid}>
+                          <View style={styles.modalField}>
                             <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
                             <TextInput
                               style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                               value={c.lens}
+                              placeholder="Cth: 35, 50, 85"
+                              placeholderTextColor={theme.textFaint}
                               onChangeText={(val) => {
                                 const updatedCams = [...editing.cameras!];
                                 updatedCams[idx] = { ...updatedCams[idx], lens: val };
@@ -700,6 +577,8 @@ export const TakesList: React.FC = () => {
                             <TextInput
                               style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
                               value={c.tstop}
+                              placeholder="2.8"
+                              placeholderTextColor={theme.textFaint}
                               onChangeText={(val) => {
                                 const updatedCams = [...editing.cameras!];
                                 updatedCams[idx] = { ...updatedCams[idx], tstop: val };
@@ -708,6 +587,8 @@ export const TakesList: React.FC = () => {
                             />
                           </View>
                         </View>
+
+                        {/* SHUTTER, ISO, FPS */}
                         <View style={styles.modalGrid}>
                           <View style={styles.modalField}>
                             <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
@@ -746,6 +627,8 @@ export const TakesList: React.FC = () => {
                             />
                           </View>
                         </View>
+
+                        {/* OPTICAL FILTER / ND */}
                         <View style={styles.modalFieldSingle}>
                           <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND ({c.camera.split(' ')[0]})</Text>
                           <TextInput
@@ -763,7 +646,168 @@ export const TakesList: React.FC = () => {
                       </View>
                     ))}
                   </View>
+                ) : (
+                  /* SINGLE-CAMERA: STANDARD SINGLE CAM FIELDS */
+                  <>
+                    {/* CAMERA & ROLL */}
+                    <View style={styles.modalGrid}>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>CAMERA</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.camera}
+                          onChangeText={(t) => setEditing({ ...editing, camera: t })}
+                        />
+                      </View>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>ROLL / CARD</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.card}
+                          onChangeText={(t) => setEditing({ ...editing, card: t })}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Quick Card Presets */}
+                    <View style={{ marginBottom: 6 }}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>PILIH ROLL PRESET:</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 4 }}>
+                        {meta.cards.map((c) => (
+                          <TouchableOpacity
+                            key={c}
+                            style={[
+                              styles.presetChip,
+                              { backgroundColor: theme.surfaceRaised, borderColor: editing.card === c ? theme.accent : theme.border },
+                              editing.card === c && { backgroundColor: theme.accentWash },
+                            ]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setEditing({ ...editing, card: c });
+                            }}
+                          >
+                            <Text style={[styles.presetChipText, { color: editing.card === c ? theme.accent : theme.textSecondary }]}>
+                              {c}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+
+                    {/* CLIP NAME */}
+                    <View style={styles.modalFieldSingle}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>CLIP NAME</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                        value={editing.clipName}
+                        onChangeText={(t) => setEditing({ ...editing, clipName: t })}
+                      />
+                    </View>
+
+                    {/* LENS & T-STOP & SHUTTER */}
+                    <View style={styles.modalGrid}>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>LENS (MM)</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.lens}
+                          onChangeText={(t) => setEditing({ ...editing, lens: t })}
+                        />
+                      </View>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>T-STOP</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.tstop}
+                          onChangeText={(t) => setEditing({ ...editing, tstop: t })}
+                        />
+                      </View>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHUTTER</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.shutter}
+                          onChangeText={(t) => setEditing({ ...editing, shutter: t })}
+                        />
+                      </View>
+                    </View>
+
+                    {/* ISO & FPS */}
+                    <View style={styles.modalGrid}>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.iso}
+                          onChangeText={(t) => setEditing({ ...editing, iso: t })}
+                        />
+                      </View>
+                      <View style={styles.modalField}>
+                        <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
+                        <TextInput
+                          style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                          value={editing.fps}
+                          onChangeText={(t) => setEditing({ ...editing, fps: t })}
+                        />
+                      </View>
+                    </View>
+
+                    {/* OPTICAL FILTER / ND */}
+                    <View style={styles.modalFieldSingle}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                        value={editing.filter}
+                        placeholder="Clear, ND3, ND6, Diffusion 1/4..."
+                        placeholderTextColor={theme.textFaint}
+                        onChangeText={(t) => setEditing({ ...editing, filter: t })}
+                      />
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 6 }}>
+                        {meta.filters.map((fil) => (
+                          <TouchableOpacity
+                            key={fil}
+                            style={[
+                              styles.presetChip,
+                              { backgroundColor: theme.surfaceRaised, borderColor: editing.filter === fil ? theme.accent : theme.border },
+                              editing.filter === fil && { backgroundColor: theme.accentWash },
+                            ]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setEditing({ ...editing, filter: fil });
+                            }}
+                          >
+                            <Text style={[styles.presetChipText, { color: editing.filter === fil ? theme.accent : theme.textSecondary }]}>
+                              {fil}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  </>
                 )}
+
+                {/* SOUND ROLL (AUDIO) */}
+                <View style={styles.modalFieldSingle}>
+                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL (AUDIO)</Text>
+                  <TextInput
+                    style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                    value={editing.soundRoll || 'SR01'}
+                    onChangeText={(t) => setEditing({ ...editing, soundRoll: t })}
+                  />
+                </View>
+
+                {/* REMARKS / CATATAN */}
+                <View style={styles.modalFieldSingle}>
+                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>CATATAN / REMARKS</Text>
+                  <TextInput
+                    style={[styles.modalInput, styles.modalNotes, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                    value={editing.notes}
+                    multiline
+                    placeholder="Catatan sutradara / 1st AC..."
+                    placeholderTextColor={theme.textFaint}
+                    onChangeText={(t) => setEditing({ ...editing, notes: t })}
+                  />
+                </View>
 
                 {/* TAKE STATUS (PRINT / HOLD / NG) */}
                 <View style={{ marginVertical: 6, gap: 4 }}>

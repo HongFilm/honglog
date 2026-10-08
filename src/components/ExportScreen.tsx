@@ -33,7 +33,7 @@ export const ExportScreen: React.FC = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setLoadingCsv(true);
 
-      const headers = 'Slate,Scene,Shot,Take,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Sound Roll,Notes,Timestamp,Date\n';
+      const headers = 'Slate,Scene,Shot,Take,Location,Lighting,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Sound Roll,Notes,Timestamp,Date\n';
       const sortedTakes = [...takes].sort((a, b) => {
         if (a.slate !== b.slate) return a.slate - b.slate;
         return a.take - b.take;
@@ -44,6 +44,8 @@ export const ExportScreen: React.FC = () => {
           const statusStr = t.status || (t.isGood ? 'PRINT' : 'HOLD');
           const timeIso = new Date(t.timestamp).toISOString();
           const dateLocal = new Date(t.timestamp).toLocaleDateString('id-ID');
+          const locStr = t.intExt || 'INT';
+          const lightStr = t.dayNight || 'DAY';
 
           if (t.cameras && t.cameras.length > 1) {
             return t.cameras.map((c) =>
@@ -52,6 +54,8 @@ export const ExportScreen: React.FC = () => {
                 `"${t.scene}"`,
                 `"${t.shot}"`,
                 t.take,
+                `"${locStr}"`,
+                `"${lightStr}"`,
                 `"${statusStr}"`,
                 `"${c.clipName || ''}"`,
                 `"${c.camera || ''}"`,
@@ -76,6 +80,8 @@ export const ExportScreen: React.FC = () => {
               `"${t.scene}"`,
               `"${t.shot}"`,
               t.take,
+              `"${locStr}"`,
+              `"${lightStr}"`,
               `"${statusStr}"`,
               `"${t.clipName || ''}"`,
               `"${t.camera || ''}"`,
