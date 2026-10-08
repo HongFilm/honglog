@@ -128,6 +128,7 @@ interface HonglogStore {
   createProject: (name: string) => Promise<string>;
   selectProject: (id: string) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
+  renameProject: (id: string, newName: string) => Promise<void>;
 
   // Meta & Form
   updateMeta: (partial: Partial<ProductionMeta>) => Promise<void>;
@@ -334,11 +335,50 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     ]);
   },
 
+  renameProject: async (id: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const { projects, activeProjectId, meta } = get();
+    const updatedProjects = projects.map((p) => {
+      if (p.id === id) {
+        return {
+          ...p,
+          name: trimmed,
+          meta: {
+            ...p.meta,
+            production: trimmed,
+          },
+        };
+      }
+      return p;
+    });
+
+    const isCurrentActive = id === activeProjectId;
+    const updatedMeta = isCurrentActive
+      ? { ...meta, production: trimmed }
+      : meta;
+
+    set({
+      projects: updatedProjects,
+      ...(isCurrentActive ? { meta: updatedMeta } : {}),
+    });
+
+    await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
+  },
+
   updateMeta: async (partial) => {
     const updatedMeta = { ...get().meta, ...partial };
-    const updatedProjects = get().projects.map((p) =>
-      p.id === get().activeProjectId ? { ...p, meta: updatedMeta } : p
-    );
+    const activeId = get().activeProjectId;
+    const updatedProjects = get().projects.map((p) => {
+      if (p.id === activeId) {
+        return {
+          ...p,
+          name: partial.production ? partial.production.trim() : p.name,
+          meta: updatedMeta,
+        };
+      }
+      return p;
+    });
 
     set({ meta: updatedMeta, projects: updatedProjects });
     await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors, Project } from '../types';
 
 export const ProjectSetup: React.FC = () => {
-  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject, isDarkMode } = useHonglogStore();
+  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject, renameProject, isDarkMode } = useHonglogStore();
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   const [production, setProduction] = useState(meta.production);
@@ -27,6 +28,8 @@ export const ProjectSetup: React.FC = () => {
   const [isosText, setIsosText] = useState(meta.isos.join(', '));
 
   const [newProjectName, setNewProjectName] = useState('');
+  const [renamingProj, setRenamingProj] = useState<{ id: string; name: string } | null>(null);
+  const [renameText, setRenameText] = useState('');
 
   useEffect(() => {
     setProduction(meta.production);
@@ -46,6 +49,17 @@ export const ProjectSetup: React.FC = () => {
     setFiltersText(meta.filters.join(', '));
     setIsosText(meta.isos.join(', '));
   }, [activeProjectId, meta]);
+
+  const handleConfirmRename = async () => {
+    if (!renamingProj || !renameText.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const newName = renameText.trim();
+    await renameProject(renamingProj.id, newName);
+    if (renamingProj.id === activeProjectId) {
+      setProduction(newName);
+    }
+    setRenamingProj(null);
+  };
 
   const handleCreateProject = async () => {
     if (!newProjectName.trim()) {
@@ -148,15 +162,30 @@ export const ProjectSetup: React.FC = () => {
             {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
           </Text>
         </TouchableOpacity>
-        {isActive ? (
-          <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
-            <Text style={styles.activeBadgeText}>AKTIF</Text>
-          </View>
-        ) : (
-          <TouchableOpacity onPress={() => handleDeleteProject(item.id, item.name)} style={styles.deleteProjectBtn}>
-            <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
+
+        <View style={styles.projectActionRow}>
+          <TouchableOpacity
+            style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setRenamingProj({ id: item.id, name: item.name });
+              setRenameText(item.name);
+            }}
+          >
+            <Feather name="edit-2" size={12} color={theme.textPrimary} />
+            <Text style={[styles.renameProjectText, { color: theme.textPrimary }]}>Ganti Nama</Text>
           </TouchableOpacity>
-        )}
+
+          {isActive ? (
+            <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
+              <Text style={styles.activeBadgeText}>AKTIF</Text>
+            </View>
+          ) : (
+            <TouchableOpacity onPress={() => handleDeleteProject(item.id, item.name)} style={styles.deleteProjectBtn}>
+              <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -392,6 +421,38 @@ export const ProjectSetup: React.FC = () => {
       <TouchableOpacity style={[styles.dangerBtn, { borderColor: theme.danger }]} onPress={handleClearTakes} activeOpacity={0.85}>
         <Text style={[styles.dangerBtnText, { color: theme.danger }]}>Hapus Seluruh Take ({takes.length})</Text>
       </TouchableOpacity>
+
+      {/* Rename Project Modal */}
+      <Modal visible={!!renamingProj} animationType="fade" transparent onRequestClose={() => setRenamingProj(null)}>
+        <View style={styles.renameModalOverlay}>
+          <View style={[styles.renameModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.renameModalTitle, { color: theme.textPrimary }]}>GANTI NAMA PROJECT</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>NAMA FILM / PROJECT:</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+              value={renameText}
+              onChangeText={setRenameText}
+              placeholder="Nama project baru..."
+              placeholderTextColor={theme.textFaint}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
+                onPress={() => setRenamingProj(null)}
+              >
+                <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
+                onPress={handleConfirmRename}
+              >
+                <Text style={styles.saveBtnText}>SIMPAN</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
@@ -486,6 +547,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
   },
+  projectActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  renameProjectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  renameProjectText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   deleteProjectBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -535,5 +614,29 @@ const styles = StyleSheet.create({
     color: THEME.danger,
     fontSize: 12,
     fontWeight: '700',
+  },
+  cancelBtn: {
+    borderWidth: 1,
+    borderRadius: 10,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  renameModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  renameModalSheet: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 20,
+    gap: 10,
+  },
+  renameModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.8,
   },
 });

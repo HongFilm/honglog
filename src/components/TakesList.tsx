@@ -524,7 +524,7 @@ export const TakesList: React.FC = () => {
                   </View>
                 </View>
 
-                {/* ISO & FILTER & FPS */}
+                {/* ISO & FPS & SOUND ROLL */}
                 <View style={styles.modalGrid}>
                   <View style={styles.modalField}>
                     <Text style={[styles.subLbl, { color: theme.textFaint }]}>ISO</Text>
@@ -535,20 +535,108 @@ export const TakesList: React.FC = () => {
                     />
                   </View>
                   <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>FILTER</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.filter}
-                      onChangeText={(t) => setEditing({ ...editing, filter: t })}
-                    />
-                  </View>
-                  <View style={styles.modalField}>
                     <Text style={[styles.subLbl, { color: theme.textFaint }]}>FPS</Text>
                     <TextInput
                       style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
                       value={editing.fps}
                       onChangeText={(t) => setEditing({ ...editing, fps: t })}
                     />
+                  </View>
+                  <View style={styles.modalField}>
+                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SOUND ROLL</Text>
+                    <TextInput
+                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                      value={editing.soundRoll || 'SR01'}
+                      onChangeText={(t) => setEditing({ ...editing, soundRoll: t })}
+                    />
+                  </View>
+                </View>
+
+                {/* OPTICAL FILTER / ND */}
+                <View style={styles.modalFieldSingle}>
+                  <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND</Text>
+                  <TextInput
+                    style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                    value={editing.filter}
+                    placeholder="Clear, ND3, ND6, Diffusion 1/4..."
+                    placeholderTextColor={theme.textFaint}
+                    onChangeText={(t) => setEditing({ ...editing, filter: t })}
+                  />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 6 }}>
+                    {meta.filters.map((fil) => (
+                      <TouchableOpacity
+                        key={fil}
+                        style={[
+                          styles.presetChip,
+                          { backgroundColor: theme.surfaceRaised, borderColor: editing.filter === fil ? theme.accent : theme.border },
+                          editing.filter === fil && { backgroundColor: theme.accentWash },
+                        ]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setEditing({ ...editing, filter: fil });
+                        }}
+                      >
+                        <Text style={[styles.presetChipText, { color: editing.filter === fil ? theme.accent : theme.textSecondary }]}>
+                          {fil}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* LOC (INT/EXT) & LIGHT (DAY/NIGHT) */}
+                <View style={styles.modalGrid}>
+                  <View style={styles.modalField}>
+                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>LOCATION</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {(['INT', 'EXT'] as const).map((loc) => {
+                        const isCur = (editing.intExt || 'INT') === loc;
+                        return (
+                          <TouchableOpacity
+                            key={loc}
+                            style={[
+                              styles.presetChip,
+                              { flex: 1, alignItems: 'center', backgroundColor: theme.surfaceRaised, borderColor: isCur ? theme.accent : theme.border },
+                              isCur && { backgroundColor: theme.accentWash },
+                            ]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setEditing({ ...editing, intExt: loc });
+                            }}
+                          >
+                            <Text style={[styles.presetChipText, { color: isCur ? theme.accent : theme.textSecondary }]}>
+                              {loc}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                  <View style={styles.modalField}>
+                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>LIGHTING</Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {(['DAY', 'NIGHT'] as const).map((dn) => {
+                        const isCur = (editing.dayNight || 'DAY') === dn;
+                        return (
+                          <TouchableOpacity
+                            key={dn}
+                            style={[
+                              styles.presetChip,
+                              { flex: 1, alignItems: 'center', backgroundColor: theme.surfaceRaised, borderColor: isCur ? theme.accent : theme.border },
+                              isCur && { backgroundColor: theme.accentWash },
+                            ]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setEditing({ ...editing, dayNight: dn });
+                            }}
+                          >
+                            <Text style={[styles.presetChipText, { color: isCur ? theme.accent : theme.textSecondary }]}>
+                              {dn}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                   </View>
                 </View>
 
@@ -657,6 +745,20 @@ export const TakesList: React.FC = () => {
                               }}
                             />
                           </View>
+                        </View>
+                        <View style={styles.modalFieldSingle}>
+                          <Text style={[styles.subLbl, { color: theme.textFaint }]}>OPTICAL FILTER / ND ({c.camera.split(' ')[0]})</Text>
+                          <TextInput
+                            style={[styles.modalInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                            value={c.filter || editing.filter}
+                            placeholder="Clear, ND3, ND6, Diffusion..."
+                            placeholderTextColor={theme.textFaint}
+                            onChangeText={(val) => {
+                              const updatedCams = [...editing.cameras!];
+                              updatedCams[idx] = { ...updatedCams[idx], filter: val };
+                              setEditing({ ...editing, cameras: updatedCams });
+                            }}
+                          />
                         </View>
                       </View>
                     ))}
