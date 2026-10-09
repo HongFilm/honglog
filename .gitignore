@@ -36,8 +36,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
+# generated native folders (uncomment if using pure managed workflow)
+# /ios
 /android
 
 # local hermes cache
