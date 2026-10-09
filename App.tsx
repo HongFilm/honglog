@@ -32,6 +32,17 @@ function MainApp() {
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
+  // Smooth Tab Transition Animation
+  const tabFade = useRef(new Animated.Value(1)).current;
+  const tabTranslateX = useRef(new Animated.Value(0)).current;
+
+  const tabOrder: Record<Tab, number> = {
+    slate: 0,
+    takes: 1,
+    setup: 2,
+    export: 3,
+  };
+
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   useEffect(() => {
@@ -53,9 +64,41 @@ function MainApp() {
     }
   }, [isHydrated]);
 
-  const handleTabChange = (tab: Tab) => {
+  const handleTabChange = (nextTab: Tab) => {
+    if (nextTab === activeTab) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
+
+    const isMovingRight = tabOrder[nextTab] > tabOrder[activeTab];
+    const exitOffset = isMovingRight ? -14 : 14;
+    const entryOffset = isMovingRight ? 14 : -14;
+
+    Animated.parallel([
+      Animated.timing(tabFade, {
+        toValue: 0,
+        duration: 90,
+        useNativeDriver: true,
+      }),
+      Animated.timing(tabTranslateX, {
+        toValue: exitOffset,
+        duration: 90,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setActiveTab(nextTab);
+      tabTranslateX.setValue(entryOffset);
+      Animated.parallel([
+        Animated.timing(tabFade, {
+          toValue: 1,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+        Animated.timing(tabTranslateX, {
+          toValue: 0,
+          duration: 160,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
   };
 
   const handleToggleTheme = () => {
@@ -110,7 +153,15 @@ function MainApp() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
-        <View style={styles.contentWrap}>
+        <Animated.View
+          style={[
+            styles.contentWrap,
+            {
+              opacity: tabFade,
+              transform: [{ translateX: tabTranslateX }],
+            },
+          ]}
+        >
           {activeTab === 'slate' && (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
               <SlateControl />
@@ -123,7 +174,7 @@ function MainApp() {
           {activeTab === 'setup' && <ProjectSetup />}
 
           {activeTab === 'export' && <ExportScreen />}
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
 
       {/* Bottom Tab Bar - DOCKED TO BOTTOM (Natap Layar Bawah) */}
