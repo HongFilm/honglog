@@ -12,6 +12,9 @@ import {
   Animated,
   useColorScheme,
   Appearance,
+  useWindowDimensions,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -27,10 +30,14 @@ import { THEME, LIGHT_THEME, ThemeColors } from './src/types';
 type Tab = 'slate' | 'takes' | 'setup' | 'export';
 
 function MainApp() {
+  const { width: windowWidth } = useWindowDimensions();
   const systemColorScheme = useColorScheme();
   const { hydrate, isHydrated, meta, takes, isDarkMode, toggleTheme, setDarkMode } = useHonglogStore();
   const [activeTab, setActiveTab] = useState<Tab>('slate');
   const insets = useSafeAreaInsets();
+
+  const pagerRef = useRef<ScrollView>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
 
   const isDarkEffective = Platform.OS === 'ios'
     ? (systemColorScheme ?? Appearance.getColorScheme()) === 'dark'
@@ -55,9 +62,12 @@ function MainApp() {
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
-  // Smooth Tab Transition Animation
-  const tabFade = useRef(new Animated.Value(1)).current;
-  const tabTranslateX = useRef(new Animated.Value(0)).current;
+  const tabs: { key: Tab; label: string; icon: 'film' | 'list' | 'sliders' | 'share-2' }[] = [
+    { key: 'slate', label: 'SLATE', icon: 'film' },
+    { key: 'takes', label: 'TAKES', icon: 'list' },
+    { key: 'setup', label: 'SETUP', icon: 'sliders' },
+    { key: 'export', label: 'EXPORT', icon: 'share-2' },
+  ];
 
   const tabOrder: Record<Tab, number> = {
     slate: 0,
@@ -67,6 +77,18 @@ function MainApp() {
   };
 
   const theme: ThemeColors = isDarkEffective ? THEME : LIGHT_THEME;
+
+  // Liquid glass pill indicator calculations
+  const barMarginHorizontal = 16;
+  const barWidth = Math.max(windowWidth - (barMarginHorizontal * 2), 200);
+  const barPadding = 4;
+  const tabWidth = (barWidth - (barPadding * 2)) / 4;
+
+  const pillTranslateX = scrollX.interpolate({
+    inputRange: [0, windowWidth, windowWidth * 2, windowWidth * 3],
+    outputRange: [0, tabWidth, tabWidth * 2, tabWidth * 3],
+    extrapolate: 'clamp',
+  });
 
   useEffect(() => {
     hydrate();
@@ -88,40 +110,20 @@ function MainApp() {
   }, [isHydrated]);
 
   const handleTabChange = (nextTab: Tab) => {
-    if (nextTab === activeTab) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(nextTab);
+    const targetX = tabOrder[nextTab] * windowWidth;
+    pagerRef.current?.scrollTo({ x: targetX, animated: true });
+  };
 
-    const isMovingRight = tabOrder[nextTab] > tabOrder[activeTab];
-    const exitOffset = isMovingRight ? -14 : 14;
-    const entryOffset = isMovingRight ? 14 : -14;
-
-    Animated.parallel([
-      Animated.timing(tabFade, {
-        toValue: 0,
-        duration: 90,
-        useNativeDriver: true,
-      }),
-      Animated.timing(tabTranslateX, {
-        toValue: exitOffset,
-        duration: 90,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setActiveTab(nextTab);
-      tabTranslateX.setValue(entryOffset);
-      Animated.parallel([
-        Animated.timing(tabFade, {
-          toValue: 1,
-          duration: 160,
-          useNativeDriver: true,
-        }),
-        Animated.timing(tabTranslateX, {
-          toValue: 0,
-          duration: 160,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
+  const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = e.nativeEvent.contentOffset.x;
+    const pageIndex = Math.min(Math.max(Math.round(offsetX / windowWidth), 0), 3);
+    const targetTab = tabs[pageIndex].key;
+    if (targetTab !== activeTab) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setActiveTab(targetTab);
+    }
   };
 
   const handleToggleTheme = () => {
@@ -168,84 +170,109 @@ function MainApp() {
         </View>
       </View>
 
-      {/* Main Content Area */}
+      {/* Swipable Screen Pager - Gestures allow sliding horizontally across pages */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
-        <Animated.View
-          style={[
-            styles.contentWrap,
-            {
-              opacity: tabFade,
-              transform: [{ translateX: tabTranslateX }],
-            },
-          ]}
+        <Animated.ScrollView
+          ref={pagerRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          bounces={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+            { useNativeDriver: false }
+          )}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
+          style={styles.pagerContainer}
         >
-          {activeTab === 'slate' && (
+          {/* Page 0: SLATE */}
+          <View style={[styles.pageWrap, { width: windowWidth }]}>
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
               <SlateControl />
               <QuickPresets />
             </ScrollView>
-          )}
+          </View>
 
-          {activeTab === 'takes' && <TakesList />}
+          {/* Page 1: TAKES */}
+          <View style={[styles.pageWrap, { width: windowWidth }]}>
+            <TakesList />
+          </View>
 
-          {activeTab === 'setup' && <ProjectSetup />}
+          {/* Page 2: SETUP */}
+          <View style={[styles.pageWrap, { width: windowWidth }]}>
+            <ProjectSetup />
+          </View>
 
-          {activeTab === 'export' && <ExportScreen />}
-        </Animated.View>
+          {/* Page 3: EXPORT */}
+          <View style={[styles.pageWrap, { width: windowWidth }]}>
+            <ExportScreen />
+          </View>
+        </Animated.ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Bottom Tab Bar - DOCKED TO BOTTOM (Natap Layar Bawah) */}
-      <View
-        style={[
-          styles.tabBar,
-          {
-            backgroundColor: theme.surface,
-            borderTopColor: theme.border,
-            paddingBottom: Math.max(insets.bottom, 12),
-          },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'slate' && styles.tabItemActive]}
-          onPress={() => handleTabChange('slate')}
+      {/* Liquid Glass Floating Tab Bar with Sliding Pill Indicator */}
+      <View style={[styles.glassNavbarWrapper, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        <View
+          style={[
+            styles.glassNavbarContainer,
+            {
+              backgroundColor: isDarkEffective ? 'rgba(20, 21, 27, 0.88)' : 'rgba(255, 255, 255, 0.90)',
+              borderColor: isDarkEffective ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+              shadowColor: isDarkEffective ? '#000' : '#888',
+            },
+          ]}
         >
-          <Feather name="film" size={17} color={activeTab === 'slate' ? theme.accent : theme.textFaint} />
-          <Text style={[styles.tabLabel, { color: activeTab === 'slate' ? theme.accent : theme.textFaint }]}>SLATE</Text>
-        </TouchableOpacity>
+          {/* Animated Liquid Pill that glides across tabs */}
+          <Animated.View
+            style={[
+              styles.slidingPill,
+              {
+                width: tabWidth,
+                transform: [{ translateX: pillTranslateX }],
+                backgroundColor: isDarkEffective ? 'rgba(229, 57, 53, 0.18)' : 'rgba(229, 57, 53, 0.12)',
+                borderColor: theme.accent,
+              },
+            ]}
+          />
 
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'takes' && styles.tabItemActive]}
-          onPress={() => handleTabChange('takes')}
-        >
-          <Feather name="list" size={17} color={activeTab === 'takes' ? theme.accent : theme.textFaint} />
-          <View style={styles.tabBadgeRow}>
-            <Text style={[styles.tabLabel, { color: activeTab === 'takes' ? theme.accent : theme.textFaint }]}>TAKES</Text>
-            {takes.length > 0 && (
-              <View style={[styles.badgeCount, { backgroundColor: theme.accent }]}>
-                <Text style={styles.badgeCountText}>{takes.length}</Text>
-              </View>
-            )}
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'setup' && styles.tabItemActive]}
-          onPress={() => handleTabChange('setup')}
-        >
-          <Feather name="sliders" size={17} color={activeTab === 'setup' ? theme.accent : theme.textFaint} />
-          <Text style={[styles.tabLabel, { color: activeTab === 'setup' ? theme.accent : theme.textFaint }]}>SETUP</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabItem, activeTab === 'export' && styles.tabItemActive]}
-          onPress={() => handleTabChange('export')}
-        >
-          <Feather name="share-2" size={17} color={activeTab === 'export' ? theme.accent : theme.textFaint} />
-          <Text style={[styles.tabLabel, { color: activeTab === 'export' ? theme.accent : theme.textFaint }]}>EXPORT</Text>
-        </TouchableOpacity>
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={styles.glassTabItem}
+                onPress={() => handleTabChange(tab.key)}
+                activeOpacity={0.7}
+              >
+                <Feather
+                  name={tab.icon}
+                  size={17}
+                  color={isActive ? theme.accent : theme.textFaint}
+                />
+                <View style={styles.tabBadgeRow}>
+                  <Text
+                    style={[
+                      styles.tabLabel,
+                      { color: isActive ? theme.accent : theme.textFaint },
+                      isActive && { fontWeight: '800' },
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  {tab.key === 'takes' && takes.length > 0 && (
+                    <View style={[styles.badgeCount, { backgroundColor: theme.accent }]}>
+                      <Text style={styles.badgeCountText}>{takes.length}</Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* Branded Fading Splash Screen Overlay */}
@@ -354,30 +381,47 @@ const styles = StyleSheet.create({
   keyboardContainer: {
     flex: 1,
   },
-  contentWrap: {
+  pagerContainer: {
+    flex: 1,
+  },
+  pageWrap: {
     flex: 1,
     paddingHorizontal: 14,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   scrollContent: {
-    paddingBottom: 28,
+    paddingBottom: 24,
   },
-  tabBar: {
+  glassNavbarWrapper: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+  },
+  glassNavbarContainer: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    paddingTop: 10,
-    elevation: 12,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    padding: 4,
+    position: 'relative',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  tabItem: {
+  slidingPill: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    left: 4,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  glassTabItem: {
     flex: 1,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
-    paddingVertical: 5,
-    gap: 4,
-  },
-  tabItemActive: {
-    opacity: 1,
+    zIndex: 2,
+    gap: 3,
   },
   tabLabel: {
     fontSize: 9.5,
