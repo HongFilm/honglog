@@ -182,6 +182,7 @@ function MainApp() {
           showsHorizontalScrollIndicator={false}
           bounces={false}
           scrollEventThrottle={16}
+          contentOffset={{ x: tabOrder[activeTab] * windowWidth, y: 0 }}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: false }

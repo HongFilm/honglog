@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, FlatList, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -34,9 +34,12 @@ export const ProjectSetup: React.FC = () => {
   } | null>(null);
   const [addText, setAddText] = useState('');
 
+  const [showProjectModal, setShowProjectModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [renamingProj, setRenamingProj] = useState<{ id: string; name: string } | null>(null);
   const [renameText, setRenameText] = useState('');
+
+  const activeProject = projects.find((p) => p.id === activeProjectId);
 
   // Local draft fields mirror the active project whenever the selected project changes.
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -99,12 +102,13 @@ export const ProjectSetup: React.FC = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await createProject(newProjectName.trim());
     setNewProjectName('');
-    Alert.alert('Sukses', 'Project baru berhasil dibuat dan dipilih.');
+    setShowProjectModal(false);
   };
 
   const handleSelectProject = async (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     await selectProject(id);
+    setShowProjectModal(false);
     // Refresh local state with new project data
     const proj = projects.find(p => p.id === id);
     if (proj) {
@@ -236,79 +240,40 @@ export const ProjectSetup: React.FC = () => {
     );
   };
 
-  const renderProjectItem = ({ item }: { item: Project }) => {
-    const isActive = item.id === activeProjectId;
-    return (
-      <View style={[styles.projectCard, { backgroundColor: theme.surfaceRaised, borderColor: isActive ? theme.accent : theme.border }, isActive && { backgroundColor: theme.accentWash }]}>
-        <TouchableOpacity 
-          style={styles.projectInfo} 
-          onPress={() => handleSelectProject(item.id)}
-        >
-          <Text style={[styles.projectName, { color: isActive ? theme.accent : theme.textPrimary }]} numberOfLines={1}>
-            {item.name}
-          </Text>
-          <Text style={[styles.projectMeta, { color: theme.textSecondary }]}>
-            {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.projectActionRow}>
-          <TouchableOpacity
-            style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setRenamingProj({ id: item.id, name: item.name });
-              setRenameText(item.name);
-            }}
-          >
-            <Feather name="edit-2" size={12} color={theme.textPrimary} />
-            <Text style={[styles.renameProjectText, { color: theme.textPrimary }]}>Ganti Nama</Text>
-          </TouchableOpacity>
-
-          {isActive ? (
-            <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
-              <Text style={styles.activeBadgeText}>AKTIF</Text>
-            </View>
-          ) : (
-            <TouchableOpacity onPress={() => handleDeleteProject(item.id, item.name)} style={styles.deleteProjectBtn}>
-              <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Project Management Section */}
-      <Text style={[styles.sectionHeader, { color: theme.accent }]}>MANAJEMEN PROJECT FILM</Text>
-      
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.label, { color: theme.textFaint }]}>PROJECT AKTIF</Text>
-        <FlatList
-          data={projects}
-          keyExtractor={(item) => item.id}
-          renderItem={renderProjectItem}
-          scrollEnabled={false}
-          style={{ marginBottom: 12 }}
-        />
-        
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>BUAT PROJECT BARU</Text>
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            <TextInput
-              style={[styles.input, { flex: 1, backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-              value={newProjectName}
-              onChangeText={setNewProjectName}
-              placeholder="Nama film / produksi baru..."
-              placeholderTextColor={theme.textFaint}
-            />
-            <TouchableOpacity style={[styles.createBtn, { backgroundColor: theme.accent }]} onPress={handleCreateProject}>
-              <Text style={styles.createBtnText}>BUAT</Text>
-            </TouchableOpacity>
+      {/* Project Management Section - Compact Dropdown */}
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>PROJECT FILM AKTIF</Text>
+
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 10 }]}>
+        <TouchableOpacity
+          style={[
+            styles.projectDropdownTrigger,
+            { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+          ]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowProjectModal(true);
+          }}
+          activeOpacity={0.75}
+        >
+          <View style={styles.projectDropdownLeft}>
+            <View style={[styles.projectIconBadge, { backgroundColor: theme.accentWash }]}>
+              <Feather name="film" size={17} color={theme.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.projectDropdownTitle, { color: theme.textPrimary }]} numberOfLines={1}>
+                {activeProject?.name || 'Pilih Project'}
+              </Text>
+              <Text style={[styles.projectDropdownSubtitle, { color: theme.textSecondary }]}>
+                {activeProject?.takes.length || 0} takes &bull; Ketuk untuk beralih / buat project
+              </Text>
+            </View>
           </View>
-        </View>
+          <View style={[styles.projectDropdownChevronWrap, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Feather name="chevron-down" size={16} color={theme.textPrimary} />
+          </View>
+        </TouchableOpacity>
       </View>
 
       <Text style={[styles.sectionHeader, { color: theme.accent }]}>INFORMASI PRODUKSI & KRU</Text>
@@ -514,6 +479,116 @@ export const ProjectSetup: React.FC = () => {
                 <Text style={styles.saveBtnText}>TAMBAH</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Project Picker & Manager Modal (Dropdown Bottom Sheet) */}
+      <Modal
+        visible={showProjectModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowProjectModal(false)}
+      >
+        <View style={styles.projectModalOverlay}>
+          <View style={[styles.projectModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={styles.projectModalHeader}>
+              <View>
+                <Text style={[styles.projectModalTitle, { color: theme.textPrimary }]}>PILIH PROJECT FILM</Text>
+                <Text style={[styles.projectModalSubtitle, { color: theme.textSecondary }]}>
+                  {projects.length} project tersimpan di Honglog
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+                onPress={() => setShowProjectModal(false)}
+              >
+                <Feather name="x" size={17} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Create Project Row */}
+            <View style={[styles.createProjectBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+              <TextInput
+                style={[styles.input, { flex: 1, backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                value={newProjectName}
+                onChangeText={setNewProjectName}
+                placeholder="Nama film / project baru..."
+                placeholderTextColor={theme.textFaint}
+              />
+              <TouchableOpacity
+                style={[styles.createBtn, { backgroundColor: theme.accent }]}
+                onPress={handleCreateProject}
+              >
+                <Feather name="plus" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                <Text style={styles.createBtnText}>BUAT</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Scrollable Project List */}
+            <ScrollView style={styles.projectModalList} showsVerticalScrollIndicator={false}>
+              {projects.map((item) => {
+                const isActive = item.id === activeProjectId;
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.projectCard,
+                      {
+                        backgroundColor: isActive ? theme.accentWash : theme.surfaceRaised,
+                        borderColor: isActive ? theme.accent : theme.border,
+                        marginBottom: 8,
+                      },
+                    ]}
+                    onPress={() => handleSelectProject(item.id)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.projectInfo}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text
+                          style={[styles.projectName, { color: isActive ? theme.accent : theme.textPrimary }]}
+                          numberOfLines={1}
+                        >
+                          {item.name}
+                        </Text>
+                        {isActive && (
+                          <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
+                            <Text style={styles.activeBadgeText}>AKTIF</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.projectMeta, { color: theme.textSecondary }]}>
+                        {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
+                      </Text>
+                    </View>
+
+                    <View style={styles.projectActionRow}>
+                      <TouchableOpacity
+                        style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setRenamingProj({ id: item.id, name: item.name });
+                          setRenameText(item.name);
+                        }}
+                      >
+                        <Feather name="edit-2" size={12} color={theme.textPrimary} />
+                        <Text style={[styles.renameProjectText, { color: theme.textPrimary }]}>Ganti Nama</Text>
+                      </TouchableOpacity>
+
+                      {!isActive && (
+                        <TouchableOpacity
+                          onPress={() => handleDeleteProject(item.id, item.name)}
+                          style={styles.deleteProjectBtn}
+                        >
+                          <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -759,5 +834,97 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontStyle: 'italic',
     paddingVertical: 4,
+  },
+  projectDropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  projectDropdownLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  projectIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  projectDropdownTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  projectDropdownSubtitle: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  projectDropdownChevronWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  projectModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    justifyContent: 'flex-end',
+  },
+  projectModalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 36,
+    maxHeight: '85%',
+    gap: 12,
+  },
+  projectModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 4,
+  },
+  projectModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  projectModalSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  createProjectBox: {
+    flexDirection: 'row',
+    gap: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  projectModalList: {
+    maxHeight: 380,
   },
 });
