@@ -1,9 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors } from '../types';
+
+function parseCardPrefixAndNumber(card: string): { prefix: string; num: number; digits: number } {
+  const match = (card || 'A001').trim().match(/^([A-Za-z]+)(\d+)$/);
+  if (match) {
+    return {
+      prefix: match[1].toUpperCase(),
+      num: parseInt(match[2], 10),
+      digits: match[2].length,
+    };
+  }
+  return { prefix: 'A', num: 1, digits: 3 };
+}
+
+function formatCard(prefix: string, num: number, digits: number = 3): string {
+  return `${prefix.toUpperCase()}${String(num).padStart(digits, '0')}`;
+}
+
+function stepCardNumber(card: string, step: number): string {
+  const { prefix, num, digits } = parseCardPrefixAndNumber(card);
+  const nextNum = Math.max(num + step, 1);
+  return formatCard(prefix, nextNum, digits);
+}
 
 const COMMON_FPS = ['24', '25', '30', '48', '50', '60', '120'];
 
@@ -44,6 +66,38 @@ export const QuickPresets: React.FC = () => {
   const currentTargetCard = isMultiCam
     ? form.cameraCards[currentTarget] || form.card
     : form.card;
+
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [modalPrefix, setModalPrefix] = useState('A');
+  const [customCardInput, setCustomCardInput] = useState('');
+
+  const { prefix: currentPrefix, num: currentCardNum } = parseCardPrefixAndNumber(currentTargetCard);
+
+  // Available camera prefixes for tabs (A, B, C, D...)
+  const availablePrefixes = Array.from(
+    new Set([
+      'A',
+      'B',
+      'C',
+      'D',
+      ...meta.cameras.map((c) => c.charAt(0).toUpperCase()),
+      currentPrefix,
+    ])
+  ).filter((p) => /^[A-Z]$/.test(p));
+
+  // Quick card options to show in the horizontal row
+  const quickCardOptions = Array.from(
+    new Set([
+      currentTargetCard,
+      stepCardNumber(currentTargetCard, 1),
+      stepCardNumber(currentTargetCard, 2),
+      ...meta.cards,
+      'A001',
+      'B001',
+      'C001',
+      'D001',
+    ])
+  ).filter(Boolean).slice(0, 8);
 
   const currentTargetLens = isMultiCam
     ? form.cameraLenses[currentTarget] || form.lens
@@ -152,7 +206,7 @@ export const QuickPresets: React.FC = () => {
         </View>
       )}
 
-      {/* Media Card / Roll */}
+      {/* Media Card / Roll with Dynamic Dropdown & Step Generator */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.headerLbl, { color: theme.textFaint }]}>
@@ -162,8 +216,56 @@ export const QuickPresets: React.FC = () => {
             NEXT: {form.clipName || '-'}
           </Text>
         </View>
+
+        {/* Card Active Stepper & Controls */}
+        <View style={styles.cardControlRow}>
+          <TouchableOpacity
+            style={[styles.cardActiveDropdownBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.accent }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setModalPrefix(currentPrefix);
+              setShowCardModal(true);
+            }}
+            activeOpacity={0.75}
+          >
+            <View style={styles.cardActiveInner}>
+              <Text style={[styles.cardActivePrefix, { color: theme.textFaint }]}>ROLL:</Text>
+              <Text style={[styles.cardActiveValue, { color: theme.accent }]}>{currentTargetCard}</Text>
+            </View>
+            <Feather name="chevron-down" size={14} color={theme.accent} style={{ marginLeft: 6 }} />
+          </TouchableOpacity>
+
+          <View style={styles.cardStepperGroup}>
+            <TouchableOpacity
+              style={[styles.cardStepBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+              onPress={() => {
+                const prev = stepCardNumber(currentTargetCard, -1);
+                handleParamSelect('card', prev);
+              }}
+              activeOpacity={0.7}
+            >
+              <Feather name="minus" size={13} color={theme.textPrimary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.cardNextStepBtn, { backgroundColor: theme.accentWash, borderColor: theme.accent }]}
+              onPress={() => {
+                const next = stepCardNumber(currentTargetCard, 1);
+                handleParamSelect('card', next);
+              }}
+              activeOpacity={0.75}
+            >
+              <Feather name="plus" size={13} color={theme.accent} />
+              <Text style={[styles.cardNextStepText, { color: theme.accent }]}>
+                Next Roll ({stepCardNumber(currentTargetCard, 1)})
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Quick Horizontal Roll Shortcuts */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-          {meta.cards.map((card) => {
+          {quickCardOptions.map((card) => {
             const isSelected = currentTargetCard === card;
             return (
               <TouchableOpacity
@@ -187,6 +289,17 @@ export const QuickPresets: React.FC = () => {
               </TouchableOpacity>
             );
           })}
+          <TouchableOpacity
+            style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setModalPrefix(currentPrefix);
+              setShowCardModal(true);
+            }}
+          >
+            <Feather name="grid" size={12} color={theme.accent} style={{ marginRight: 4 }} />
+            <Text style={[styles.chipText, { color: theme.accent }]}>Pilih Semua ▾</Text>
+          </TouchableOpacity>
         </ScrollView>
       </View>
 
@@ -399,6 +512,135 @@ export const QuickPresets: React.FC = () => {
           })}
         </ScrollView>
       </View>
+
+      {/* Roll / Media Card Picker Modal Sheet */}
+      <Modal
+        visible={showCardModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowCardModal(false)}
+      >
+        <View style={styles.cardModalOverlay}>
+          <View style={[styles.cardModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            {/* Modal Header */}
+            <View style={styles.cardModalHeader}>
+              <View>
+                <Text style={[styles.cardModalTitle, { color: theme.textPrimary }]}>
+                  PILIH ROLL / MEDIA CARD
+                </Text>
+                <Text style={[styles.cardModalSubtitle, { color: theme.textSecondary }]}>
+                  Roll aktif: <Text style={{ color: theme.accent, fontWeight: '800' }}>{currentTargetCard}</Text> &bull; Next Clip: {form.clipName || '-'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+                onPress={() => setShowCardModal(false)}
+              >
+                <Feather name="x" size={17} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Camera Prefix Filter Tabs (CAM A, CAM B, CAM C, CAM D...) */}
+            <View style={styles.camPrefixTabs}>
+              {availablePrefixes.map((pfx) => {
+                const isPfxActive = modalPrefix === pfx;
+                return (
+                  <TouchableOpacity
+                    key={pfx}
+                    style={[
+                      styles.camPrefixTab,
+                      {
+                        backgroundColor: isPfxActive ? theme.accentWash : theme.surfaceRaised,
+                        borderColor: isPfxActive ? theme.accent : theme.border,
+                      },
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setModalPrefix(pfx);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.camPrefixTabText,
+                        { color: isPfxActive ? theme.accent : theme.textSecondary },
+                      ]}
+                    >
+                      CAM {pfx}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Grid of 20 Cards for the Active Prefix */}
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 260 }}>
+              <View style={styles.cardGrid}>
+                {Array.from({ length: 20 }, (_, idx) => {
+                  const cardVal = formatCard(modalPrefix, idx + 1);
+                  const isCur = currentTargetCard === cardVal;
+                  return (
+                    <TouchableOpacity
+                      key={cardVal}
+                      style={[
+                        styles.cardGridItem,
+                        {
+                          backgroundColor: isCur ? theme.accent : theme.surfaceRaised,
+                          borderColor: isCur ? theme.accent : theme.border,
+                        },
+                      ]}
+                      onPress={() => {
+                        handleParamSelect('card', cardVal);
+                        setShowCardModal(false);
+                      }}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          styles.cardGridItemText,
+                          { color: isCur ? '#FFF' : theme.textPrimary },
+                        ]}
+                      >
+                        {cardVal}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </ScrollView>
+
+            {/* Custom Card Input Row */}
+            <View style={[styles.customCardBox, { borderTopColor: theme.border }]}>
+              <TextInput
+                style={[
+                  styles.customCardInput,
+                  {
+                    backgroundColor: theme.surfaceRaised,
+                    borderColor: theme.border,
+                    color: theme.textPrimary,
+                  },
+                ]}
+                placeholder="Custom Roll (cth: DRONE01, RAW01)..."
+                placeholderTextColor={theme.textFaint}
+                value={customCardInput}
+                onChangeText={setCustomCardInput}
+                autoCapitalize="characters"
+              />
+              <TouchableOpacity
+                style={[styles.customCardApplyBtn, { backgroundColor: theme.accent }]}
+                onPress={() => {
+                  if (customCardInput.trim()) {
+                    handleParamSelect('card', customCardInput.trim().toUpperCase());
+                    setCustomCardInput('');
+                    setShowCardModal(false);
+                  }
+                }}
+              >
+                <Text style={styles.customCardApplyText}>Gunakan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -488,5 +730,165 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  cardControlRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  cardActiveDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+  },
+  cardActiveInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cardActivePrefix: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cardActiveValue: {
+    fontSize: 14,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+  },
+  cardStepperGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  cardStepBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardNextStepBtn: {
+    flex: 1,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+  },
+  cardNextStepText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+
+  // Card Picker Modal Styles
+  cardModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    justifyContent: 'flex-end',
+  },
+  cardModalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderTopWidth: 1.5,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 36,
+    maxHeight: '80%',
+    gap: 12,
+  },
+  cardModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardModalTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  cardModalSubtitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  camPrefixTabs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  camPrefixTab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  camPrefixTabText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  cardGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingVertical: 4,
+  },
+  cardGridItem: {
+    width: '23%',
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cardGridItemText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    fontFamily: THEME.fontMono,
+  },
+  customCardBox: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  customCardInput: {
+    flex: 1,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 12.5,
+  },
+  customCardApplyBtn: {
+    height: 42,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customCardApplyText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

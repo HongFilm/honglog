@@ -355,57 +355,59 @@ export const TakesList: React.FC = () => {
         </View>
       </View>
 
-      {/* Day Filter Chips - Elevated Cinema Design */}
+      {/* Day Filter Chips with comfortable spacing and margin */}
       {days.length > 0 && (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayChips}>
-          <TouchableOpacity
-            style={[
-              styles.dayChip,
-              { backgroundColor: theme.surfaceRaised, borderColor: filterDay === null ? theme.accent : theme.border },
-              filterDay === null && { backgroundColor: theme.accentWash },
-            ]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setFilterDay(null);
-            }}
-          >
-            <Text style={[styles.dayChipText, { color: filterDay === null ? theme.accent : theme.textPrimary }]}>
-              Semua Day
-            </Text>
-            <View style={[styles.dayChipCountBadge, { backgroundColor: filterDay === null ? theme.accent : theme.surface }]}>
-              <Text style={[styles.dayChipCountText, { color: filterDay === null ? '#000' : theme.textFaint }]}>
-                {takes.length}
+        <View style={styles.dayFilterSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dayChips}>
+            <TouchableOpacity
+              style={[
+                styles.dayChip,
+                { backgroundColor: theme.surfaceRaised, borderColor: filterDay === null ? theme.accent : theme.border },
+                filterDay === null && { backgroundColor: theme.accentWash },
+              ]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilterDay(null);
+              }}
+            >
+              <Text style={[styles.dayChipText, { color: filterDay === null ? theme.accent : theme.textPrimary }]}>
+                Semua Day
               </Text>
-            </View>
-          </TouchableOpacity>
-          {days.map((d) => {
-            const isSelected = filterDay === d;
-            const countForDay = takes.filter((t) => t.day === d).length;
-            return (
-              <TouchableOpacity
-                key={d}
-                style={[
-                  styles.dayChip,
-                  { backgroundColor: theme.surfaceRaised, borderColor: isSelected ? theme.accent : theme.border },
-                  isSelected && { backgroundColor: theme.accentWash },
-                ]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setFilterDay(filterDay === d ? null : d);
-                }}
-              >
-                <Text style={[styles.dayChipText, { color: isSelected ? theme.accent : theme.textPrimary }]}>
-                  DAY {d}
+              <View style={[styles.dayChipCountBadge, { backgroundColor: filterDay === null ? theme.accent : theme.surface }]}>
+                <Text style={[styles.dayChipCountText, { color: filterDay === null ? '#000' : theme.textFaint }]}>
+                  {takes.length}
                 </Text>
-                <View style={[styles.dayChipCountBadge, { backgroundColor: isSelected ? theme.accent : theme.surface }]}>
-                  <Text style={[styles.dayChipCountText, { color: isSelected ? '#000' : theme.textFaint }]}>
-                    {countForDay}
+              </View>
+            </TouchableOpacity>
+            {days.map((d) => {
+              const isSelected = filterDay === d;
+              const countForDay = takes.filter((t) => t.day === d).length;
+              return (
+                <TouchableOpacity
+                  key={d}
+                  style={[
+                    styles.dayChip,
+                    { backgroundColor: theme.surfaceRaised, borderColor: isSelected ? theme.accent : theme.border },
+                    isSelected && { backgroundColor: theme.accentWash },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setFilterDay(filterDay === d ? null : d);
+                  }}
+                >
+                  <Text style={[styles.dayChipText, { color: isSelected ? theme.accent : theme.textPrimary }]}>
+                    DAY {d}
                   </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+                  <View style={[styles.dayChipCountBadge, { backgroundColor: isSelected ? theme.accent : theme.surface }]}>
+                    <Text style={[styles.dayChipCountText, { color: isSelected ? '#000' : theme.textFaint }]}>
+                      {countForDay}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
       )}
 
       {/* Filter Row */}
@@ -991,24 +993,33 @@ const styles = StyleSheet.create({
   },
   statNum: { fontSize: 22, fontWeight: '800', fontFamily: THEME.fontMono, lineHeight: 26 },
   statLbl: { fontSize: 8.5, fontWeight: '800', marginTop: 4, letterSpacing: 0.8, textAlign: 'center' },
-  dayChips: { flexDirection: 'row', gap: 8, paddingVertical: 4, marginBottom: 8, alignItems: 'center' },
+  dayFilterSection: {
+    marginVertical: 10,
+  },
+  dayChips: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+  },
   dayChip: {
-    height: 38,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    height: 42,
+    paddingHorizontal: 16,
+    borderRadius: 12,
     borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
-  dayChipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+  dayChipText: { fontSize: 13, fontWeight: '800', letterSpacing: 0.5 },
   dayChipCountBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   dayChipCountText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '800',
     fontFamily: THEME.fontMono,
   },

@@ -186,7 +186,7 @@ export const ProjectSetup: React.FC = () => {
     category: 'cameras' | 'cards' | 'lenses' | 'shutters' | 'filters' | 'isos',
     items: string[],
     onRemove: (idx: number) => void,
-    config: { placeholder: string; suffix?: string }
+    config: { placeholder: string; suffix?: string; hint?: string }
   ) => {
     return (
       <View style={styles.presetGroup}>
@@ -208,6 +208,10 @@ export const ProjectSetup: React.FC = () => {
             <Text style={[styles.addPresetBtnText, { color: theme.accent }]}>Tambah</Text>
           </TouchableOpacity>
         </View>
+
+        {config.hint && (
+          <Text style={[styles.presetGroupHint, { color: theme.textFaint }]}>{config.hint}</Text>
+        )}
 
         <View style={styles.presetChipsWrap}>
           {items.map((it, idx) => (
@@ -402,7 +406,7 @@ export const ProjectSetup: React.FC = () => {
 
       <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, gap: 16 }]}>
         {renderPresetGroup('KAMERA DI SET', 'cameras', cameras, (idx) => setCameras(cameras.filter((_, i) => i !== idx)), { placeholder: 'Cth: A (FX6)' })}
-        {renderPresetGroup('CARD / ROLL', 'cards', cards, (idx) => setCards(cards.filter((_, i) => i !== idx)), { placeholder: 'Cth: A001, B001' })}
+        {renderPresetGroup('CARD / ROLL', 'cards', cards, (idx) => setCards(cards.filter((_, i) => i !== idx)), { placeholder: 'Cth: A001, B001', hint: 'Cukup masukkan base roll kamera (A001, B001, dll). Urutan A002, A003, dst otomatis di-generate oleh Honglog.' })}
         {renderPresetGroup('PRESET LENSA (MM)', 'lenses', lenses, (idx) => setLenses(lenses.filter((_, i) => i !== idx)), { placeholder: 'Cth: 18, 24, 35', suffix: 'mm' })}
         {renderPresetGroup('PRESET SHUTTER', 'shutters', shutters, (idx) => setShutters(shutters.filter((_, i) => i !== idx)), { placeholder: 'Cth: 180°, 1/50' })}
         {renderPresetGroup('PRESET ISO', 'isos', isos, (idx) => setIsos(isos.filter((_, i) => i !== idx)), { placeholder: 'Cth: 800, 1600, 3200' })}
@@ -834,6 +838,12 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontStyle: 'italic',
     paddingVertical: 4,
+  },
+  presetGroupHint: {
+    fontSize: 10,
+    fontStyle: 'italic',
+    marginTop: -2,
+    lineHeight: 14,
   },
   projectDropdownTrigger: {
     flexDirection: 'row',
