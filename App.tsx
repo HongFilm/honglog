@@ -15,6 +15,7 @@ import {
   useWindowDimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Easing,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -62,6 +63,27 @@ function MainApp() {
 
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
+  const splashScale = useRef(new Animated.Value(1)).current;
+  const logoFade = useRef(new Animated.Value(0)).current;
+  const logoScale = useRef(new Animated.Value(0.92)).current;
+
+  // Cinematic Splash Entrance
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(logoFade, {
+        toValue: 1,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(logoScale, {
+        toValue: 1,
+        duration: 750,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const tabs: { key: Tab; label: string; icon: 'film' | 'list' | 'sliders' | 'share-2' }[] = [
     { key: 'slate', label: 'SLATE', icon: 'film' },
@@ -95,17 +117,27 @@ function MainApp() {
     hydrate();
   }, []);
 
+  // Cinematic Splash Exit
   useEffect(() => {
     if (isHydrated) {
       const timer = setTimeout(() => {
-        Animated.timing(splashOpacity, {
-          toValue: 0,
-          duration: 600,
-          useNativeDriver: true,
-        }).start(() => {
+        Animated.parallel([
+          Animated.timing(splashOpacity, {
+            toValue: 0,
+            duration: 650,
+            easing: Easing.inOut(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(splashScale, {
+            toValue: 1.06,
+            duration: 650,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
           setShowSplash(false);
         });
-      }, 1200);
+      }, 1300);
       return () => clearTimeout(timer);
     }
   }, [isHydrated]);
@@ -282,18 +314,27 @@ function MainApp() {
         </View>
       </View>
 
-      {/* Branded Fading Splash Screen Overlay */}
+      {/* Branded Cinematic Fading Splash Screen Overlay */}
       {showSplash && (
         <Animated.View
           style={[
             styles.splashOverlay,
             {
               opacity: splashOpacity,
+              transform: [{ scale: splashScale }],
             },
           ]}
           pointerEvents="none"
         >
-          <View style={styles.splashCenter}>
+          <Animated.View
+            style={[
+              styles.splashCenter,
+              {
+                opacity: logoFade,
+                transform: [{ scale: logoScale }],
+              },
+            ]}
+          >
             <Image
               source={require('./assets/logo.jpeg')}
               style={styles.splashLogo}
@@ -301,10 +342,18 @@ function MainApp() {
             />
             <Text style={styles.splashTitle}>HONGLOG</Text>
             <Text style={styles.splashSub}>DIGITAL CAMERA REPORT & SLATE</Text>
-          </View>
-          <View style={[styles.splashFooter, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.splashFooter,
+              {
+                paddingBottom: Math.max(insets.bottom, 24),
+                opacity: logoFade,
+              },
+            ]}
+          >
             <Text style={styles.splashBy}>HONG FILMS</Text>
-          </View>
+          </Animated.View>
         </Animated.View>
       )}
     </View>

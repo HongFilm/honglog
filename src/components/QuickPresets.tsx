@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -520,7 +520,20 @@ export const QuickPresets: React.FC = () => {
         transparent
         onRequestClose={() => setShowCardModal(false)}
       >
-        <View style={styles.cardModalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.cardModalOverlay}
+        >
+          {/* Backdrop Tap to Close - Klik di luar modal langsung menutup */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowCardModal(false);
+            }}
+          />
+
           <View style={[styles.cardModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {/* Modal Header */}
             <View style={styles.cardModalHeader}>
@@ -529,7 +542,7 @@ export const QuickPresets: React.FC = () => {
                   PILIH ROLL / MEDIA CARD
                 </Text>
                 <Text style={[styles.cardModalSubtitle, { color: theme.textSecondary }]}>
-                  Roll aktif: <Text style={{ color: theme.accent, fontWeight: '800' }}>{currentTargetCard}</Text> &bull; Next Clip: {form.clipName || '-'}
+                  Roll aktif: <Text style={{ color: theme.accent, fontWeight: '800' }}>{currentTargetCard}</Text> &bull; Bebas pilih untuk kamera mana saja
                 </Text>
               </View>
               <TouchableOpacity
@@ -540,7 +553,7 @@ export const QuickPresets: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Camera Prefix Filter Tabs (CAM A, CAM B, CAM C, CAM D...) */}
+            {/* Camera Prefix Filter Tabs (ROLL A, ROLL B, ROLL C, ROLL D...) */}
             <View style={styles.camPrefixTabs}>
               {availablePrefixes.map((pfx) => {
                 const isPfxActive = modalPrefix === pfx;
@@ -565,7 +578,7 @@ export const QuickPresets: React.FC = () => {
                         { color: isPfxActive ? theme.accent : theme.textSecondary },
                       ]}
                     >
-                      CAM {pfx}
+                      ROLL {pfx}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -639,7 +652,7 @@ export const QuickPresets: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

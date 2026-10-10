@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -423,7 +423,17 @@ export const ProjectSetup: React.FC = () => {
 
       {/* Add Preset Item Modal */}
       <Modal visible={!!addModal} animationType="fade" transparent onRequestClose={() => setAddModal(null)}>
-        <View style={styles.renameModalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.renameModalOverlay}
+        >
+          {/* Backdrop Tap to Close - Klik di luar modal langsung menutup */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setAddModal(null)}
+          />
+
           <View style={[styles.renameModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
               TAMBAH {addModal?.title.toUpperCase()}
@@ -452,7 +462,7 @@ export const ProjectSetup: React.FC = () => {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Project Picker & Manager Modal (Dropdown Bottom Sheet) */}
@@ -460,9 +470,25 @@ export const ProjectSetup: React.FC = () => {
         visible={showProjectModal}
         animationType="slide"
         transparent
-        onRequestClose={() => setShowProjectModal(false)}
+        onRequestClose={() => {
+          setRenamingProj(null);
+          setShowProjectModal(false);
+        }}
       >
-        <View style={styles.projectModalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.projectModalOverlay}
+        >
+          {/* Backdrop Tap to Close - Klik di luar modal langsung menutup */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => {
+              setRenamingProj(null);
+              setShowProjectModal(false);
+            }}
+          />
+
           <View style={[styles.projectModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             {/* Modal Header */}
             <View style={styles.projectModalHeader}>
@@ -601,7 +627,7 @@ export const ProjectSetup: React.FC = () => {
               </>
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
