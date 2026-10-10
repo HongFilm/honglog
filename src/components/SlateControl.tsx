@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -159,39 +159,59 @@ export const SlateControl: React.FC = () => {
       </View>
 
       {/* Suffix Shortcuts */}
-      <View style={styles.suffixRow}>
-        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SUFFIX</Text>
-        <View style={styles.chipsWrap}>
-          {['A', 'B', 'C', 'D'].map((s) => (
+      <View style={styles.suffixContainer}>
+        <View style={styles.suffixRow}>
+          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SCENE:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
+            {['A', 'B', 'C', 'D'].map((s) => (
+              <TouchableOpacity
+                key={`sc_${s}`}
+                style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+                onPress={() => {
+                  haptic();
+                  addSuffixToScene(s);
+                }}
+              >
+                <Text style={[styles.chipText, { color: theme.accent }]}>SC+{s}</Text>
+              </TouchableOpacity>
+            ))}
             <TouchableOpacity
-              key={s}
-              style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+              style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
               onPress={() => {
                 haptic();
-                addSuffixToScene(s);
+                setForm({ scene: form.scene.replace(/[^0-9]/g, '') || '1' });
               }}
             >
-              <Text style={[styles.chipText, { color: theme.accent }]}>SC+{s}</Text>
+              <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
-            onPress={() => {
-              haptic();
-              addSuffixToShot('A');
-            }}
-          >
-            <Text style={[styles.chipText, { color: theme.accent }]}>SH+A</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
-            onPress={() => {
-              haptic();
-              stripSuffixScene();
-            }}
-          >
-            <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
-          </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        <View style={[styles.suffixRow, { marginTop: 6 }]}>
+          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SHOT:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
+            {['A', 'B', 'C', 'D'].map((s) => (
+              <TouchableOpacity
+                key={`sh_${s}`}
+                style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
+                onPress={() => {
+                  haptic();
+                  addSuffixToShot(s);
+                }}
+              >
+                <Text style={[styles.chipText, { color: theme.accent }]}>SH+{s}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+              onPress={() => {
+                haptic();
+                setForm({ shot: form.shot.replace(/[^0-9]/g, '') || '1' });
+              }}
+            >
+              <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       </View>
 
@@ -477,35 +497,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
     paddingVertical: 0,
   },
+  suffixContainer: {
+    marginTop: 10,
+    gap: 5,
+  },
   suffixRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingHorizontal: 2,
+    gap: 4,
   },
   suffixLbl: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 9,
+    fontWeight: '800',
     letterSpacing: 0.8,
+    width: 44,
   },
   chipsWrap: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 4,
+    alignItems: 'center',
+    paddingRight: 6,
   },
   chip: {
-    minHeight: 36,
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 9,
+    minHeight: 29,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 7,
     borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chipText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10.5,
+    fontWeight: '700',
   },
   chipClearText: {
-    fontSize: 11,
+    fontSize: 10.5,
+    fontWeight: '600',
   },
   envRow: {
     flexDirection: 'row',

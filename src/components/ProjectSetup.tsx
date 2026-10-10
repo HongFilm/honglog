@@ -20,12 +20,19 @@ export const ProjectSetup: React.FC = () => {
   const [lut, setLut] = useState(meta.lut);
   const [projectFps, setProjectFps] = useState(meta.projectFps);
 
-  const [camerasText, setCamerasText] = useState(meta.cameras.join(', '));
-  const [cardsText, setCardsText] = useState(meta.cards.join(', '));
-  const [lensesText, setLensesText] = useState(meta.lenses.join(', '));
-  const [shuttersText, setShuttersText] = useState(meta.shutters.join(', '));
-  const [filtersText, setFiltersText] = useState(meta.filters.join(', '));
-  const [isosText, setIsosText] = useState(meta.isos.join(', '));
+  const [cameras, setCameras] = useState<string[]>(meta.cameras || []);
+  const [cards, setCards] = useState<string[]>(meta.cards || []);
+  const [lenses, setLenses] = useState<string[]>(meta.lenses || []);
+  const [shutters, setShutters] = useState<string[]>(meta.shutters || []);
+  const [filters, setFilters] = useState<string[]>(meta.filters || []);
+  const [isos, setIsos] = useState<string[]>(meta.isos || []);
+
+  const [addModal, setAddModal] = useState<{
+    category: 'cameras' | 'cards' | 'lenses' | 'shutters' | 'filters' | 'isos';
+    title: string;
+    placeholder: string;
+  } | null>(null);
+  const [addText, setAddText] = useState('');
 
   const [newProjectName, setNewProjectName] = useState('');
   const [renamingProj, setRenamingProj] = useState<{ id: string; name: string } | null>(null);
@@ -44,14 +51,34 @@ export const ProjectSetup: React.FC = () => {
     setAspectRatio(meta.aspectRatio);
     setLut(meta.lut);
     setProjectFps(meta.projectFps);
-    setCamerasText(meta.cameras.join(', '));
-    setCardsText(meta.cards.join(', '));
-    setLensesText(meta.lenses.join(', '));
-    setShuttersText(meta.shutters.join(', '));
-    setFiltersText(meta.filters.join(', '));
-    setIsosText(meta.isos.join(', '));
+    setCameras(meta.cameras || []);
+    setCards(meta.cards || []);
+    setLenses(meta.lenses || []);
+    setShutters(meta.shutters || []);
+    setFilters(meta.filters || []);
+    setIsos(meta.isos || []);
   }, [activeProjectId, meta]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const handleConfirmAddPreset = () => {
+    if (!addModal || !addText.trim()) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const val = addText.trim();
+    if (addModal.category === 'cameras') {
+      setCameras([...cameras, val]);
+    } else if (addModal.category === 'cards') {
+      setCards([...cards, val]);
+    } else if (addModal.category === 'lenses') {
+      setLenses([...lenses, val.replace(/mm/gi, '').trim()]);
+    } else if (addModal.category === 'shutters') {
+      setShutters([...shutters, val]);
+    } else if (addModal.category === 'filters') {
+      setFilters([...filters, val]);
+    } else if (addModal.category === 'isos') {
+      setIsos([...isos, val]);
+    }
+    setAddModal(null);
+  };
 
   const handleConfirmRename = async () => {
     if (!renamingProj || !renameText.trim()) return;
@@ -91,12 +118,12 @@ export const ProjectSetup: React.FC = () => {
       setAspectRatio(proj.meta.aspectRatio);
       setLut(proj.meta.lut);
       setProjectFps(proj.meta.projectFps);
-      setCamerasText(proj.meta.cameras.join(', '));
-      setCardsText(proj.meta.cards.join(', '));
-      setLensesText(proj.meta.lenses.join(', '));
-      setShuttersText(proj.meta.shutters.join(', '));
-      setFiltersText(proj.meta.filters.join(', '));
-      setIsosText(proj.meta.isos.join(', '));
+      setCameras(proj.meta.cameras || []);
+      setCards(proj.meta.cards || []);
+      setLenses(proj.meta.lenses || []);
+      setShutters(proj.meta.shutters || []);
+      setFilters(proj.meta.filters || []);
+      setIsos(proj.meta.isos || []);
     }
   };
 
@@ -111,7 +138,7 @@ export const ProjectSetup: React.FC = () => {
   const handleSave = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await updateMeta({
-      production,
+      production: production.trim() || 'Hong Films Production',
       prodNumber,
       director,
       dop,
@@ -121,12 +148,12 @@ export const ProjectSetup: React.FC = () => {
       aspectRatio,
       lut,
       projectFps,
-      cameras: camerasText.split(',').map((s) => s.trim()).filter(Boolean),
-      cards: cardsText.split(',').map((s) => s.trim()).filter(Boolean),
-      lenses: lensesText.split(',').map((s) => s.trim()).filter(Boolean),
-      shutters: shuttersText.split(',').map((s) => s.trim()).filter(Boolean),
-      filters: filtersText.split(',').map((s) => s.trim()).filter(Boolean),
-      isos: isosText.split(',').map((s) => s.trim()).filter(Boolean),
+      cameras,
+      cards,
+      lenses,
+      shutters,
+      filters,
+      isos,
     });
     Alert.alert('Tersimpan', 'Pengaturan produksi film berhasil diperbarui.');
   };
@@ -147,6 +174,65 @@ export const ProjectSetup: React.FC = () => {
           },
         },
       ]
+    );
+  };
+
+  const renderPresetGroup = (
+    title: string,
+    category: 'cameras' | 'cards' | 'lenses' | 'shutters' | 'filters' | 'isos',
+    items: string[],
+    onRemove: (idx: number) => void,
+    config: { placeholder: string; suffix?: string }
+  ) => {
+    return (
+      <View style={styles.presetGroup}>
+        <View style={styles.presetHeaderRow}>
+          <Text style={[styles.presetGroupLabel, { color: theme.textSecondary }]}>{title}</Text>
+          <TouchableOpacity
+            style={[styles.addPresetBtn, { borderColor: theme.accent, backgroundColor: theme.accentWash }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setAddText('');
+              setAddModal({
+                category,
+                title,
+                placeholder: config.placeholder,
+              });
+            }}
+          >
+            <Feather name="plus" size={12} color={theme.accent} />
+            <Text style={[styles.addPresetBtnText, { color: theme.accent }]}>Tambah</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.presetChipsWrap}>
+          {items.map((it, idx) => (
+            <View
+              key={`${it}_${idx}`}
+              style={[styles.presetChipBadge, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+            >
+              <Text style={[styles.presetChipBadgeText, { color: theme.textPrimary }]}>
+                {it}{config.suffix || ''}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  onRemove(idx);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={styles.chipRemoveIconBtn}
+              >
+                <Feather name="x" size={12} color={theme.danger} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          {items.length === 0 && (
+            <Text style={[styles.emptyChipHint, { color: theme.textFaint }]}>
+              Belum ada preset. Ketuk + Tambah untuk mengisi.
+            </Text>
+          )}
+        </View>
+      </View>
     );
   };
 
@@ -347,74 +433,15 @@ export const ProjectSetup: React.FC = () => {
         </View>
       </View>
 
-      <Text style={[styles.sectionHeader, { color: theme.accent }]}>PRESET DI SET (PISAHKAN KOMA)</Text>
+      <Text style={[styles.sectionHeader, { color: theme.accent }]}>PRESET DI SET (INTERAKTIF CHIP)</Text>
 
-      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>KAMERA DI SET</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={camerasText}
-            onChangeText={setCamerasText}
-            placeholder="A (FX6), B (FX3)"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>CARD / ROLL</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={cardsText}
-            onChangeText={setCardsText}
-            placeholder="A001, B001, C001"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET LENSA (MM)</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={lensesText}
-            onChangeText={setLensesText}
-            placeholder="18, 24, 35, 50, 75, 125"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET SHUTTER</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={shuttersText}
-            onChangeText={setShuttersText}
-            placeholder="180°, 1/48, 1/50, 1/100"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET ISO</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={isosText}
-            onChangeText={setIsosText}
-            placeholder="100, 200, 400, 800, 1600, 3200, 6400"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
-
-        <View style={styles.field}>
-          <Text style={[styles.label, { color: theme.textFaint }]}>PRESET FILTER / ND</Text>
-          <TextInput
-            style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-            value={filtersText}
-            onChangeText={setFiltersText}
-            placeholder="Clear, ND3, ND6, Diffusion 1/4"
-            placeholderTextColor={theme.textFaint}
-          />
-        </View>
+      <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, gap: 16 }]}>
+        {renderPresetGroup('KAMERA DI SET', 'cameras', cameras, (idx) => setCameras(cameras.filter((_, i) => i !== idx)), { placeholder: 'Cth: A (FX6)' })}
+        {renderPresetGroup('CARD / ROLL', 'cards', cards, (idx) => setCards(cards.filter((_, i) => i !== idx)), { placeholder: 'Cth: A001, B001' })}
+        {renderPresetGroup('PRESET LENSA (MM)', 'lenses', lenses, (idx) => setLenses(lenses.filter((_, i) => i !== idx)), { placeholder: 'Cth: 18, 24, 35', suffix: 'mm' })}
+        {renderPresetGroup('PRESET SHUTTER', 'shutters', shutters, (idx) => setShutters(shutters.filter((_, i) => i !== idx)), { placeholder: 'Cth: 180°, 1/50' })}
+        {renderPresetGroup('PRESET ISO', 'isos', isos, (idx) => setIsos(isos.filter((_, i) => i !== idx)), { placeholder: 'Cth: 800, 1600, 3200' })}
+        {renderPresetGroup('PRESET FILTER / ND', 'filters', filters, (idx) => setFilters(filters.filter((_, i) => i !== idx)), { placeholder: 'Cth: Clear, ND.3, ND.6' })}
       </View>
 
       <TouchableOpacity style={[styles.saveBtn, { backgroundColor: theme.accent }]} onPress={handleSave} activeOpacity={0.85}>
@@ -451,6 +478,40 @@ export const ProjectSetup: React.FC = () => {
                 onPress={handleConfirmRename}
               >
                 <Text style={styles.saveBtnText}>SIMPAN</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Preset Item Modal */}
+      <Modal visible={!!addModal} animationType="fade" transparent onRequestClose={() => setAddModal(null)}>
+        <View style={styles.renameModalOverlay}>
+          <View style={[styles.renameModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
+              TAMBAH {addModal?.title.toUpperCase()}
+            </Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>NAMA / NILAI PRESET BARU:</Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+              value={addText}
+              onChangeText={setAddText}
+              placeholder={addModal?.placeholder}
+              placeholderTextColor={theme.textFaint}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
+                onPress={() => setAddModal(null)}
+              >
+                <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
+                onPress={handleConfirmAddPreset}
+              >
+                <Text style={styles.saveBtnText}>TAMBAH</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -644,5 +705,59 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.8,
+  },
+  presetGroup: {
+    gap: 8,
+  },
+  presetHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  presetGroupLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  addPresetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  addPresetBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  presetChipsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  presetChipBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingLeft: 10,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  presetChipBadgeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  chipRemoveIconBtn: {
+    padding: 2,
+    borderRadius: 4,
+  },
+  emptyChipHint: {
+    fontSize: 11.5,
+    fontStyle: 'italic',
+    paddingVertical: 4,
   },
 });

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { Platform, Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TakeEntry, CameraTakeItem, ProductionMeta, Project, TakeStatus } from '../types';
 
@@ -230,7 +231,9 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
 
       let projects: Project[] = savedProjects ? JSON.parse(savedProjects) : [];
       let activeId = savedActiveId;
-      const isDark = savedTheme ? savedTheme === 'dark' : true;
+      const isDark = Platform.OS === 'ios'
+        ? (Appearance.getColorScheme() === 'dark')
+        : (savedTheme ? savedTheme === 'dark' : true);
 
       if (projects.length === 0) {
         const defaultProject: Project = {

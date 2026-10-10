@@ -11,6 +11,7 @@ import {
   Image,
   Animated,
   useColorScheme,
+  Appearance,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -31,11 +32,25 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState<Tab>('slate');
   const insets = useSafeAreaInsets();
 
+  const isDarkEffective = Platform.OS === 'ios'
+    ? (systemColorScheme ?? Appearance.getColorScheme()) === 'dark'
+    : isDarkMode;
+
   useEffect(() => {
     if (Platform.OS === 'ios') {
-      setDarkMode(systemColorScheme === 'dark');
+      const current = (systemColorScheme ?? Appearance.getColorScheme()) === 'dark';
+      setDarkMode(current);
     }
   }, [systemColorScheme]);
+
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      const sub = Appearance.addChangeListener(({ colorScheme }) => {
+        setDarkMode(colorScheme === 'dark');
+      });
+      return () => sub.remove();
+    }
+  }, []);
 
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
@@ -51,7 +66,7 @@ function MainApp() {
     export: 3,
   };
 
-  const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
+  const theme: ThemeColors = isDarkEffective ? THEME : LIGHT_THEME;
 
   useEffect(() => {
     hydrate();
@@ -116,7 +131,7 @@ function MainApp() {
 
   return (
     <View style={[styles.rootContainer, { backgroundColor: theme.bg }]}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
+      <StatusBar barStyle={isDarkEffective ? 'light-content' : 'dark-content'} backgroundColor={theme.bg} />
 
       {/* Top Header Bar - Docked to top safe area */}
       <View
