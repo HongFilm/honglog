@@ -165,11 +165,6 @@ function MainApp() {
               <Feather name={isDarkMode ? 'sun' : 'moon'} size={15} color={theme.textPrimary} />
             </TouchableOpacity>
           )}
-
-          <View style={[styles.statusPill, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-            <View style={[styles.statusDot, { backgroundColor: theme.good }]} />
-            <Text style={[styles.statusText, { color: theme.textSecondary }]}>OFFLINE</Text>
-          </View>
         </View>
       </View>
 

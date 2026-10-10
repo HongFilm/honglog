@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
@@ -30,9 +30,32 @@ export const SlateControl: React.FC = () => {
     return String(Math.max(1, num + delta));
   };
 
-  const handleSave = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await addTake();
+  const handleSave = () => {
+    haptic();
+    const statusLabel = form.takeStatus || 'HOLD';
+    const locLight = `${form.intExt || 'INT'} · ${form.dayNight || 'DAY'}`;
+    const clipInfo = form.clipName ? `Clip: ${form.clipName}` : '';
+    const details = [
+      `Status: ${statusLabel}`,
+      `Environment: ${locLight}`,
+      clipInfo,
+    ].filter(Boolean).join('\n');
+
+    Alert.alert(
+      'Simpan Take?',
+      `SLATE ${form.slate}  ·  SCENE ${form.scene}  ·  SHOT ${form.shot}  ·  TAKE ${form.take}\n\n${details}`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'SIMPAN',
+          style: 'default',
+          onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            await addTake();
+          },
+        },
+      ]
+    );
   };
 
   const dayTakes = takes.filter((t) => t.day === selectedDay);

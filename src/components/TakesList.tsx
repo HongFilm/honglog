@@ -410,21 +410,30 @@ export const TakesList: React.FC = () => {
 
       {/* Filter Row */}
       <View style={styles.filterRow}>
-        <TextInput
-          style={[styles.searchInput, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-          placeholder="Cari scene / shot / clip / card / catatan..."
-          placeholderTextColor={theme.textFaint}
-          value={search}
-          onChangeText={setSearch}
-        />
+        <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <Feather name="search" size={14} color={theme.textFaint} style={{ marginRight: 6 }} />
+          <TextInput
+            style={[styles.searchInput, { color: theme.textPrimary }]}
+            placeholder="Cari scene, shot, clip, roll, catatan..."
+            placeholderTextColor={theme.textFaint}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Feather name="x" size={14} color={theme.textFaint} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         <TouchableOpacity
           style={[
             styles.filterBtn,
             {
               backgroundColor: filterGood
                 ? isDarkMode
-                  ? 'rgba(74, 222, 128, 0.1)'
-                  : 'rgba(34, 197, 94, 0.1)'
+                  ? 'rgba(74, 222, 128, 0.12)'
+                  : 'rgba(34, 197, 94, 0.12)'
                 : theme.surfaceRaised,
               borderColor: filterGood ? theme.good : theme.border,
             },
@@ -969,27 +978,30 @@ export const TakesList: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  statsBar: { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  statsBar: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   statBox: {
     flex: 1,
+    minHeight: 68,
     borderRadius: 14,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statNum: { fontSize: 20, fontWeight: '800', fontFamily: THEME.fontMono },
-  statLbl: { fontSize: 9, fontWeight: '700', marginTop: 2, letterSpacing: 0.5 },
-  dayChips: { flexDirection: 'row', gap: 8, paddingVertical: 8, marginBottom: 4 },
+  statNum: { fontSize: 22, fontWeight: '800', fontFamily: THEME.fontMono, lineHeight: 26 },
+  statLbl: { fontSize: 8.5, fontWeight: '800', marginTop: 4, letterSpacing: 0.8, textAlign: 'center' },
+  dayChips: { flexDirection: 'row', gap: 8, paddingVertical: 4, marginBottom: 8, alignItems: 'center' },
   dayChip: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    borderRadius: 12,
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 10,
     borderWidth: 1.5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
-  dayChipText: { fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5 },
+  dayChipText: { fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
   dayChipCountBadge: {
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1000,21 +1012,28 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontFamily: THEME.fontMono,
   },
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  searchInput: {
+  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 12, alignItems: 'center' },
+  searchBox: {
     flex: 1,
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    minHeight: 44,
-    fontSize: 12.5,
-  },
-  filterBtn: {
-    paddingHorizontal: 12,
-    minWidth: 44,
     height: 44,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    flex: 1,
+    height: 44,
+    fontSize: 12.5,
+    fontWeight: '600',
+    paddingVertical: 0,
+  },
+  filterBtn: {
+    paddingHorizontal: 14,
+    height: 44,
+    borderWidth: 1,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

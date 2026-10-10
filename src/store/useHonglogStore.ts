@@ -282,6 +282,7 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
       activeProjectId: newProject.id,
       meta: newProject.meta,
       takes: [],
+      selectedDay: 1,
       form: createInitialForm(newProject.meta, []),
     });
 
@@ -297,10 +298,15 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     const proj = get().projects.find((p) => p.id === id);
     if (!proj) return;
 
+    const projectDay = proj.takes.length > 0
+      ? Math.max(...proj.takes.map((t) => t.day || 1))
+      : 1;
+
     set({
       activeProjectId: id,
       meta: proj.meta,
       takes: proj.takes,
+      selectedDay: projectDay,
       form: createInitialForm(proj.meta, proj.takes),
     });
 
