@@ -10,6 +10,7 @@ import {
   Platform,
   Image,
   Animated,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -25,9 +26,16 @@ import { THEME, LIGHT_THEME, ThemeColors } from './src/types';
 type Tab = 'slate' | 'takes' | 'setup' | 'export';
 
 function MainApp() {
-  const { hydrate, isHydrated, meta, takes, isDarkMode, toggleTheme } = useHonglogStore();
+  const systemColorScheme = useColorScheme();
+  const { hydrate, isHydrated, meta, takes, isDarkMode, toggleTheme, setDarkMode } = useHonglogStore();
   const [activeTab, setActiveTab] = useState<Tab>('slate');
   const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      setDarkMode(systemColorScheme === 'dark');
+    }
+  }, [systemColorScheme]);
 
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
@@ -132,14 +140,16 @@ function MainApp() {
         </View>
 
         <View style={styles.headerRight}>
-          {/* Minimalist Theme Toggle Button */}
-          <TouchableOpacity
-            style={[styles.themeToggle, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
-            onPress={handleToggleTheme}
-            activeOpacity={0.7}
-          >
-            <Feather name={isDarkMode ? 'sun' : 'moon'} size={15} color={theme.textPrimary} />
-          </TouchableOpacity>
+          {/* Theme Toggle Button - Android Only (iOS follows system appearance) */}
+          {Platform.OS === 'android' && (
+            <TouchableOpacity
+              style={[styles.themeToggle, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+              onPress={handleToggleTheme}
+              activeOpacity={0.7}
+            >
+              <Feather name={isDarkMode ? 'sun' : 'moon'} size={15} color={theme.textPrimary} />
+            </TouchableOpacity>
+          )}
 
           <View style={[styles.statusPill, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
             <View style={[styles.statusDot, { backgroundColor: theme.good }]} />

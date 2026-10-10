@@ -190,19 +190,23 @@ export const QuickPresets: React.FC = () => {
         </ScrollView>
       </View>
 
-      {/* Lens (Independent per camera in Multi-Cam) */}
+      {/* Lens (Independent per camera in Multi-Cam, supports multiple lenses) */}
       <View style={styles.section}>
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.headerLbl, { color: theme.textFaint }]}>
             LENS (MM) {isMultiCam ? `(UNTUK ${currentTarget})` : ''}
           </Text>
           <Text style={[styles.clipHintBadge, { color: theme.accent }]}>
-            SET: {currentTargetLens}mm
+            SET: {currentTargetLens ? currentTargetLens.split(',').map((l) => l.trim().endsWith('mm') ? l.trim() : `${l.trim()}mm`).join(', ') : '-'}
           </Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {meta.lenses.map((lens) => {
-            const isSelected = currentTargetLens === lens;
+            const currentLensList = (currentTargetLens || '')
+              .split(/,\s*|\/\s*|\+\s*/)
+              .map((l) => l.replace(/mm/gi, '').trim())
+              .filter(Boolean);
+            const isSelected = currentLensList.includes(lens);
             return (
               <TouchableOpacity
                 key={lens}
@@ -211,7 +215,22 @@ export const QuickPresets: React.FC = () => {
                   { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
                   isSelected && { backgroundColor: theme.accentWash, borderColor: theme.accent },
                 ]}
-                onPress={() => handleParamSelect('lens', lens)}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  let updatedList: string[];
+                  if (isSelected) {
+                    updatedList = currentLensList.filter((l) => l !== lens);
+                    if (updatedList.length === 0) updatedList = [lens];
+                  } else {
+                    updatedList = [...currentLensList, lens];
+                  }
+                  const newLensStr = updatedList.join(', ');
+                  if (isMultiCam) {
+                    setCameraParam(currentTarget, 'lens', newLensStr);
+                  } else {
+                    setForm({ lens: newLensStr });
+                  }
+                }}
               >
                 <Text
                   style={[
@@ -220,6 +239,7 @@ export const QuickPresets: React.FC = () => {
                     isSelected && { color: theme.accent, fontWeight: '700' },
                   ]}
                 >
+                  {isSelected && <Feather name="check" size={13} color={theme.accent} />}
                   {lens}mm
                 </Text>
               </TouchableOpacity>

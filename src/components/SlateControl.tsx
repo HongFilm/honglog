@@ -112,13 +112,13 @@ export const SlateControl: React.FC = () => {
       <View style={styles.grid}>
         {(
           [
-            { label: 'SLATE', value: String(form.slate), onMinus: () => incrementSlate(-1), onPlus: () => incrementSlate(1), onChange: (t: string) => setForm({ slate: parseInt(t) || 1 }), numeric: true, accent: false },
-            { label: 'SCENE', value: form.scene, onMinus: () => setForm({ scene: stepAlphaNum(form.scene, -1) }), onPlus: () => setForm({ scene: stepAlphaNum(form.scene, 1) }), onChange: (t: string) => setForm({ scene: t }), numeric: false, accent: false },
-            { label: 'SHOT', value: form.shot, onMinus: () => setForm({ shot: stepAlphaNum(form.shot, -1) }), onPlus: () => setForm({ shot: stepAlphaNum(form.shot, 1) }), onChange: (t: string) => setForm({ shot: t }), numeric: false, accent: false },
-            { label: 'TAKE', value: String(form.take), onMinus: () => incrementTake(-1), onPlus: () => incrementTake(1), onChange: (t: string) => setForm({ take: parseInt(t) || 1 }), numeric: true, accent: true },
+            { label: 'SLATE', value: String(form.slate), onMinus: () => incrementSlate(-1), onPlus: () => incrementSlate(1), onChange: (t: string) => setForm({ slate: parseInt(t) || 1 }), numeric: true, accent: false, flex: 0.9 },
+            { label: 'SCENE', value: form.scene, onMinus: () => setForm({ scene: stepAlphaNum(form.scene, -1) }), onPlus: () => setForm({ scene: stepAlphaNum(form.scene, 1) }), onChange: (t: string) => setForm({ scene: t }), numeric: false, accent: false, flex: 1.35 },
+            { label: 'SHOT', value: form.shot, onMinus: () => setForm({ shot: stepAlphaNum(form.shot, -1) }), onPlus: () => setForm({ shot: stepAlphaNum(form.shot, 1) }), onChange: (t: string) => setForm({ shot: t }), numeric: false, accent: false, flex: 1.35 },
+            { label: 'TAKE', value: String(form.take), onMinus: () => incrementTake(-1), onPlus: () => incrementTake(1), onChange: (t: string) => setForm({ take: parseInt(t) || 1 }), numeric: true, accent: true, flex: 0.9 },
           ] as const
         ).map((c) => (
-          <View style={styles.col} key={c.label}>
+          <View style={[styles.col, { flex: c.flex }]} key={c.label}>
             <Text style={[styles.label, { color: theme.textSecondary }]}>{c.label}</Text>
             <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
               <TouchableOpacity
@@ -128,14 +128,21 @@ export const SlateControl: React.FC = () => {
                   c.onMinus();
                 }}
               >
-                <Feather name="minus" size={17} color={theme.accent} />
+                <Feather name="minus" size={14} color={theme.accent} />
               </TouchableOpacity>
               <TextInput
-                style={[styles.valInput, { color: c.accent ? theme.accent : theme.textPrimary }]}
+                style={[
+                  styles.valInput,
+                  { color: c.accent ? theme.accent : theme.textPrimary },
+                  c.value.length >= 3 && { fontSize: 13 },
+                ]}
                 keyboardType={c.numeric ? 'numeric' : 'default'}
                 autoCapitalize="characters"
                 value={c.value}
                 onChangeText={c.onChange}
+                multiline={false}
+                numberOfLines={1}
+                scrollEnabled={false}
               />
               <TouchableOpacity
                 style={[styles.stepBtn, { backgroundColor: theme.surface }]}
@@ -144,7 +151,7 @@ export const SlateControl: React.FC = () => {
                   c.onPlus();
                 }}
               >
-                <Feather name="plus" size={17} color={theme.accent} />
+                <Feather name="plus" size={14} color={theme.accent} />
               </TouchableOpacity>
             </View>
           </View>
@@ -432,11 +439,9 @@ const styles = StyleSheet.create({
   },
   grid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
-  col: {
-    flex: 1,
-  },
+  col: {},
   label: {
     fontFamily: THEME.fontMono,
     fontSize: 10,
@@ -453,7 +458,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   stepBtn: {
-    width: 36,
+    width: 25,
     height: 46,
     justifyContent: 'center',
     alignItems: 'center',
@@ -466,10 +471,11 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 46,
     textAlign: 'center',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     fontFamily: THEME.fontMono,
-    padding: 0,
+    paddingHorizontal: 2,
+    paddingVertical: 0,
   },
   suffixRow: {
     flexDirection: 'row',

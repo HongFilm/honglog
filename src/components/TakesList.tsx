@@ -33,7 +33,23 @@ export const TakesList: React.FC = () => {
     options: string[];
     currentValue: string;
     onSelect: (val: string) => void;
+    multi?: boolean;
   } | null>(null);
+
+  const [multiSelected, setMultiSelected] = useState<string[]>([]);
+
+  const formatLenses = (lensStr?: string) => {
+    if (!lensStr || lensStr === '-') return '-';
+    return lensStr
+      .split(/,\s*|\/\s*|\+\s*/)
+      .map((l) => {
+        const clean = l.trim();
+        if (!clean) return '';
+        return clean.toLowerCase().endsWith('mm') ? clean : `${clean}mm`;
+      })
+      .filter(Boolean)
+      .join(', ');
+  };
 
   const standardTstops = ['1.4', '1.8', '2.0', '2.8', '4.0', '5.6', '8.0', '11', '16', '22'];
   const standardFps = ['23.976', '24', '25', '29.97', '48', '50', '59.94', '60', '100', '120'];
@@ -105,11 +121,20 @@ export const TakesList: React.FC = () => {
     value: string,
     options: string[],
     onSelect: (val: string) => void,
-    config?: { suffix?: string; prefix?: string; placeholder?: string; flex?: number }
+    config?: { suffix?: string; prefix?: string; placeholder?: string; flex?: number; multi?: boolean }
   ) => {
     const prefix = config?.prefix || '';
     const suffix = config?.suffix || '';
-    const displayVal = value ? `${prefix}${value}${suffix}` : (config?.placeholder || 'Pilih...');
+    let displayVal: string;
+    if (config?.multi && value) {
+      displayVal = value
+        .split(/,\s*|\/\s*|\+\s*/)
+        .map((v) => `${prefix}${v.trim()}${suffix}`)
+        .join(', ');
+    } else {
+      displayVal = value ? `${prefix}${value}${suffix}` : (config?.placeholder || 'Pilih...');
+    }
+
     return (
       <View style={[styles.modalField, config?.flex !== undefined ? { flex: config.flex } : null]}>
         <Text style={[styles.subLbl, { color: theme.textFaint }]}>{label}</Text>
@@ -120,11 +145,19 @@ export const TakesList: React.FC = () => {
           ]}
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            if (config?.multi) {
+              const currentArray = value
+                .split(/,\s*|\/\s*|\+\s*/)
+                .map((s) => s.replace(/mm/gi, '').trim())
+                .filter(Boolean);
+              setMultiSelected(currentArray);
+            }
             setPicker({
               title: label,
               options,
               currentValue: value,
               onSelect,
+              multi: config?.multi,
             });
           }}
           activeOpacity={0.7}
@@ -219,7 +252,7 @@ export const TakesList: React.FC = () => {
                   {c.camera}:
                 </Text>
                 <Text style={[styles.multiCamRollClip, { color: theme.textSecondary }]}>
-                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Lens <Text style={{ color: theme.accent, fontWeight: '700' }}>{c.lens ? `${c.lens}mm` : '-'}</Text> · FPS <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.fps || item.fps || '24'}</Text> · Clip <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.clipName}</Text>
+                  Roll <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.card}</Text> · Lens <Text style={{ color: theme.accent, fontWeight: '700' }}>{formatLenses(c.lens)}</Text> · FPS <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.fps || item.fps || '24'}</Text> · Clip <Text style={{ color: theme.textPrimary, fontWeight: '700' }}>{c.clipName}</Text>
                 </Text>
               </View>
             ))}
@@ -239,7 +272,7 @@ export const TakesList: React.FC = () => {
             </Text>
             <Text style={[styles.specItem, { color: theme.textPrimary }]}>
               <Text style={[styles.specKey, { color: theme.textFaint }]}>LENS </Text>
-              {item.lens ? `${item.lens}mm` : '-'}
+              {formatLenses(item.lens)}
             </Text>
             <Text style={[styles.specItem, { color: theme.textPrimary }]}>
               <Text style={[styles.specKey, { color: theme.textFaint }]}>T-STOP </Text>
@@ -627,7 +660,7 @@ export const TakesList: React.FC = () => {
                               updatedCams[idx] = { ...updatedCams[idx], lens: val };
                               setEditing({ ...editing, cameras: updatedCams });
                             },
-                            { suffix: 'mm' }
+                            { suffix: 'mm', multi: true }
                           )}
                           {renderDropdownField(
                             'T-STOP',
@@ -729,7 +762,7 @@ export const TakesList: React.FC = () => {
                         editing.lens,
                         lensOptions,
                         (val) => setEditing({ ...editing, lens: val }),
-                        { suffix: 'mm' }
+                        { suffix: 'mm', multi: true }
                       )}
                       {renderDropdownField(
                         'T-STOP',
@@ -858,7 +891,7 @@ export const TakesList: React.FC = () => {
                 >
                   <View style={styles.pickerHeader}>
                     <Text style={[styles.pickerTitle, { color: theme.accent }]}>
-                      PILIH {picker.title.toUpperCase()}
+                      PILIH {picker.title.toUpperCase()} {picker.multi ? '(BISA MULTIPLE)' : ''}
                     </Text>
                     <TouchableOpacity
                       onPress={() => setPicker(null)}
@@ -868,9 +901,11 @@ export const TakesList: React.FC = () => {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView style={{ maxHeight: 330 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {picker.options.map((opt) => {
-                      const isSelected = picker.currentValue === opt;
+                      const isSelected = picker.multi
+                        ? multiSelected.includes(opt)
+                        : picker.currentValue === opt;
                       return (
                         <TouchableOpacity
                           key={opt}
@@ -881,8 +916,16 @@ export const TakesList: React.FC = () => {
                           ]}
                           onPress={() => {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            picker.onSelect(opt);
-                            setPicker(null);
+                            if (picker.multi) {
+                              if (multiSelected.includes(opt)) {
+                                setMultiSelected(multiSelected.filter((o) => o !== opt));
+                              } else {
+                                setMultiSelected([...multiSelected, opt]);
+                              }
+                            } else {
+                              picker.onSelect(opt);
+                              setPicker(null);
+                            }
                           }}
                         >
                           <Text
@@ -899,6 +942,21 @@ export const TakesList: React.FC = () => {
                       );
                     })}
                   </ScrollView>
+
+                  {picker.multi && (
+                    <TouchableOpacity
+                      style={[styles.modalSaveBtn, { backgroundColor: theme.accent, marginTop: 12, height: 44 }]}
+                      onPress={() => {
+                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                        picker.onSelect(multiSelected.join(', '));
+                        setPicker(null);
+                      }}
+                    >
+                      <Text style={{ color: '#000', fontWeight: '800', fontSize: 13 }}>
+                        SIMPAN ({multiSelected.length} PILIHAN)
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             )}

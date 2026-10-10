@@ -22,6 +22,29 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
 
   const rowsHtml = sortedTakes
     .map((t) => {
+      const takeDate = t.timestamp ? new Date(t.timestamp) : new Date();
+      const timeStr = takeDate.toLocaleTimeString('id-ID', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      const dateShortStr = takeDate.toLocaleDateString('id-ID', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      const formatLensVal = (l?: string) => {
+        if (!l || l === '-') return '-';
+        return l
+          .split(/,\s*|\/\s*|\+\s*/)
+          .map((val) => {
+            const clean = val.trim();
+            return clean.toLowerCase().endsWith('mm') ? clean : `${clean}mm`;
+          })
+          .join(', ');
+      };
+
       const isMulti = t.cameras && t.cameras.length > 1;
       const camText = isMulti
         ? t.cameras!.map((c) => c.camera.split(' ')[0]).join('<br/>')
@@ -33,10 +56,8 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
         ? t.cameras!.map((c) => c.clipName || '-').join('<br/>')
         : t.clipName || '-';
       const lensText = isMulti
-        ? t.cameras!.map((c) => (c.lens ? c.lens + 'mm' : '-')).join('<br/>')
-        : t.lens
-        ? t.lens + 'mm'
-        : '-';
+        ? t.cameras!.map((c) => formatLensVal(c.lens)).join('<br/>')
+        : formatLensVal(t.lens);
       const fstopText = isMulti
         ? t.cameras!.map((c) => (c.tstop ? 'T' + c.tstop : '-')).join('<br/>')
         : t.tstop
@@ -65,6 +86,7 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
       <td style="text-align:center;font-weight:bold;">${t.scene}</td>
       <td style="text-align:center;">${t.shot}</td>
       <td style="text-align:center;font-weight:bold;">${t.take}</td>
+      <td style="text-align:center;font-size:9px;white-space:nowrap;font-family:monospace;">${timeStr}<br/><span style="color:#6b7280;font-size:8px;">${dateShortStr}</span></td>
       <td style="text-align:center;font-weight:700;">${t.intExt || '-'}</td>
       <td style="text-align:center;font-weight:700;">${t.dayNight || '-'}</td>
       <td style="text-align:center;color:${statusColor};font-weight:bold;">${statusLabel}</td>
@@ -207,27 +229,28 @@ export async function generateAndShareCameraReport(meta: ProductionMeta, takes: 
   <table>
     <thead>
       <tr>
-        <th style="width:4%;">Slate</th>
-        <th style="width:5%;">Scene</th>
-        <th style="width:4%;">Shot</th>
-        <th style="width:4%;">Take</th>
-        <th style="width:4%;">Loc</th>
-        <th style="width:5%;">Light</th>
-        <th style="width:6%;">Status</th>
-        <th style="width:12%;">Clip Name</th>
-        <th style="width:5%;">Cam</th>
-        <th style="width:6%;">Roll</th>
-        <th style="width:6%;">Lens</th>
-        <th style="width:6%;">Shutter</th>
-        <th style="width:5%;">ISO</th>
-        <th style="width:5%;">T-Stop</th>
-        <th style="width:6%;">Filter</th>
+        <th style="width:3.5%;">Slate</th>
+        <th style="width:4.5%;">Scene</th>
+        <th style="width:3.5%;">Shot</th>
+        <th style="width:3.5%;">Take</th>
+        <th style="width:8%;">Time / Date</th>
+        <th style="width:3.5%;">Loc</th>
+        <th style="width:4.5%;">Light</th>
+        <th style="width:5.5%;">Status</th>
+        <th style="width:11%;">Clip Name</th>
+        <th style="width:4.5%;">Cam</th>
+        <th style="width:5.5%;">Roll</th>
+        <th style="width:6.5%;">Lens</th>
+        <th style="width:5.5%;">Shutter</th>
+        <th style="width:4.5%;">ISO</th>
+        <th style="width:4.5%;">T-Stop</th>
+        <th style="width:5.5%;">Filter</th>
         <th style="width:4%;">FPS</th>
-        <th style="width:13%;">Remarks / Notes</th>
+        <th style="width:12.5%;">Remarks / Notes</th>
       </tr>
     </thead>
     <tbody>
-      ${rowsHtml || '<tr><td colspan="17" style="text-align:center;padding:20px;color:#9ca3af;">Belum ada take yang tercatat</td></tr>'}
+      ${rowsHtml || '<tr><td colspan="18" style="text-align:center;padding:20px;color:#9ca3af;">Belum ada take yang tercatat</td></tr>'}
     </tbody>
   </table>
 

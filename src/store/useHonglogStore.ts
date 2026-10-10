@@ -120,6 +120,7 @@ interface HonglogStore {
   isHydrated: boolean;
   selectedDay: number;
   isDarkMode: boolean;
+  setDarkMode: (isDark: boolean) => void;
   toggleTheme: () => Promise<void>;
 
   // Project Actions
@@ -726,6 +727,10 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
 
   setSelectedDay: (day) => {
     set({ selectedDay: day });
+  },
+
+  setDarkMode: (isDark: boolean) => {
+    set({ isDarkMode: isDark });
   },
 
   toggleTheme: async () => {

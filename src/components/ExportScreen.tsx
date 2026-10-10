@@ -33,7 +33,7 @@ export const ExportScreen: React.FC = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setLoadingCsv(true);
 
-      const headers = 'Slate,Scene,Shot,Take,Location,Lighting,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Notes,Timestamp,Date\n';
+      const headers = 'Slate,Scene,Shot,Take,Input Time,Date,Location,Lighting,Status,Clip Name,Camera,Roll/Card,Lens,T-Stop,Shutter,ISO,Filter,FPS,Notes,Timestamp ISO\n';
       const sortedTakes = [...takes].sort((a, b) => {
         if (a.slate !== b.slate) return a.slate - b.slate;
         return a.take - b.take;
@@ -42,10 +42,23 @@ export const ExportScreen: React.FC = () => {
       const rows = sortedTakes
         .flatMap((t) => {
           const statusStr = t.status || (t.isGood ? 'PRINT' : 'HOLD');
-          const timeIso = new Date(t.timestamp).toISOString();
-          const dateLocal = new Date(t.timestamp).toLocaleDateString('id-ID');
+          const takeDate = t.timestamp ? new Date(t.timestamp) : new Date();
+          const timeFormatted = takeDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const dateFormatted = takeDate.toLocaleDateString('id-ID');
+          const timeIso = takeDate.toISOString();
           const locStr = t.intExt || 'INT';
           const lightStr = t.dayNight || 'DAY';
+
+          const formatLensCsv = (l?: string) => {
+            if (!l) return '';
+            return l
+              .split(/,\s*|\/\s*|\+\s*/)
+              .map((val) => {
+                const clean = val.trim();
+                return clean.toLowerCase().endsWith('mm') ? clean : `${clean}mm`;
+              })
+              .join('; ');
+          };
 
           if (t.cameras && t.cameras.length > 1) {
             return t.cameras.map((c) =>
@@ -54,13 +67,15 @@ export const ExportScreen: React.FC = () => {
                 `"${t.scene}"`,
                 `"${t.shot}"`,
                 t.take,
+                `"${timeFormatted}"`,
+                `"${dateFormatted}"`,
                 `"${locStr}"`,
                 `"${lightStr}"`,
                 `"${statusStr}"`,
                 `"${c.clipName || ''}"`,
                 `"${c.camera || ''}"`,
                 `"${c.card || ''}"`,
-                `"${c.lens ? c.lens + 'mm' : ''}"`,
+                `"${formatLensCsv(c.lens)}"`,
                 `"${c.tstop ? 'T' + c.tstop : ''}"`,
                 `"${c.shutter || t.shutter || ''}"`,
                 `"${c.iso || t.iso || ''}"`,
@@ -68,7 +83,6 @@ export const ExportScreen: React.FC = () => {
                 `"${c.fps || t.fps || ''}"`,
                 `"${(t.notes || '').replace(/"/g, '""')}"`,
                 `"${timeIso}"`,
-                `"${dateLocal}"`,
               ].join(',')
             );
           }
@@ -79,13 +93,15 @@ export const ExportScreen: React.FC = () => {
               `"${t.scene}"`,
               `"${t.shot}"`,
               t.take,
+              `"${timeFormatted}"`,
+              `"${dateFormatted}"`,
               `"${locStr}"`,
               `"${lightStr}"`,
               `"${statusStr}"`,
               `"${t.clipName || ''}"`,
               `"${t.camera || ''}"`,
               `"${t.card || ''}"`,
-              `"${t.lens ? t.lens + 'mm' : ''}"`,
+              `"${formatLensCsv(t.lens)}"`,
               `"${t.tstop ? 'T' + t.tstop : ''}"`,
               `"${t.shutter || ''}"`,
               `"${t.iso || ''}"`,
@@ -93,7 +109,6 @@ export const ExportScreen: React.FC = () => {
               `"${t.fps || ''}"`,
               `"${(t.notes || '').replace(/"/g, '""')}"`,
               `"${timeIso}"`,
-              `"${dateLocal}"`,
             ].join(','),
           ];
         })
