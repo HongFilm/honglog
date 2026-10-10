@@ -64,25 +64,16 @@ function MainApp() {
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
   const splashScale = useRef(new Animated.Value(1)).current;
-  const logoFade = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.92)).current;
+  const logoScale = useRef(new Animated.Value(0.95)).current;
 
-  // Cinematic Splash Entrance
+  // Cinematic Splash Entrance - Icon starts immediately together with background
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(logoFade, {
-        toValue: 1,
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(logoScale, {
-        toValue: 1,
-        duration: 750,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]).start();
+    Animated.spring(logoScale, {
+      toValue: 1,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
   const tabs: { key: Tab; label: string; icon: 'film' | 'list' | 'sliders' | 'share-2' }[] = [
@@ -117,27 +108,27 @@ function MainApp() {
     hydrate();
   }, []);
 
-  // Cinematic Splash Exit
+  // Cinematic Splash Exit - Smooth dissolve transition
   useEffect(() => {
     if (isHydrated) {
       const timer = setTimeout(() => {
         Animated.parallel([
           Animated.timing(splashOpacity, {
             toValue: 0,
-            duration: 650,
-            easing: Easing.inOut(Easing.quad),
+            duration: 500,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
             useNativeDriver: true,
           }),
           Animated.timing(splashScale, {
-            toValue: 1.06,
-            duration: 650,
-            easing: Easing.out(Easing.quad),
+            toValue: 1.05,
+            duration: 500,
+            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
             useNativeDriver: true,
           }),
         ]).start(() => {
           setShowSplash(false);
         });
-      }, 1300);
+      }, 900);
       return () => clearTimeout(timer);
     }
   }, [isHydrated]);
@@ -330,30 +321,30 @@ function MainApp() {
             style={[
               styles.splashCenter,
               {
-                opacity: logoFade,
                 transform: [{ scale: logoScale }],
               },
             ]}
           >
-            <Image
-              source={require('./assets/logo.jpeg')}
-              style={styles.splashLogo}
-              resizeMode="contain"
-            />
+            <View style={styles.splashLogoWrap}>
+              <Image
+                source={require('./assets/logo.jpeg')}
+                style={styles.splashLogo}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.splashTitle}>HONGLOG</Text>
             <Text style={styles.splashSub}>DIGITAL CAMERA REPORT & SLATE</Text>
           </Animated.View>
-          <Animated.View
+          <View
             style={[
               styles.splashFooter,
               {
                 paddingBottom: Math.max(insets.bottom, 24),
-                opacity: logoFade,
               },
             ]}
           >
             <Text style={styles.splashBy}>HONG FILMS</Text>
-          </Animated.View>
+          </View>
         </Animated.View>
       )}
     </View>
@@ -513,11 +504,26 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  splashLogoWrap: {
+    width: 104,
+    height: 104,
+    borderRadius: 24,
+    backgroundColor: '#121215',
+    borderWidth: 1.5,
+    borderColor: 'rgba(229, 57, 53, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: THEME.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 12,
+  },
   splashLogo: {
     width: 96,
     height: 96,
     borderRadius: 20,
-    marginBottom: 8,
   },
   splashTitle: {
     fontSize: 22,
