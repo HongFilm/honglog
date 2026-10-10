@@ -60,6 +60,76 @@ export const SlateControl: React.FC = () => {
 
   const dayTakes = takes.filter((t) => t.day === selectedDay);
 
+  const renderStepper = (
+    label: string,
+    value: string,
+    onMinus: () => void,
+    onPlus: () => void,
+    onChange: (text: string) => void,
+    numeric: boolean,
+    accent: boolean
+  ) => {
+    const valLen = value.length;
+    const dynamicFontSize = valLen >= 4 ? 13 : valLen === 3 ? 15 : 18;
+
+    return (
+      <View style={styles.stepperCol}>
+        <Text style={[styles.stepperLabel, { color: accent ? theme.accent : theme.textSecondary }]}>
+          {label}
+        </Text>
+        <View
+          style={[
+            styles.stepperBox,
+            {
+              backgroundColor: theme.surfaceRaised,
+              borderColor: accent ? theme.accent : theme.border,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            style={[styles.stepperBtn, { backgroundColor: theme.surface }]}
+            onPress={() => {
+              haptic();
+              onMinus();
+            }}
+            activeOpacity={0.7}
+          >
+            <Feather name="minus" size={15} color={theme.accent} />
+          </TouchableOpacity>
+
+          <TextInput
+            style={[
+              styles.stepperInput,
+              {
+                color: accent ? theme.accent : theme.textPrimary,
+                fontSize: dynamicFontSize,
+              },
+            ]}
+            keyboardType={numeric ? 'numeric' : 'default'}
+            autoCapitalize="characters"
+            value={value}
+            onChangeText={onChange}
+            multiline={false}
+            numberOfLines={1}
+            scrollEnabled={false}
+            maxFontSizeMultiplier={1.1}
+          />
+
+          <TouchableOpacity
+            style={[styles.stepperBtn, { backgroundColor: theme.surface }]}
+            onPress={() => {
+              haptic();
+              onPlus();
+            }}
+            activeOpacity={0.7}
+          >
+            <Feather name="plus" size={15} color={theme.accent} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.surface, borderColor: theme.border }]}>
       {/* DAY Selector + mini stats */}
@@ -131,120 +201,104 @@ export const SlateControl: React.FC = () => {
         </View>
       </View>
 
-      {/* 4-Column Stepper: Slate, Scene, Shot, Take */}
-      <View style={styles.grid}>
-        {(
-          [
-            { label: 'SLATE', value: String(form.slate), onMinus: () => incrementSlate(-1), onPlus: () => incrementSlate(1), onChange: (t: string) => setForm({ slate: parseInt(t) || 1 }), numeric: true, accent: false },
-            { label: 'SCENE', value: form.scene, onMinus: () => setForm({ scene: stepAlphaNum(form.scene, -1) }), onPlus: () => setForm({ scene: stepAlphaNum(form.scene, 1) }), onChange: (t: string) => setForm({ scene: t }), numeric: false, accent: false },
-            { label: 'SHOT', value: form.shot, onMinus: () => setForm({ shot: stepAlphaNum(form.shot, -1) }), onPlus: () => setForm({ shot: stepAlphaNum(form.shot, 1) }), onChange: (t: string) => setForm({ shot: t }), numeric: false, accent: false },
-            { label: 'TAKE', value: String(form.take), onMinus: () => incrementTake(-1), onPlus: () => incrementTake(1), onChange: (t: string) => setForm({ take: parseInt(t) || 1 }), numeric: true, accent: true },
-          ] as const
-        ).map((c) => {
-          const valLen = c.value.length;
-          const dynamicFontSize = valLen >= 4 ? 11 : valLen === 3 ? 12.5 : valLen === 2 ? 14.5 : 16;
-          return (
-            <View style={styles.col} key={c.label}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>{c.label}</Text>
-              <View style={[styles.stepper, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-                <TouchableOpacity
-                  style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-                  onPress={() => {
-                    haptic();
-                    c.onMinus();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="minus" size={13} color={theme.accent} />
-                </TouchableOpacity>
-                <TextInput
-                  style={[
-                    styles.valInput,
-                    {
-                      color: c.accent ? theme.accent : theme.textPrimary,
-                      fontSize: dynamicFontSize,
-                    },
-                  ]}
-                  keyboardType={c.numeric ? 'numeric' : 'default'}
-                  autoCapitalize="characters"
-                  value={c.value}
-                  onChangeText={c.onChange}
-                  multiline={false}
-                  numberOfLines={1}
-                  scrollEnabled={false}
-                  maxFontSizeMultiplier={1.1}
-                />
-                <TouchableOpacity
-                  style={[styles.stepBtn, { backgroundColor: theme.surface }]}
-                  onPress={() => {
-                    haptic();
-                    c.onPlus();
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Feather name="plus" size={13} color={theme.accent} />
-                </TouchableOpacity>
-              </View>
-            </View>
-          );
-        })}
+      {/* 2x2 Grid Stepper: Baris 1 (SLATE & SCENE) */}
+      <View style={styles.gridRow2x2}>
+        {renderStepper(
+          'SLATE',
+          String(form.slate),
+          () => incrementSlate(-1),
+          () => incrementSlate(1),
+          (t) => setForm({ slate: parseInt(t) || 1 }),
+          true,
+          false
+        )}
+        {renderStepper(
+          'SCENE',
+          form.scene,
+          () => setForm({ scene: stepAlphaNum(form.scene, -1) }),
+          () => setForm({ scene: stepAlphaNum(form.scene, 1) }),
+          (t) => setForm({ scene: t }),
+          false,
+          false
+        )}
       </View>
 
-      {/* Suffix Shortcuts */}
-      <View style={styles.suffixContainer}>
-        <View style={styles.suffixRow}>
-          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SCENE:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
-            {['A', 'B', 'C', 'D'].map((s) => (
-              <TouchableOpacity
-                key={`sc_${s}`}
-                style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
-                onPress={() => {
-                  haptic();
-                  addSuffixToScene(s);
-                }}
-              >
-                <Text style={[styles.chipText, { color: theme.accent }]}>SC+{s}</Text>
-              </TouchableOpacity>
-            ))}
+      {/* Suffix Shortcuts untuk SCENE */}
+      <View style={styles.suffixBar}>
+        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SCENE:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
+          {['A', 'B', 'C', 'D'].map((s) => (
             <TouchableOpacity
-              style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+              key={`sc_${s}`}
+              style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
               onPress={() => {
                 haptic();
-                setForm({ scene: form.scene.replace(/[^0-9]/g, '') || '1' });
+                addSuffixToScene(s);
               }}
             >
-              <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
+              <Text style={[styles.chipText, { color: theme.accent }]}>SC+{s}</Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
+          ))}
+          <TouchableOpacity
+            style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+            onPress={() => {
+              haptic();
+              setForm({ scene: form.scene.replace(/[^0-9]/g, '') || '1' });
+            }}
+          >
+            <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
-        <View style={[styles.suffixRow, { marginTop: 6 }]}>
-          <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SHOT:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
-            {['A', 'B', 'C', 'D'].map((s) => (
-              <TouchableOpacity
-                key={`sh_${s}`}
-                style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
-                onPress={() => {
-                  haptic();
-                  addSuffixToShot(s);
-                }}
-              >
-                <Text style={[styles.chipText, { color: theme.accent }]}>SH+{s}</Text>
-              </TouchableOpacity>
-            ))}
+      {/* 2x2 Grid Stepper: Baris 2 (SHOT & TAKE) */}
+      <View style={[styles.gridRow2x2, { marginTop: 12 }]}>
+        {renderStepper(
+          'SHOT',
+          form.shot,
+          () => setForm({ shot: stepAlphaNum(form.shot, -1) }),
+          () => setForm({ shot: stepAlphaNum(form.shot, 1) }),
+          (t) => setForm({ shot: t }),
+          false,
+          false
+        )}
+        {renderStepper(
+          'TAKE',
+          String(form.take),
+          () => incrementTake(-1),
+          () => incrementTake(1),
+          (t) => setForm({ take: parseInt(t) || 1 }),
+          true,
+          true
+        )}
+      </View>
+
+      {/* Suffix Shortcuts untuk SHOT */}
+      <View style={styles.suffixBar}>
+        <Text style={[styles.suffixLbl, { color: theme.textFaint }]}>SHOT:</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsWrap}>
+          {['A', 'B', 'C', 'D'].map((s) => (
             <TouchableOpacity
-              style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+              key={`sh_${s}`}
+              style={[styles.chip, { backgroundColor: theme.surfaceRaised, borderColor: theme.borderLight }]}
               onPress={() => {
                 haptic();
-                setForm({ shot: form.shot.replace(/[^0-9]/g, '') || '1' });
+                addSuffixToShot(s);
               }}
             >
-              <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
+              <Text style={[styles.chipText, { color: theme.accent }]}>SH+{s}</Text>
             </TouchableOpacity>
-          </ScrollView>
-        </View>
+          ))}
+          <TouchableOpacity
+            style={[styles.chip, { borderColor: theme.borderLight, backgroundColor: 'transparent' }]}
+            onPress={() => {
+              haptic();
+              setForm({ shot: form.shot.replace(/[^0-9]/g, '') || '1' });
+            }}
+          >
+            <Text style={[styles.chipClearText, { color: theme.textSecondary }]}>Reset</Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Environment: INT/EXT and DAY/NIGHT Row */}
@@ -489,83 +543,76 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.5,
   },
-  grid: {
+  gridRow2x2: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 12,
   },
-  col: {
+  stepperCol: {
     flex: 1,
   },
-  label: {
+  stepperLabel: {
     fontFamily: THEME.fontMono,
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     marginBottom: 6,
     textAlign: 'center',
   },
-  stepper: {
-    borderRadius: 10,
-    borderWidth: 1,
+  stepperBox: {
+    borderRadius: 12,
+    borderWidth: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  stepBtn: {
-    width: 22,
-    height: 46,
+  stepperBtn: {
+    width: 38,
+    height: 48,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  stepBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  valInput: {
+  stepperInput: {
     flex: 1,
-    height: 46,
+    height: 48,
     textAlign: 'center',
     fontWeight: '800',
     fontFamily: THEME.fontMono,
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
-  suffixContainer: {
-    marginTop: 10,
-    gap: 5,
-  },
-  suffixRow: {
+  suffixBar: {
+    marginTop: 6,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   suffixLbl: {
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.8,
-    width: 44,
+    width: 50,
   },
   chipsWrap: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 5,
     alignItems: 'center',
     paddingRight: 6,
   },
   chip: {
-    minHeight: 29,
+    minHeight: 30,
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 7,
+    paddingHorizontal: 9,
+    borderRadius: 8,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   chipText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '700',
   },
   chipClearText: {
-    fontSize: 10.5,
+    fontSize: 11,
     fontWeight: '600',
   },
   envRow: {
