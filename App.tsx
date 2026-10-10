@@ -38,6 +38,7 @@ function MainApp() {
 
   const pagerRef = useRef<ScrollView>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const isProgrammaticScroll = useRef(false);
 
   const isDarkEffective = Platform.OS === 'ios'
     ? (systemColorScheme ?? Appearance.getColorScheme()) === 'dark'
@@ -111,12 +112,17 @@ function MainApp() {
 
   const handleTabChange = (nextTab: Tab) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    isProgrammaticScroll.current = true;
     setActiveTab(nextTab);
     const targetX = tabOrder[nextTab] * windowWidth;
     pagerRef.current?.scrollTo({ x: targetX, animated: true });
+    setTimeout(() => {
+      isProgrammaticScroll.current = false;
+    }, 400);
   };
 
   const handleMomentumScrollEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (isProgrammaticScroll.current) return;
     const offsetX = e.nativeEvent.contentOffset.x;
     const pageIndex = Math.min(Math.max(Math.round(offsetX / windowWidth), 0), 3);
     const targetTab = tabs[pageIndex].key;
@@ -182,7 +188,6 @@ function MainApp() {
           showsHorizontalScrollIndicator={false}
           bounces={false}
           scrollEventThrottle={16}
-          contentOffset={{ x: tabOrder[activeTab] * windowWidth, y: 0 }}
           onScroll={Animated.event(
             [{ nativeEvent: { contentOffset: { x: scrollX } } }],
             { useNativeDriver: false }
@@ -229,6 +234,7 @@ function MainApp() {
         >
           {/* Animated Liquid Pill that glides across tabs */}
           <Animated.View
+            pointerEvents="none"
             style={[
               styles.slidingPill,
               {

@@ -421,38 +421,6 @@ export const ProjectSetup: React.FC = () => {
         <Text style={[styles.dangerBtnText, { color: theme.danger }]}>Hapus Seluruh Take ({takes.length})</Text>
       </TouchableOpacity>
 
-      {/* Rename Project Modal */}
-      <Modal visible={!!renamingProj} animationType="fade" transparent onRequestClose={() => setRenamingProj(null)}>
-        <View style={styles.renameModalOverlay}>
-          <View style={[styles.renameModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={[styles.renameModalTitle, { color: theme.textPrimary }]}>GANTI NAMA PROJECT</Text>
-            <Text style={[styles.label, { color: theme.textFaint }]}>NAMA FILM / PROJECT:</Text>
-            <TextInput
-              style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-              value={renameText}
-              onChangeText={setRenameText}
-              placeholder="Nama project baru..."
-              placeholderTextColor={theme.textFaint}
-              autoFocus
-            />
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-              <TouchableOpacity
-                style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
-                onPress={() => setRenamingProj(null)}
-              >
-                <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Batal</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
-                onPress={handleConfirmRename}
-              >
-                <Text style={styles.saveBtnText}>SIMPAN</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       {/* Add Preset Item Modal */}
       <Modal visible={!!addModal} animationType="fade" transparent onRequestClose={() => setAddModal(null)}>
         <View style={styles.renameModalOverlay}>
@@ -506,93 +474,132 @@ export const ProjectSetup: React.FC = () => {
               </View>
               <TouchableOpacity
                 style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
-                onPress={() => setShowProjectModal(false)}
+                onPress={() => {
+                  setRenamingProj(null);
+                  setShowProjectModal(false);
+                }}
               >
                 <Feather name="x" size={17} color={theme.textPrimary} />
               </TouchableOpacity>
             </View>
 
-            {/* Quick Create Project Row */}
-            <View style={[styles.createProjectBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
-              <TextInput
-                style={[styles.input, { flex: 1, backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
-                value={newProjectName}
-                onChangeText={setNewProjectName}
-                placeholder="Nama film / project baru..."
-                placeholderTextColor={theme.textFaint}
-              />
-              <TouchableOpacity
-                style={[styles.createBtn, { backgroundColor: theme.accent }]}
-                onPress={handleCreateProject}
-              >
-                <Feather name="plus" size={13} color="#FFF" style={{ marginRight: 4 }} />
-                <Text style={styles.createBtnText}>BUAT</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Scrollable Project List */}
-            <ScrollView style={styles.projectModalList} showsVerticalScrollIndicator={false}>
-              {projects.map((item) => {
-                const isActive = item.id === activeProjectId;
-                return (
+            {/* Inline Rename View if renaming a project */}
+            {renamingProj ? (
+              <View style={[styles.inlineRenameCard, { backgroundColor: theme.surfaceRaised, borderColor: theme.accent }]}>
+                <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
+                  GANTI NAMA PROJECT
+                </Text>
+                <Text style={[styles.label, { color: theme.textFaint }]}>
+                  NAMA BARU UNTUK "{renamingProj.name}":
+                </Text>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                  value={renameText}
+                  onChangeText={setRenameText}
+                  placeholder="Ketik nama baru project..."
+                  placeholderTextColor={theme.textFaint}
+                  autoFocus
+                />
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                   <TouchableOpacity
-                    key={item.id}
-                    style={[
-                      styles.projectCard,
-                      {
-                        backgroundColor: isActive ? theme.accentWash : theme.surfaceRaised,
-                        borderColor: isActive ? theme.accent : theme.border,
-                        marginBottom: 8,
-                      },
-                    ]}
-                    onPress={() => handleSelectProject(item.id)}
-                    activeOpacity={0.7}
+                    style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
+                    onPress={() => setRenamingProj(null)}
                   >
-                    <View style={styles.projectInfo}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Text
-                          style={[styles.projectName, { color: isActive ? theme.accent : theme.textPrimary }]}
-                          numberOfLines={1}
-                        >
-                          {item.name}
-                        </Text>
-                        {isActive && (
-                          <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
-                            <Text style={styles.activeBadgeText}>AKTIF</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text style={[styles.projectMeta, { color: theme.textSecondary }]}>
-                        {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
-                      </Text>
-                    </View>
-
-                    <View style={styles.projectActionRow}>
-                      <TouchableOpacity
-                        style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setRenamingProj({ id: item.id, name: item.name });
-                          setRenameText(item.name);
-                        }}
-                      >
-                        <Feather name="edit-2" size={12} color={theme.textPrimary} />
-                        <Text style={[styles.renameProjectText, { color: theme.textPrimary }]}>Ganti Nama</Text>
-                      </TouchableOpacity>
-
-                      {!isActive && (
-                        <TouchableOpacity
-                          onPress={() => handleDeleteProject(item.id, item.name)}
-                          style={styles.deleteProjectBtn}
-                        >
-                          <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
-                        </TouchableOpacity>
-                      )}
-                    </View>
+                    <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Batal</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
+                    onPress={handleConfirmRename}
+                  >
+                    <Text style={styles.saveBtnText}>SIMPAN NAMA</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <>
+                {/* Quick Create Project Row */}
+                <View style={[styles.createProjectBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+                  <TextInput
+                    style={[styles.input, { flex: 1, backgroundColor: theme.surface, borderColor: theme.border, color: theme.textPrimary }]}
+                    value={newProjectName}
+                    onChangeText={setNewProjectName}
+                    placeholder="Nama film / project baru..."
+                    placeholderTextColor={theme.textFaint}
+                  />
+                  <TouchableOpacity
+                    style={[styles.createBtn, { backgroundColor: theme.accent }]}
+                    onPress={handleCreateProject}
+                  >
+                    <Feather name="plus" size={13} color="#FFF" style={{ marginRight: 4 }} />
+                    <Text style={styles.createBtnText}>BUAT</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Scrollable Project List */}
+                <ScrollView style={styles.projectModalList} showsVerticalScrollIndicator={false}>
+                  {projects.map((item) => {
+                    const isActive = item.id === activeProjectId;
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        style={[
+                          styles.projectCard,
+                          {
+                            backgroundColor: isActive ? theme.accentWash : theme.surfaceRaised,
+                            borderColor: isActive ? theme.accent : theme.border,
+                            marginBottom: 8,
+                          },
+                        ]}
+                        onPress={() => handleSelectProject(item.id)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={styles.projectInfo}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text
+                              style={[styles.projectName, { color: isActive ? theme.accent : theme.textPrimary }]}
+                              numberOfLines={1}
+                            >
+                              {item.name}
+                            </Text>
+                            {isActive && (
+                              <View style={[styles.activeBadge, { backgroundColor: theme.accent }]}>
+                                <Text style={styles.activeBadgeText}>AKTIF</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={[styles.projectMeta, { color: theme.textSecondary }]}>
+                            {item.takes.length} takes &bull; {new Date(item.createdAt).toLocaleDateString()}
+                          </Text>
+                        </View>
+
+                        <View style={styles.projectActionRow}>
+                          <TouchableOpacity
+                            style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setRenamingProj({ id: item.id, name: item.name });
+                              setRenameText(item.name);
+                            }}
+                          >
+                            <Feather name="edit-2" size={12} color={theme.textPrimary} />
+                            <Text style={[styles.renameProjectText, { color: theme.textPrimary }]}>Ganti Nama</Text>
+                          </TouchableOpacity>
+
+                          {!isActive && (
+                            <TouchableOpacity
+                              onPress={() => handleDeleteProject(item.id, item.name)}
+                              style={styles.deleteProjectBtn}
+                            >
+                              <Text style={[styles.deleteProjectText, { color: theme.danger }]}>Hapus</Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </>
+            )}
           </View>
         </View>
       </Modal>
@@ -779,6 +786,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 20,
     gap: 10,
+  },
+  inlineRenameCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+    marginVertical: 4,
   },
   renameModalTitle: {
     fontSize: 15,
