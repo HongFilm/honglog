@@ -31,6 +31,7 @@ export const ProjectSetup: React.FC = () => {
     category: 'cameras' | 'cards' | 'lenses' | 'shutters' | 'filters' | 'isos';
     title: string;
     placeholder: string;
+    editIndex?: number;
   } | null>(null);
   const [addText, setAddText] = useState('');
 
@@ -67,18 +68,57 @@ export const ProjectSetup: React.FC = () => {
     if (!addModal || !addText.trim()) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const val = addText.trim();
+    const isEdit = addModal.editIndex !== undefined;
+
     if (addModal.category === 'cameras') {
-      setCameras([...cameras, val]);
+      if (isEdit) {
+        const next = [...cameras];
+        next[addModal.editIndex!] = val;
+        setCameras(next);
+      } else {
+        setCameras([...cameras, val]);
+      }
     } else if (addModal.category === 'cards') {
-      setCards([...cards, val]);
+      if (isEdit) {
+        const next = [...cards];
+        next[addModal.editIndex!] = val;
+        setCards(next);
+      } else {
+        setCards([...cards, val]);
+      }
     } else if (addModal.category === 'lenses') {
-      setLenses([...lenses, val.replace(/mm/gi, '').trim()]);
+      const cleanLens = val.replace(/mm/gi, '').trim();
+      if (isEdit) {
+        const next = [...lenses];
+        next[addModal.editIndex!] = cleanLens;
+        setLenses(next);
+      } else {
+        setLenses([...lenses, cleanLens]);
+      }
     } else if (addModal.category === 'shutters') {
-      setShutters([...shutters, val]);
+      if (isEdit) {
+        const next = [...shutters];
+        next[addModal.editIndex!] = val;
+        setShutters(next);
+      } else {
+        setShutters([...shutters, val]);
+      }
     } else if (addModal.category === 'filters') {
-      setFilters([...filters, val]);
+      if (isEdit) {
+        const next = [...filters];
+        next[addModal.editIndex!] = val;
+        setFilters(next);
+      } else {
+        setFilters([...filters, val]);
+      }
     } else if (addModal.category === 'isos') {
-      setIsos([...isos, val]);
+      if (isEdit) {
+        const next = [...isos];
+        next[addModal.editIndex!] = val;
+        setIsos(next);
+      } else {
+        setIsos([...isos, val]);
+      }
     }
     setAddModal(null);
   };
@@ -215,10 +255,22 @@ export const ProjectSetup: React.FC = () => {
 
         <View style={styles.presetChipsWrap}>
           {items.map((it, idx) => (
-            <View
+            <TouchableOpacity
               key={`${it}_${idx}`}
               style={[styles.presetChipBadge, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setAddText(it);
+                setAddModal({
+                  category,
+                  title,
+                  placeholder: config.placeholder,
+                  editIndex: idx,
+                });
+              }}
+              activeOpacity={0.75}
             >
+              <Feather name="edit-2" size={10} color={theme.textFaint} />
               <Text style={[styles.presetChipBadgeText, { color: theme.textPrimary }]}>
                 {it}{config.suffix || ''}
               </Text>
@@ -232,7 +284,7 @@ export const ProjectSetup: React.FC = () => {
               >
                 <Feather name="x" size={12} color={theme.danger} />
               </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           ))}
           {items.length === 0 && (
             <Text style={[styles.emptyChipHint, { color: theme.textFaint }]}>
@@ -436,9 +488,12 @@ export const ProjectSetup: React.FC = () => {
 
           <View style={[styles.renameModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
-              TAMBAH {addModal?.title.toUpperCase()}
+              {addModal?.editIndex !== undefined ? 'UBAH / GANTI NAMA ' : 'TAMBAH '}
+              {addModal?.title.toUpperCase()}
             </Text>
-            <Text style={[styles.label, { color: theme.textFaint }]}>NAMA / NILAI PRESET BARU:</Text>
+            <Text style={[styles.label, { color: theme.textFaint }]}>
+              {addModal?.editIndex !== undefined ? 'NAMA / NILAI BARU:' : 'NAMA / NILAI PRESET BARU:'}
+            </Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
               value={addText}
@@ -458,7 +513,9 @@ export const ProjectSetup: React.FC = () => {
                 style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
                 onPress={handleConfirmAddPreset}
               >
-                <Text style={styles.saveBtnText}>TAMBAH</Text>
+                <Text style={styles.saveBtnText}>
+                  {addModal?.editIndex !== undefined ? 'SIMPAN' : 'TAMBAH'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
