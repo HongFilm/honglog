@@ -189,8 +189,12 @@ function MainApp() {
           <View>
             <Text style={[styles.appTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
             <Text style={[styles.prodSubtitle, { color: theme.accent }]} numberOfLines={1}>
-              {(!meta.production || meta.production === 'Hong Films Project' || meta.production === 'Hong Films Production' || meta.production === 'Hongfilms Industry')
-                ? 'Honglog Industry'
+              {(!meta.production ||
+                meta.production === 'Hong Films Project' ||
+                meta.production === 'Hong Films Production' ||
+                meta.production === 'Honglog Industry' ||
+                meta.production === 'Hongfilms Industry')
+                ? 'Hongfilms Industry'
                 : meta.production}
             </Text>
           </View>
@@ -345,7 +349,7 @@ function MainApp() {
               />
             </View>
             <Text style={styles.splashTitle}>HONGLOG</Text>
-            <Text style={styles.splashSub}>HONGLOG INDUSTRY</Text>
+            <Text style={styles.splashSub}>HONGFILMS INDUSTRY</Text>
             <Text style={styles.splashTagline}>DIGITAL CAMERA REPORT & SLATE</Text>
           </Animated.View>
         </Animated.View>

@@ -581,10 +581,10 @@ export const ProjectSetup: React.FC = () => {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Project Picker & Manager Modal (Dropdown Bottom Sheet) */}
+      {/* Project Picker & Manager Modal (Centered Modal) */}
       <Modal
         visible={showProjectModal}
-        animationType="slide"
+        animationType="fade"
         transparent
         onRequestClose={() => {
           setRenamingProj(null);
@@ -750,7 +750,12 @@ export const ProjectSetup: React.FC = () => {
                 </TouchableOpacity>
 
                 {/* Scrollable Project List */}
-                <ScrollView style={styles.projectModalList} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                  style={styles.projectModalList}
+                  contentContainerStyle={{ paddingBottom: 6 }}
+                  showsVerticalScrollIndicator={false}
+                  bounces={false}
+                >
                   {projects.map((item) => {
                     const isActive = item.id === activeProjectId;
                     return (
@@ -918,7 +923,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 48,
+    paddingBottom: 20,
     gap: 14,
   },
   sectionHeader: {
@@ -1209,19 +1214,23 @@ const styles = StyleSheet.create({
   projectModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
   },
   projectModalSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 36,
-    maxHeight: '85%',
+    width: '100%',
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    maxHeight: '80%',
     gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
   },
   projectModalHeader: {
     flexDirection: 'row',
@@ -1255,7 +1264,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   projectModalList: {
-    maxHeight: 380,
+    maxHeight: 250,
   },
   importTriggerBtn: {
     flexDirection: 'row',

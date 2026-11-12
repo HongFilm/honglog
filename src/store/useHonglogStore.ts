@@ -8,7 +8,7 @@ const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
 const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
 
 export const defaultMeta: ProductionMeta = {
-  production: 'Honglog Industry',
+  production: 'Hongfilms Industry',
   prodNumber: '01',
   director: '',
   dop: '',
@@ -260,13 +260,13 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
             !p.meta.production ||
             p.meta.production === 'Hong Films Project' ||
             p.meta.production === 'Hong Films Production' ||
-            p.meta.production === 'Hongfilms Industry'
+            p.meta.production === 'Honglog Industry'
           ) {
             return {
               ...p,
               meta: {
                 ...p.meta,
-                production: 'Honglog Industry',
+                production: 'Hongfilms Industry',
               },
             };
           }
