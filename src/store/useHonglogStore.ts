@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Platform, Appearance } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TakeEntry, CameraTakeItem, ProductionMeta, Project, TakeStatus } from '../types';
+import { parseProjectToken } from '../services/tokenSync';
 
 const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
 const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
@@ -130,6 +131,12 @@ interface HonglogStore {
   selectProject: (id: string) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   renameProject: (id: string, newName: string) => Promise<void>;
+  importProjectFromToken: (tokenStr: string) => Promise<{
+    success: boolean;
+    projectName?: string;
+    takesCount?: number;
+    error?: string;
+  }>;
 
   // Meta & Form
   updateMeta: (partial: Partial<ProductionMeta>) => Promise<void>;
@@ -372,6 +379,55 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
     });
 
     await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects));
+  },
+
+  importProjectFromToken: async (tokenStr: string) => {
+    const res = parseProjectToken(tokenStr);
+    if (!res.valid || !res.payload) {
+      return { success: false, error: res.error || 'Token tidak valid' };
+    }
+
+    const { project } = res.payload;
+    const importedName = (project.name || project.meta?.production || 'Proyek Impor').trim();
+    const importedMeta: ProductionMeta = {
+      ...defaultMeta,
+      ...(project.meta || {}),
+      production: importedName,
+    };
+    const importedTakes: TakeEntry[] = project.takes || [];
+
+    const newProject: Project = {
+      id: 'proj_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      name: importedName,
+      createdAt: Date.now(),
+      meta: importedMeta,
+      takes: importedTakes,
+    };
+
+    const updatedProjects = [...get().projects, newProject];
+    const projectDay = importedTakes.length > 0
+      ? Math.max(...importedTakes.map((t) => t.day || 1))
+      : 1;
+
+    set({
+      projects: updatedProjects,
+      activeProjectId: newProject.id,
+      meta: newProject.meta,
+      takes: importedTakes,
+      selectedDay: projectDay,
+      form: createInitialForm(newProject.meta, importedTakes),
+    });
+
+    await AsyncStorage.multiSet([
+      [STORAGE_KEY_PROJECTS, JSON.stringify(updatedProjects)],
+      [STORAGE_KEY_ACTIVE_PROJECT, newProject.id],
+    ]);
+
+    return {
+      success: true,
+      projectName: importedName,
+      takesCount: importedTakes.length,
+    };
   },
 
   updateMeta: async (partial) => {

@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, ScrollView, TouchableOpacity, Alert, Modal, KeyboardAvoidingView, Platform, Share } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
 import { useHonglogStore } from '../store/useHonglogStore';
 import { THEME, LIGHT_THEME, ThemeColors, Project } from '../types';
+import { generateProjectToken } from '../services/tokenSync';
 
 export const ProjectSetup: React.FC = () => {
-  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject, renameProject, isDarkMode } = useHonglogStore();
+  const { meta, updateMeta, clearAllTakes, takes, projects, activeProjectId, createProject, selectProject, deleteProject, renameProject, importProjectFromToken, isDarkMode } = useHonglogStore();
   const theme: ThemeColors = isDarkMode ? THEME : LIGHT_THEME;
 
   const [production, setProduction] = useState(meta.production);
@@ -39,6 +40,14 @@ export const ProjectSetup: React.FC = () => {
   const [newProjectName, setNewProjectName] = useState('');
   const [renamingProj, setRenamingProj] = useState<{ id: string; name: string } | null>(null);
   const [renameText, setRenameText] = useState('');
+
+  const [tokenModalData, setTokenModalData] = useState<{
+    projectName: string;
+    token: string;
+    isNew: boolean;
+  } | null>(null);
+  const [isImportMode, setIsImportMode] = useState(false);
+  const [importTokenText, setImportTokenText] = useState('');
 
   const activeProject = projects.find((p) => p.id === activeProjectId);
 
@@ -135,14 +144,64 @@ export const ProjectSetup: React.FC = () => {
   };
 
   const handleCreateProject = async () => {
-    if (!newProjectName.trim()) {
+    const trimmed = newProjectName.trim();
+    if (!trimmed) {
       Alert.alert('Error', 'Nama project tidak boleh kosong');
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    await createProject(newProjectName.trim());
+    const newId = await createProject(trimmed);
     setNewProjectName('');
     setShowProjectModal(false);
+
+    // Prompt token modal immediately on creation
+    const created = useHonglogStore.getState().projects.find((p) => p.id === newId);
+    if (created) {
+      const token = generateProjectToken(created);
+      setTokenModalData({
+        projectName: created.name,
+        token,
+        isNew: true,
+      });
+    }
+  };
+
+  const handleImportToken = async () => {
+    const raw = importTokenText.trim();
+    if (!raw) {
+      Alert.alert('Error', 'Silakan tempelkan kode token terlebih dahulu.');
+      return;
+    }
+    try {
+      const res = await importProjectFromToken(raw);
+      if (res.success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setImportTokenText('');
+        setIsImportMode(false);
+        setShowProjectModal(false);
+        Alert.alert(
+          'Project Berhasil Diimpor',
+          `Project "${res.projectName}" telah aktif dengan ${res.takesCount} takes tersimpan!`
+        );
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Gagal Impor', res.error || 'Token tidak valid.');
+      }
+    } catch (e: any) {
+      Alert.alert('Gagal Impor', e?.message || 'Terjadi kesalahan saat membaca token.');
+    }
+  };
+
+  const handleShareToken = async (token: string, projName: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      await Share.share({
+        message: token,
+        title: `Token Project Honglog: ${projName}`,
+      });
+    } catch (e) {
+      console.warn('Share token error', e);
+    }
   };
 
   const handleSelectProject = async (id: string) => {
@@ -598,6 +657,60 @@ export const ProjectSetup: React.FC = () => {
                   </TouchableOpacity>
                 </View>
               </View>
+            ) : isImportMode ? (
+              <View style={[styles.inlineRenameCard, { backgroundColor: theme.surfaceRaised, borderColor: theme.accent }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
+                    IMPOR VIA TOKEN OFFLINE
+                  </Text>
+                  <TouchableOpacity onPress={() => setIsImportMode(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Feather name="x" size={16} color={theme.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={[styles.label, { color: theme.textFaint }]}>
+                  TEMPEL KODE TOKEN PROJECT (HLTOK_...):
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.textPrimary,
+                      fontFamily: THEME.fontMono,
+                      fontSize: 11,
+                      minHeight: 80,
+                      textAlignVertical: 'top',
+                      paddingTop: 8,
+                    },
+                  ]}
+                  value={importTokenText}
+                  onChangeText={setImportTokenText}
+                  placeholder="Paste kode token HLTOK_... di sini"
+                  placeholderTextColor={theme.textFaint}
+                  multiline
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoFocus
+                />
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                  <TouchableOpacity
+                    style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
+                    onPress={() => {
+                      setIsImportMode(false);
+                      setImportTokenText('');
+                    }}
+                  >
+                    <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Batal</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.saveBtn, { flex: 1.5, marginTop: 0, backgroundColor: theme.accent }]}
+                    onPress={handleImportToken}
+                  >
+                    <Text style={styles.saveBtnText}>IMPOR SEKARANG</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             ) : (
               <>
                 {/* Quick Create Project Row */}
@@ -617,6 +730,24 @@ export const ProjectSetup: React.FC = () => {
                     <Text style={styles.createBtnText}>BUAT</Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Import via Token Trigger Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.importTriggerBtn,
+                    { backgroundColor: theme.surfaceRaised, borderColor: theme.border },
+                  ]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setIsImportMode(true);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Feather name="download" size={13} color={theme.accent} />
+                  <Text style={[styles.importTriggerBtnText, { color: theme.accent }]}>
+                    Impor Project via Token Offline
+                  </Text>
+                </TouchableOpacity>
 
                 {/* Scrollable Project List */}
                 <ScrollView style={styles.projectModalList} showsVerticalScrollIndicator={false}>
@@ -656,6 +787,24 @@ export const ProjectSetup: React.FC = () => {
                         </View>
 
                         <View style={styles.projectActionRow}>
+                          {/* Share / View Token Button */}
+                          <TouchableOpacity
+                            style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              const token = generateProjectToken(item);
+                              setShowProjectModal(false);
+                              setTokenModalData({
+                                projectName: item.name,
+                                token,
+                                isNew: false,
+                              });
+                            }}
+                          >
+                            <Feather name="share-2" size={12} color={theme.accent} />
+                            <Text style={[styles.renameProjectText, { color: theme.accent, fontWeight: '700' }]}>Token</Text>
+                          </TouchableOpacity>
+
                           <TouchableOpacity
                             style={[styles.renameProjectBtn, { borderColor: theme.border, backgroundColor: theme.surface }]}
                             onPress={() => {
@@ -683,6 +832,80 @@ export const ProjectSetup: React.FC = () => {
                 </ScrollView>
               </>
             )}
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Token Display / Share Modal */}
+      <Modal
+        visible={!!tokenModalData}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setTokenModalData(null)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.renameModalOverlay}
+        >
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setTokenModalData(null)}
+          />
+
+          <View style={[styles.tokenModalSheet, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={[styles.renameModalTitle, { color: theme.accent }]}>
+                  {tokenModalData?.isNew ? 'TOKEN PROJECT DIBUAT' : 'TOKEN PROJECT OFFLINE'}
+                </Text>
+                <Text style={[styles.label, { color: theme.textPrimary, fontSize: 13, fontWeight: '800' }]} numberOfLines={1}>
+                  {tokenModalData?.projectName}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.modalCloseBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+                onPress={() => setTokenModalData(null)}
+              >
+                <Feather name="x" size={16} color={theme.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={[styles.tokenModalDesc, { color: theme.textSecondary }]}>
+              Token offline ini memuat seluruh metadata project, kru, preset kamera, dan takes. Salin atau bagikan ke HP teman via AirDrop/chat untuk langsung memuat project ini tanpa internet.
+            </Text>
+
+            <View style={[styles.tokenBox, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}>
+              <Text
+                style={[styles.tokenBoxText, { color: theme.textPrimary }]}
+                numberOfLines={3}
+                ellipsizeMode="middle"
+                selectable
+              >
+                {tokenModalData?.token}
+              </Text>
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[styles.cancelBtn, { flex: 1, borderColor: theme.border }]}
+                onPress={() => setTokenModalData(null)}
+              >
+                <Text style={{ color: theme.textSecondary, fontWeight: '700', textAlign: 'center' }}>Tutup</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.saveBtn, { flex: 1.8, marginTop: 0, backgroundColor: theme.accent, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
+                onPress={() => {
+                  if (tokenModalData) {
+                    handleShareToken(tokenModalData.token, tokenModalData.projectName);
+                  }
+                }}
+              >
+                <Feather name="share-2" size={14} color="#000" />
+                <Text style={[styles.saveBtnText, { color: '#000', fontWeight: '800' }]}>BAGIKAN / SALIN</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -1033,5 +1256,48 @@ const styles = StyleSheet.create({
   },
   projectModalList: {
     maxHeight: 380,
+  },
+  importTriggerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  importTriggerBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  tokenModalSheet: {
+    width: '92%',
+    maxWidth: 440,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 20,
+  },
+  tokenModalDesc: {
+    fontSize: 11.5,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  tokenBox: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    marginTop: 4,
+  },
+  tokenBoxText: {
+    fontSize: 10.5,
+    fontFamily: THEME.fontMono,
+    lineHeight: 15,
   },
 });
