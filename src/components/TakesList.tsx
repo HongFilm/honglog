@@ -34,9 +34,12 @@ export const TakesList: React.FC = () => {
     currentValue: string;
     onSelect: (val: string) => void;
     multi?: boolean;
+    suffix?: string;
+    prefix?: string;
   } | null>(null);
 
   const [multiSelected, setMultiSelected] = useState<string[]>([]);
+  const [customPickerInput, setCustomPickerInput] = useState('');
 
   const formatLenses = (lensStr?: string) => {
     if (!lensStr || lensStr === '-') return '-';
@@ -53,7 +56,16 @@ export const TakesList: React.FC = () => {
 
   const standardTstops = ['1.4', '1.8', '2.0', '2.8', '4.0', '5.6', '8.0', '11', '16', '22'];
   const standardFps = ['23.976', '24', '25', '29.97', '48', '50', '59.94', '60', '100', '120'];
-  const lensOptions = meta.lenses.length > 0 ? meta.lenses : ['18', '24', '35', '50', '85', '100', '135'];
+  const defaultCommonLenses = [
+    '12', '13', '14', '16', '18', '21', '24', '28', '32', '35',
+    '40', '50', '65', '75', '85', '100', '105', '135', '150', '180', '200',
+  ];
+  const lensOptions = Array.from(
+    new Set([
+      ...meta.lenses.map((l) => l.replace(/mm/gi, '').trim()),
+      ...defaultCommonLenses,
+    ])
+  ).filter(Boolean);
   const shutterOptions = meta.shutters.length > 0 ? meta.shutters : ['180°', '90°', '45°', '1/48', '1/50', '1/100', '1/120'];
   const isoOptions = meta.isos.length > 0 ? meta.isos : ['100', '200', '400', '800', '1600', '3200', '6400', '12800'];
   const filterOptions = meta.filters.length > 0 ? meta.filters : ['Clear', 'ND.3', 'ND.6', 'ND.9', 'ND 1.2', 'Polarizer', 'Diffusion 1/4'];
@@ -129,10 +141,26 @@ export const TakesList: React.FC = () => {
     if (config?.multi && value) {
       displayVal = value
         .split(/,\s*|\/\s*|\+\s*/)
-        .map((v) => `${prefix}${v.trim()}${suffix}`)
+        .map((v) => {
+          const clean = v.trim();
+          if (!clean) return '';
+          if (suffix && clean.toLowerCase().endsWith(suffix.toLowerCase())) {
+            return `${prefix}${clean}`;
+          }
+          return `${prefix}${clean}${suffix}`;
+        })
+        .filter(Boolean)
         .join(', ');
     } else {
-      displayVal = value ? `${prefix}${value}${suffix}` : (config?.placeholder || 'Pilih...');
+      if (value) {
+        if (suffix && value.toLowerCase().endsWith(suffix.toLowerCase())) {
+          displayVal = `${prefix}${value}`;
+        } else {
+          displayVal = `${prefix}${value}${suffix}`;
+        }
+      } else {
+        displayVal = config?.placeholder || 'Pilih...';
+      }
     }
 
     return (
@@ -146,18 +174,30 @@ export const TakesList: React.FC = () => {
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             if (config?.multi) {
-              const currentArray = value
+              const currentArray = (value || '')
                 .split(/,\s*|\/\s*|\+\s*/)
                 .map((s) => s.replace(/mm/gi, '').trim())
                 .filter(Boolean);
               setMultiSelected(currentArray);
             }
+            const currentValues = (value || '')
+              .split(/,\s*|\/\s*|\+\s*/)
+              .map((s) => (config?.suffix ? s.replace(new RegExp(config.suffix, 'gi'), '') : s).trim())
+              .filter(Boolean);
+            const mergedOptions = Array.from(new Set([
+              ...currentValues,
+              ...options,
+            ])).filter(Boolean);
+
+            setCustomPickerInput('');
             setPicker({
               title: label,
-              options,
+              options: mergedOptions,
               currentValue: value,
               onSelect,
               multi: config?.multi,
+              suffix: config?.suffix,
+              prefix: config?.prefix,
             });
           }}
           activeOpacity={0.7}
@@ -192,6 +232,19 @@ export const TakesList: React.FC = () => {
         payload.iso = payload.cameras.map((c) => c.iso || '').join(' ');
         payload.filter = payload.cameras.map((c) => c.filter || '').join(' ');
         payload.fps = payload.cameras.map((c) => c.fps || '').join(' ');
+      } else if (payload.cameras && payload.cameras.length === 1) {
+        payload.cameras = [{
+          ...payload.cameras[0],
+          camera: payload.camera,
+          card: payload.card,
+          clipName: payload.clipName,
+          lens: payload.lens,
+          tstop: payload.tstop,
+          shutter: payload.shutter,
+          iso: payload.iso,
+          filter: payload.filter,
+          fps: payload.fps,
+        }];
       }
       await updateTake(editing.id, payload);
       setEditing(null);
@@ -772,21 +825,39 @@ export const TakesList: React.FC = () => {
                         'LENS',
                         editing.lens,
                         lensOptions,
-                        (val) => setEditing({ ...editing, lens: val }),
+                        (val) => {
+                          const updatedCams = editing.cameras && editing.cameras.length > 0 ? [...editing.cameras] : [];
+                          if (updatedCams.length > 0) {
+                            updatedCams[0] = { ...updatedCams[0], lens: val };
+                          }
+                          setEditing({ ...editing, lens: val, cameras: updatedCams });
+                        },
                         { suffix: 'mm', multi: true }
                       )}
                       {renderDropdownField(
                         'T-STOP',
                         editing.tstop,
                         standardTstops,
-                        (val) => setEditing({ ...editing, tstop: val }),
+                        (val) => {
+                          const updatedCams = editing.cameras && editing.cameras.length > 0 ? [...editing.cameras] : [];
+                          if (updatedCams.length > 0) {
+                            updatedCams[0] = { ...updatedCams[0], tstop: val };
+                          }
+                          setEditing({ ...editing, tstop: val, cameras: updatedCams });
+                        },
                         { prefix: 'T' }
                       )}
                       {renderDropdownField(
                         'SHUTTER',
                         editing.shutter,
                         shutterOptions,
-                        (val) => setEditing({ ...editing, shutter: val })
+                        (val) => {
+                          const updatedCams = editing.cameras && editing.cameras.length > 0 ? [...editing.cameras] : [];
+                          if (updatedCams.length > 0) {
+                            updatedCams[0] = { ...updatedCams[0], shutter: val };
+                          }
+                          setEditing({ ...editing, shutter: val, cameras: updatedCams });
+                        }
                       )}
                     </View>
 
@@ -892,7 +963,10 @@ export const TakesList: React.FC = () => {
 
             {/* Universal Dropdown Picker Overlay (Inside Edit Modal to bypass iOS nested Modal limitations) */}
             {!!picker && (
-              <View style={styles.pickerOverlay}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={styles.pickerOverlay}
+              >
                 <Pressable style={StyleSheet.absoluteFill} onPress={() => setPicker(null)} />
                 <View
                   style={[
@@ -901,75 +975,194 @@ export const TakesList: React.FC = () => {
                   ]}
                 >
                   <View style={styles.pickerHeader}>
-                    <Text style={[styles.pickerTitle, { color: theme.accent }]}>
-                      PILIH {picker.title.toUpperCase()} {picker.multi ? '(BISA MULTIPLE)' : ''}
-                    </Text>
+                    <View style={{ flex: 1, paddingRight: 8 }}>
+                      <Text style={[styles.pickerTitle, { color: theme.accent }]}>
+                        PILIH {picker.title.toUpperCase()} {picker.multi ? '(BISA MULTIPLE)' : ''}
+                      </Text>
+                      <Text style={[styles.pickerSubtitle, { color: theme.textSecondary }]}>
+                        {picker.multi ? 'Pilih satu/banyak lensa atau ketik manual' : 'Pilih opsi atau ketik manual'}
+                      </Text>
+                    </View>
                     <TouchableOpacity
                       onPress={() => setPicker(null)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={[styles.pickerCloseBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
                     >
-                      <Feather name="x" size={20} color={theme.textSecondary} />
+                      <Feather name="x" size={16} color={theme.textPrimary} />
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView style={{ maxHeight: 330 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                    {picker.options.map((opt) => {
-                      const isSelected = picker.multi
-                        ? multiSelected.includes(opt)
-                        : picker.currentValue === opt;
-                      return (
-                        <TouchableOpacity
-                          key={opt}
-                          style={[
-                            styles.pickerOption,
-                            { borderBottomColor: theme.borderLight },
-                            isSelected && { backgroundColor: theme.accentWash },
-                          ]}
-                          onPress={() => {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            if (picker.multi) {
-                              if (multiSelected.includes(opt)) {
-                                setMultiSelected(multiSelected.filter((o) => o !== opt));
-                              } else {
-                                setMultiSelected([...multiSelected, opt]);
-                              }
-                            } else {
-                              picker.onSelect(opt);
-                              setPicker(null);
-                            }
-                          }}
-                        >
-                          <Text
+                  {/* If multi-select (e.g. LENS), show selected chips with (x) delete button */}
+                  {picker.multi && (
+                    <View style={styles.pickerSelectedSection}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={[styles.pickerSectionLabel, { color: theme.textFaint }]}>
+                          LENSA TERPILIH ({multiSelected.length}):
+                        </Text>
+                        {multiSelected.length > 0 && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              setMultiSelected([]);
+                            }}
+                          >
+                            <Text style={{ fontSize: 11, color: theme.danger, fontWeight: '700' }}>
+                              Hapus Semua
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                      <View style={styles.pickerSelectedWrap}>
+                        {multiSelected.map((item) => (
+                          <View
+                            key={item}
                             style={[
-                              styles.pickerOptionText,
-                              { color: isSelected ? theme.accent : theme.textPrimary },
-                              isSelected && { fontWeight: '800' },
+                              styles.pickerActiveChip,
+                              { backgroundColor: theme.accentWash, borderColor: theme.accent },
                             ]}
                           >
-                            {opt}
+                            <Text style={[styles.pickerActiveChipText, { color: theme.accent }]}>
+                              {item}{picker.suffix || ''}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                setMultiSelected(multiSelected.filter((x) => x !== item));
+                              }}
+                              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            >
+                              <Feather name="x" size={12} color={theme.danger} />
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                        {multiSelected.length === 0 && (
+                          <Text style={{ fontSize: 11.5, color: theme.textFaint, fontStyle: 'italic', paddingVertical: 2 }}>
+                            Belum ada opsi terpilih. Ketuk preset di bawah atau ketik manual.
                           </Text>
-                          {isSelected && <Feather name="check" size={16} color={theme.accent} />}
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
+                        )}
+                      </View>
+                    </View>
+                  )}
 
-                  {picker.multi && (
+                  {/* Preset Options Grid */}
+                  <View style={{ maxHeight: 220 }}>
+                    <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                      <View style={styles.pickerChipsGrid}>
+                        {picker.options.map((opt) => {
+                          const isSelected = picker.multi
+                            ? multiSelected.includes(opt)
+                            : picker.currentValue === opt;
+                          return (
+                            <TouchableOpacity
+                              key={opt}
+                              style={[
+                                styles.pickerChipBtn,
+                                {
+                                  backgroundColor: isSelected ? theme.accentWash : theme.surfaceRaised,
+                                  borderColor: isSelected ? theme.accent : theme.border,
+                                },
+                              ]}
+                              onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                if (picker.multi) {
+                                  if (multiSelected.includes(opt)) {
+                                    setMultiSelected(multiSelected.filter((o) => o !== opt));
+                                  } else {
+                                    setMultiSelected([...multiSelected, opt]);
+                                  }
+                                } else {
+                                  picker.onSelect(opt);
+                                  setPicker(null);
+                                }
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              <Text
+                                style={[
+                                  styles.pickerChipText,
+                                  { color: isSelected ? theme.accent : theme.textPrimary },
+                                  isSelected && { fontWeight: '800' },
+                                ]}
+                              >
+                                {picker.prefix || ''}{opt}{picker.suffix || ''}
+                              </Text>
+                              {isSelected && <Feather name="check" size={13} color={theme.accent} style={{ marginLeft: 3 }} />}
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  </View>
+
+                  {/* Custom Input Row (Allows typing any custom focal length or value) */}
+                  <View style={[styles.pickerCustomRow, { borderTopColor: theme.border }]}>
+                    <TextInput
+                      style={[
+                        styles.pickerCustomInput,
+                        {
+                          backgroundColor: theme.surfaceRaised,
+                          borderColor: theme.border,
+                          color: theme.textPrimary,
+                        },
+                      ]}
+                      placeholder={`Input manual ${picker.title.toLowerCase()} (cth: 13, 24-70)...`}
+                      placeholderTextColor={theme.textFaint}
+                      value={customPickerInput}
+                      onChangeText={setCustomPickerInput}
+                      autoCapitalize="characters"
+                    />
                     <TouchableOpacity
-                      style={[styles.modalSaveBtn, { backgroundColor: theme.accent, marginTop: 12, height: 44 }]}
+                      style={[styles.pickerCustomBtn, { backgroundColor: theme.accent }]}
                       onPress={() => {
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        picker.onSelect(multiSelected.join(', '));
-                        setPicker(null);
+                        const clean = (picker.suffix ? customPickerInput.replace(new RegExp(picker.suffix, 'gi'), '') : customPickerInput).trim();
+                        if (!clean) return;
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        if (picker.multi) {
+                          if (!multiSelected.includes(clean)) {
+                            setMultiSelected([...multiSelected, clean]);
+                          }
+                          if (!picker.options.includes(clean)) {
+                            setPicker({ ...picker, options: [clean, ...picker.options] });
+                          }
+                          setCustomPickerInput('');
+                        } else {
+                          picker.onSelect(clean);
+                          setPicker(null);
+                        }
                       }}
+                      activeOpacity={0.75}
                     >
-                      <Text style={{ color: '#000', fontWeight: '800', fontSize: 13 }}>
-                        SIMPAN ({multiSelected.length} PILIHAN)
+                      <Text style={{ color: '#000', fontWeight: '800', fontSize: 12 }}>
+                        {picker.multi ? '+ Tambah' : 'Gunakan'}
                       </Text>
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Multi-Select Save / Close Button */}
+                  {picker.multi && (
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                      <TouchableOpacity
+                        style={[styles.modalCancelBtn, { flex: 1, borderColor: theme.border, height: 44 }]}
+                        onPress={() => setPicker(null)}
+                      >
+                        <Text style={{ color: theme.textSecondary, fontWeight: '700', fontSize: 13 }}>BATAL</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.modalSaveBtn, { flex: 2, backgroundColor: theme.accent, height: 44 }]}
+                        onPress={() => {
+                          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          picker.onSelect(multiSelected.join(', '));
+                          setPicker(null);
+                        }}
+                      >
+                        <Text style={{ color: '#000', fontWeight: '800', fontSize: 13.5 }}>
+                          SIMPAN ({multiSelected.length} PILIHAN)
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
-              </View>
+              </KeyboardAvoidingView>
             )}
           </SafeAreaView>
         )}
@@ -1324,10 +1517,10 @@ const styles = StyleSheet.create({
     elevation: 999,
   },
   pickerSheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderWidth: 1,
-    padding: 18,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderWidth: 1.5,
+    padding: 16,
     paddingBottom: 28,
     gap: 10,
   },
@@ -1335,14 +1528,98 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingBottom: 10,
+    paddingBottom: 8,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   pickerTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
     letterSpacing: 0.8,
+  },
+  pickerSubtitle: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  pickerCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerSelectedSection: {
+    gap: 6,
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  pickerSectionLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  pickerSelectedWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
+  },
+  pickerActiveChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  pickerActiveChipText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  pickerChipsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 7,
+    paddingVertical: 4,
+  },
+  pickerChipBtn: {
+    minHeight: 38,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pickerChipText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  pickerCustomRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+  },
+  pickerCustomInput: {
+    flex: 1,
+    height: 42,
+    borderRadius: 8,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    fontSize: 12.5,
+  },
+  pickerCustomBtn: {
+    height: 42,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pickerOption: {
     flexDirection: 'row',

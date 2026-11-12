@@ -314,7 +314,10 @@ export const QuickPresets: React.FC = () => {
           </Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-          {meta.lenses.map((lens) => {
+          {Array.from(new Set([
+            ...meta.lenses.map((l) => l.replace(/mm/gi, '').trim()),
+            ...(currentTargetLens ? currentTargetLens.split(/,\s*|\/\s*|\+\s*/).map((l) => l.replace(/mm/gi, '').trim()) : []),
+          ])).filter(Boolean).map((lens) => {
             const currentLensList = (currentTargetLens || '')
               .split(/,\s*|\/\s*|\+\s*/)
               .map((l) => l.replace(/mm/gi, '').trim())
