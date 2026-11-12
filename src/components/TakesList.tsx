@@ -27,6 +27,10 @@ export const TakesList: React.FC = () => {
   const [filterDay, setFilterDay] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<TakeEntry | null>(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [slateInput, setSlateInput] = useState('');
+  const [dayInput, setDayInput] = useState('');
+  const [takeInput, setTakeInput] = useState('');
 
   const [picker, setPicker] = useState<{
     title: string;
@@ -117,6 +121,7 @@ export const TakesList: React.FC = () => {
         onPress: async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           await deleteTake(id);
+          setIsEditOpen(false);
           setEditing(null);
         },
       },
@@ -221,7 +226,15 @@ export const TakesList: React.FC = () => {
     if (!editing) return;
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      let payload = { ...editing };
+      const finalSlate = parseInt(slateInput, 10) || editing.slate || 1;
+      const finalDay = parseInt(dayInput, 10) || editing.day || 1;
+      const finalTake = parseInt(takeInput, 10) || editing.take || 1;
+      let payload = {
+        ...editing,
+        slate: finalSlate,
+        day: finalDay,
+        take: finalTake,
+      };
       if (payload.cameras && payload.cameras.length > 1) {
         payload.camera = payload.cameras.map((c) => c.camera.split(' ')[0]).join(' ');
         payload.card = payload.cameras.map((c) => c.card).join(' ');
@@ -247,6 +260,7 @@ export const TakesList: React.FC = () => {
         }];
       }
       await updateTake(editing.id, payload);
+      setIsEditOpen(false);
       setEditing(null);
       Alert.alert('Sukses', 'Perubahan take berhasil disimpan!');
     } catch (e) {
@@ -366,6 +380,10 @@ export const TakesList: React.FC = () => {
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setEditing({ ...item });
+              setSlateInput(String(item.slate));
+              setDayInput(String(item.day || 1));
+              setTakeInput(String(item.take));
+              setIsEditOpen(true);
             }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
@@ -529,87 +547,139 @@ export const TakesList: React.FC = () => {
       />
 
       {/* FULL WORKING EDIT MODAL */}
-      <Modal visible={!!editing} animationType="slide" transparent={false} onRequestClose={() => setEditing(null)}>
-        {editing && (
-          <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.bg }]}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-              style={{ flex: 1 }}
-            >
-              {/* Modal Top Header Bar */}
-              <View style={[styles.modalTopHeader, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
-                <View>
-                  <Text style={[styles.modalMainTitle, { color: theme.textPrimary }]}>EDIT DATA TAKE</Text>
-                  <Text style={[styles.modalSubTitle, { color: theme.accent }]}>
-                    SLATE {editing.slate} · SCENE {editing.scene} · TAKE {editing.take}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.modalCloseIconBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
-                  onPress={() => setEditing(null)}
-                >
-                  <Feather name="x" size={16} color={theme.textSecondary} />
-                </TouchableOpacity>
-              </View>
-
-              {/* Scrollable Form Body */}
-              <ScrollView
-                style={styles.modalScroll}
-                contentContainerStyle={styles.modalScrollContent}
-                keyboardShouldPersistTaps="handled"
+      <Modal
+        visible={isEditOpen}
+        animationType="slide"
+        transparent={true}
+        statusBarTranslucent
+        onRequestClose={() => setIsEditOpen(false)}
+        onDismiss={() => {
+          setEditing(null);
+        }}
+      >
+        <View style={[styles.modalBackdrop, { backgroundColor: theme.bg }]}>
+          {editing && (
+            <SafeAreaView style={[styles.modalSafeArea, { backgroundColor: theme.bg }]}>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                style={{ flex: 1 }}
               >
-                {/* SLATE & DAY ROW */}
-                <View style={styles.modalGrid}>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SLATE NUMBER</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.accent, fontWeight: '800' }]}
-                      value={String(editing.slate)}
-                      keyboardType="numeric"
-                      onChangeText={(t) => setEditing({ ...editing, slate: parseInt(t) || 1 })}
-                    />
+                {/* Modal Top Header Bar */}
+                <View style={[styles.modalTopHeader, { borderBottomColor: theme.border, backgroundColor: theme.surface }]}>
+                  <View>
+                    <Text style={[styles.modalMainTitle, { color: theme.textPrimary }]}>EDIT DATA TAKE</Text>
+                    <Text style={[styles.modalSubTitle, { color: theme.accent }]}>
+                      SLATE {editing.slate} · SCENE {editing.scene} · TAKE {editing.take}
+                    </Text>
                   </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>DAY / HARI KE</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={String(editing.day || 1)}
-                      keyboardType="numeric"
-                      onChangeText={(t) => setEditing({ ...editing, day: parseInt(t) || 1 })}
-                    />
-                  </View>
+                  <TouchableOpacity
+                    style={[styles.modalCloseIconBtn, { backgroundColor: theme.surfaceRaised, borderColor: theme.border }]}
+                    onPress={() => setIsEditOpen(false)}
+                  >
+                    <Feather name="x" size={16} color={theme.textSecondary} />
+                  </TouchableOpacity>
                 </View>
 
-                {/* SCENE, SHOT, TAKE ROW */}
-                <View style={styles.modalGrid}>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SCENE</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.scene}
-                      autoCapitalize="characters"
-                      onChangeText={(t) => setEditing({ ...editing, scene: t })}
-                    />
+                {/* Scrollable Form Body */}
+                <ScrollView
+                  style={styles.modalScroll}
+                  contentContainerStyle={styles.modalScrollContent}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {/* SLATE & DAY ROW */}
+                  <View style={styles.modalGrid}>
+                    <View style={styles.modalField}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>SLATE NUMBER</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.accent, fontWeight: '800' }]}
+                        value={slateInput}
+                        keyboardType="numeric"
+                        placeholder="1"
+                        placeholderTextColor={theme.textFaint}
+                        onChangeText={(t) => {
+                          const clean = t.replace(/[^0-9]/g, '');
+                          setSlateInput(clean);
+                          if (clean !== '') {
+                            setEditing({ ...editing, slate: parseInt(clean, 10) });
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!slateInput || parseInt(slateInput, 10) < 1) {
+                            setSlateInput('1');
+                            setEditing({ ...editing, slate: 1 });
+                          }
+                        }}
+                      />
+                    </View>
+                    <View style={styles.modalField}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>DAY / HARI KE</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                        value={dayInput}
+                        keyboardType="numeric"
+                        placeholder="1"
+                        placeholderTextColor={theme.textFaint}
+                        onChangeText={(t) => {
+                          const clean = t.replace(/[^0-9]/g, '');
+                          setDayInput(clean);
+                          if (clean !== '') {
+                            setEditing({ ...editing, day: parseInt(clean, 10) });
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!dayInput || parseInt(dayInput, 10) < 1) {
+                            setDayInput('1');
+                            setEditing({ ...editing, day: 1 });
+                          }
+                        }}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHOT</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
-                      value={editing.shot}
-                      autoCapitalize="characters"
-                      onChangeText={(t) => setEditing({ ...editing, shot: t })}
-                    />
+
+                  {/* SCENE, SHOT, TAKE ROW */}
+                  <View style={styles.modalGrid}>
+                    <View style={styles.modalField}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>SCENE</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                        value={editing.scene}
+                        autoCapitalize="characters"
+                        onChangeText={(t) => setEditing({ ...editing, scene: t })}
+                      />
+                    </View>
+                    <View style={styles.modalField}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>SHOT</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.textPrimary }]}
+                        value={editing.shot}
+                        autoCapitalize="characters"
+                        onChangeText={(t) => setEditing({ ...editing, shot: t })}
+                      />
+                    </View>
+                    <View style={styles.modalField}>
+                      <Text style={[styles.subLbl, { color: theme.textFaint }]}>TAKE</Text>
+                      <TextInput
+                        style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.accent, fontWeight: '800' }]}
+                        value={takeInput}
+                        keyboardType="numeric"
+                        placeholder="1"
+                        placeholderTextColor={theme.textFaint}
+                        onChangeText={(t) => {
+                          const clean = t.replace(/[^0-9]/g, '');
+                          setTakeInput(clean);
+                          if (clean !== '') {
+                            setEditing({ ...editing, take: parseInt(clean, 10) });
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!takeInput || parseInt(takeInput, 10) < 1) {
+                            setTakeInput('1');
+                            setEditing({ ...editing, take: 1 });
+                          }
+                        }}
+                      />
+                    </View>
                   </View>
-                  <View style={styles.modalField}>
-                    <Text style={[styles.subLbl, { color: theme.textFaint }]}>TAKE</Text>
-                    <TextInput
-                      style={[styles.modalInput, { backgroundColor: theme.surfaceRaised, borderColor: theme.border, color: theme.accent, fontWeight: '800' }]}
-                      value={String(editing.take)}
-                      keyboardType="numeric"
-                      onChangeText={(t) => setEditing({ ...editing, take: parseInt(t) || 1 })}
-                    />
-                  </View>
-                </View>
 
                 {/* LOC (INT/EXT) & LIGHT (DAY/NIGHT) */}
                 <View style={styles.modalGrid}>
@@ -946,7 +1016,7 @@ export const TakesList: React.FC = () => {
 
                   <TouchableOpacity
                     style={[styles.modalCancelBtn, { borderColor: theme.border }]}
-                    onPress={() => setEditing(null)}
+                    onPress={() => setIsEditOpen(false)}
                   >
                     <Text style={{ color: theme.textSecondary, fontWeight: '700', fontSize: 13 }}>BATAL</Text>
                   </TouchableOpacity>
@@ -1166,6 +1236,7 @@ export const TakesList: React.FC = () => {
             )}
           </SafeAreaView>
         )}
+        </View>
       </Modal>
     </View>
   );
@@ -1346,6 +1417,9 @@ const styles = StyleSheet.create({
   emptyDesc: { fontSize: 12, textAlign: 'center' },
 
   // Edit Modal Styles
+  modalBackdrop: {
+    flex: 1,
+  },
   modalSafeArea: {
     flex: 1,
   },

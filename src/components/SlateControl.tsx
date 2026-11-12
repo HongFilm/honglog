@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Feather } from '@expo/vector-icons';
@@ -60,6 +60,17 @@ export const SlateControl: React.FC = () => {
 
   const dayTakes = takes.filter((t) => t.day === selectedDay);
 
+  const [slateDraft, setSlateDraft] = useState(String(form.slate));
+  const [takeDraft, setTakeDraft] = useState(String(form.take));
+
+  useEffect(() => {
+    setSlateDraft(String(form.slate));
+  }, [form.slate]);
+
+  useEffect(() => {
+    setTakeDraft(String(form.take));
+  }, [form.take]);
+
   const renderStepper = (
     label: string,
     value: string,
@@ -67,7 +78,8 @@ export const SlateControl: React.FC = () => {
     onPlus: () => void,
     onChange: (text: string) => void,
     numeric: boolean,
-    accent: boolean
+    accent: boolean,
+    onBlur?: () => void
   ) => {
     const valLen = value.length;
     const dynamicFontSize = valLen >= 4 ? 13 : valLen === 3 ? 15 : 18;
@@ -109,6 +121,9 @@ export const SlateControl: React.FC = () => {
             autoCapitalize="characters"
             value={value}
             onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder={numeric ? '1' : undefined}
+            placeholderTextColor={theme.textFaint}
             multiline={false}
             numberOfLines={1}
             scrollEnabled={false}
@@ -205,12 +220,24 @@ export const SlateControl: React.FC = () => {
       <View style={styles.gridRow2x2}>
         {renderStepper(
           'SLATE',
-          String(form.slate),
+          slateDraft,
           () => incrementSlate(-1),
           () => incrementSlate(1),
-          (t) => setForm({ slate: parseInt(t) || 1 }),
+          (t) => {
+            const clean = t.replace(/[^0-9]/g, '');
+            setSlateDraft(clean);
+            if (clean !== '') {
+              setForm({ slate: parseInt(clean, 10) });
+            }
+          },
           true,
-          false
+          false,
+          () => {
+            if (!slateDraft || parseInt(slateDraft, 10) < 1) {
+              setSlateDraft('1');
+              setForm({ slate: 1 });
+            }
+          }
         )}
         {renderStepper(
           'SCENE',
@@ -264,12 +291,24 @@ export const SlateControl: React.FC = () => {
         )}
         {renderStepper(
           'TAKE',
-          String(form.take),
+          takeDraft,
           () => incrementTake(-1),
           () => incrementTake(1),
-          (t) => setForm({ take: parseInt(t) || 1 }),
+          (t) => {
+            const clean = t.replace(/[^0-9]/g, '');
+            setTakeDraft(clean);
+            if (clean !== '') {
+              setForm({ take: parseInt(clean, 10) });
+            }
+          },
           true,
-          true
+          true,
+          () => {
+            if (!takeDraft || parseInt(takeDraft, 10) < 1) {
+              setTakeDraft('1');
+              setForm({ take: 1 });
+            }
+          }
         )}
       </View>
 
