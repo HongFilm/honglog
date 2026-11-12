@@ -8,7 +8,7 @@ const STORAGE_KEY_PROJECTS = '@honglog_projects_v2';
 const STORAGE_KEY_ACTIVE_PROJECT = '@honglog_active_project_v2';
 
 export const defaultMeta: ProductionMeta = {
-  production: 'Hong Films Project',
+  production: 'Hong Films Industry',
   prodNumber: '01',
   director: '',
   dop: '',
@@ -254,6 +254,19 @@ export const useHonglogStore = create<HonglogStore>((set, get) => ({
         activeId = defaultProject.id;
         await AsyncStorage.setItem(STORAGE_KEY_PROJECTS, JSON.stringify(projects));
         await AsyncStorage.setItem(STORAGE_KEY_ACTIVE_PROJECT, activeId);
+      } else {
+        projects = projects.map((p) => {
+          if (!p.meta.production || p.meta.production === 'Hong Films Project' || p.meta.production === 'Hong Films Production') {
+            return {
+              ...p,
+              meta: {
+                ...p.meta,
+                production: 'Hong Films Industry',
+              },
+            };
+          }
+          return p;
+        });
       }
 
       const activeProject = projects.find((p) => p.id === activeId) || projects[0];

@@ -241,7 +241,7 @@ export const ProjectSetup: React.FC = () => {
   const handleSave = async () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await updateMeta({
-      production: production.trim() || 'Hong Films Production',
+      production: production.trim() || 'Hongfilms Industry',
       prodNumber,
       director,
       dop,

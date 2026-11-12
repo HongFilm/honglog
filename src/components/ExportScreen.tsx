@@ -156,7 +156,7 @@ export const ExportScreen: React.FC = () => {
       <View style={[styles.summaryBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <View style={styles.sumRow}>
           <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Produksi:</Text>
-          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{meta.production || 'Hong Films Project'}</Text>
+          <Text style={[styles.sumVal, { color: theme.textPrimary }]}>{meta.production || 'Hongfilms Industry'}</Text>
         </View>
         <View style={styles.sumRow}>
           <Text style={[styles.sumLabel, { color: theme.textFaint }]}>Total Slate:</Text>

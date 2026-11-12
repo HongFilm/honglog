@@ -180,7 +180,9 @@ function MainApp() {
           <View>
             <Text style={[styles.appTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
             <Text style={[styles.prodSubtitle, { color: theme.accent }]} numberOfLines={1}>
-              {meta.production || 'Hong Films Production'}
+              {(!meta.production || meta.production === 'Hong Films Project' || meta.production === 'Hong Films Production')
+                ? 'Hongfilms Industry'
+                : meta.production}
             </Text>
           </View>
         </View>
