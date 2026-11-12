@@ -64,16 +64,25 @@ function MainApp() {
   const [showSplash, setShowSplash] = useState(true);
   const splashOpacity = useRef(new Animated.Value(1)).current;
   const splashScale = useRef(new Animated.Value(1)).current;
-  const logoScale = useRef(new Animated.Value(0.95)).current;
+  const splashContentFade = useRef(new Animated.Value(0)).current;
+  const splashContentScale = useRef(new Animated.Value(0.92)).current;
 
-  // Cinematic Splash Entrance - Icon starts immediately together with background
+  // Cinematic Splash Entrance - Soft fade-in and smooth cubic scale
   useEffect(() => {
-    Animated.spring(logoScale, {
-      toValue: 1,
-      friction: 8,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
+    Animated.parallel([
+      Animated.timing(splashContentFade, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(splashContentScale, {
+        toValue: 1,
+        duration: 750,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
   const tabs: { key: Tab; label: string; icon: 'film' | 'list' | 'sliders' | 'share-2' }[] = [
@@ -115,20 +124,20 @@ function MainApp() {
         Animated.parallel([
           Animated.timing(splashOpacity, {
             toValue: 0,
-            duration: 500,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+            duration: 600,
+            easing: Easing.bezier(0.22, 1, 0.36, 1),
             useNativeDriver: true,
           }),
           Animated.timing(splashScale, {
-            toValue: 1.05,
-            duration: 500,
-            easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+            toValue: 1.04,
+            duration: 600,
+            easing: Easing.bezier(0.22, 1, 0.36, 1),
             useNativeDriver: true,
           }),
         ]).start(() => {
           setShowSplash(false);
         });
-      }, 900);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [isHydrated]);
@@ -180,8 +189,8 @@ function MainApp() {
           <View>
             <Text style={[styles.appTitle, { color: theme.textPrimary }]}>HONGLOG</Text>
             <Text style={[styles.prodSubtitle, { color: theme.accent }]} numberOfLines={1}>
-              {(!meta.production || meta.production === 'Hong Films Project' || meta.production === 'Hong Films Production')
-                ? 'Hongfilms Industry'
+              {(!meta.production || meta.production === 'Hong Films Project' || meta.production === 'Hong Films Production' || meta.production === 'Hongfilms Industry')
+                ? 'Honglog Industry'
                 : meta.production}
             </Text>
           </View>
@@ -323,7 +332,8 @@ function MainApp() {
             style={[
               styles.splashCenter,
               {
-                transform: [{ scale: logoScale }],
+                opacity: splashContentFade,
+                transform: [{ scale: splashContentScale }],
               },
             ]}
           >
@@ -335,18 +345,9 @@ function MainApp() {
               />
             </View>
             <Text style={styles.splashTitle}>HONGLOG</Text>
-            <Text style={styles.splashSub}>DIGITAL CAMERA REPORT & SLATE</Text>
+            <Text style={styles.splashSub}>HONGLOG INDUSTRY</Text>
+            <Text style={styles.splashTagline}>DIGITAL CAMERA REPORT & SLATE</Text>
           </Animated.View>
-          <View
-            style={[
-              styles.splashFooter,
-              {
-                paddingBottom: Math.max(insets.bottom, 24),
-              },
-            ]}
-          >
-            <Text style={styles.splashBy}>HONG FILMS</Text>
-          </View>
         </Animated.View>
       )}
     </View>
@@ -493,10 +494,10 @@ const styles = StyleSheet.create({
     color: '#000',
   },
 
-  // Splash Screen Styles
+  // Splash Screen Styles - Centered Cinematic Hero
   splashOverlay: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: '#000000',
+    backgroundColor: '#09090C',
     zIndex: 99999,
     justifyContent: 'center',
     alignItems: 'center',
@@ -504,51 +505,47 @@ const styles = StyleSheet.create({
   splashCenter: {
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
   splashLogoWrap: {
-    width: 104,
-    height: 104,
-    borderRadius: 24,
-    backgroundColor: '#121215',
+    width: 112,
+    height: 112,
+    borderRadius: 28,
+    backgroundColor: '#131318',
     borderWidth: 1.5,
     borderColor: 'rgba(229, 57, 53, 0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     shadowColor: THEME.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 20,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 24,
+    elevation: 16,
   },
   splashLogo: {
-    width: 96,
-    height: 96,
-    borderRadius: 20,
+    width: 102,
+    height: 102,
+    borderRadius: 24,
   },
   splashTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '900',
     color: '#FFFFFF',
-    letterSpacing: 4,
+    letterSpacing: 5,
+    marginBottom: 4,
   },
   splashSub: {
-    fontSize: 10,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     color: THEME.accent,
     fontFamily: THEME.fontMono,
+    letterSpacing: 3,
+    marginBottom: 8,
+  },
+  splashTagline: {
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#6E6E78',
     letterSpacing: 2,
-  },
-  splashFooter: {
-    position: 'absolute',
-    bottom: 0,
-    alignItems: 'center',
-  },
-  splashBy: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#555555',
-    letterSpacing: 2.5,
   },
 });
